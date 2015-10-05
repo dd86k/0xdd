@@ -1,8 +1,9 @@
 # 0xDD
 ## Hexadecimal Console File Viewer
 
-(Early screenshot)
 ![Screenshot](http://didi.wilomgfx.net/p/0xdd1.png)
+
+(Early screenshot)
 
 0xDD is a straightforward, nano-like, hexadecimal file viewer.
 
