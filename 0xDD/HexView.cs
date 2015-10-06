@@ -30,6 +30,11 @@ namespace ConHexView
                 get; set;
             }
 
+            static internal long Length
+            {
+                get; set;
+            }
+
             static internal string Filename
             {
                 get
@@ -57,11 +62,6 @@ namespace ConHexView
         /// Current <see cref="OffsetViewMode"/> mode.
         /// </summary>
         static OffsetViewMode CurrentOffsetViewMode;
-
-        /// <summary>
-        /// Length of the current file.
-        /// </summary>
-        static long FileLength = 0;
 
         /// <summary>
         /// Offset height.
@@ -111,6 +111,7 @@ namespace ConHexView
 
             UpdateTitleMap();
             UpdateOffsetMap();
+            UpdateInfoMap();
             PlaceControlMap();
 
             Read();
@@ -137,16 +138,17 @@ namespace ConHexView
         /// <param name="pBaseOffset">Position.</param>
         static void Read(int pBaseOffset)
         {
+            //TODO: Do smart reading to kill the input lag (you know)
+
             using (StreamReader sr = new StreamReader(CurrentFile.Path))
             {
                 sr.BaseStream.Position = pBaseOffset;
-                FileLength = sr.BaseStream.Length;
+                CurrentFile.Length = sr.BaseStream.Length;
 
                 for (int y = 0; y < OffsetHeight; y++)
                 {
                     for (int x = 0; x < 16; x++)
                     {
-                        //TODO: Improve buffer usage (Fix unecessary 0xFF's)
                         Buffer[y, x] = (byte)sr.Read();
                     }
                 }
@@ -167,42 +169,64 @@ namespace ConHexView
                     return false;
 
                 case ConsoleKey.X:
-                    //if ((cki.Modifiers & ConsoleModifiers.Control) != 0)
                     if (cki.Modifiers == ConsoleModifiers.Control)
-                    {
                         return Exit();
-                    }
+                    break;
+
+                case ConsoleKey.I:
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                        //TODO: Better Info function
+                        Message($"Size: {CurrentFile.Length}");
                     break;
 
                 case ConsoleKey.Home:
                     CurrentOffset = 0;
+                    ReadAndUpdate(CurrentOffset);
                     break;
                 case ConsoleKey.End:
-                    CurrentOffset = (int)FileLength - OffsetHeight;
+                    CurrentOffset = (int)CurrentFile.Length - OffsetHeight;
+                    ReadAndUpdate(CurrentOffset);
                     break;
 
                 case ConsoleKey.PageUp:
                     if (CurrentOffset - SCROLL_PAGE >= 0)
+                    {
                         CurrentOffset -= SCROLL_PAGE;
+                        ReadAndUpdate(CurrentOffset);
+                    }
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentOffset + SCROLL_PAGE < FileLength)
+                    if (CurrentOffset + SCROLL_PAGE < CurrentFile.Length)
+                    {
                         CurrentOffset += SCROLL_PAGE;
+                        ReadAndUpdate(CurrentOffset);
+                    }
                     break;
                     
                 case ConsoleKey.UpArrow:
                     if (CurrentOffset - SCROLL_LINE >= 0)
+                    {
                         CurrentOffset -= SCROLL_LINE;
+                        ReadAndUpdate(CurrentOffset);
+                    }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentOffset + SCROLL_LINE < FileLength)
+                    if (CurrentOffset + SCROLL_LINE < CurrentFile.Length)
+                    {
                         CurrentOffset += SCROLL_LINE;
+                        ReadAndUpdate(CurrentOffset);
+                    }
                     break;
             }
 
-            Read(CurrentOffset);
-
             return true;
+        }
+
+        static void ReadAndUpdate(int pOffset)
+        {
+            Read(pOffset);
+            UpdateMainScreen();
+            UpdateInfoMap();
         }
 
         /// <summary>
@@ -211,6 +235,11 @@ namespace ConHexView
         static void UpdateMainScreen()
         {
             SetCursorPosition(0, 2);
+
+            //TODO: Find a way to stop rendering before total length
+            // Hint:
+            // CurrentOffset [+ index] <= CurrentFile.Length
+
             for (int y = 0; y < OffsetHeight; y++)
             {
                 switch (CurrentOffsetViewMode)
@@ -221,14 +250,14 @@ namespace ConHexView
                         break;
                     case OffsetViewMode.Decimal:
                         //       16
-                        Write($"{(y * 10) + CurrentOffset, 8}  ");
+                        Write($"{(y * 16) + CurrentOffset, 8}  ");
                         break;
                     case OffsetViewMode.Octal:
                         //       20
-                        Write($"{Convert.ToString((y * 8) + CurrentOffset, 8)}  ");
+                        Write($"{Convert.ToString((y * 16) + CurrentOffset, 8), 8}  ");
                         break;
                 }
-                
+
 
                 for (int x = 0; x < 16; x++)
                 {
@@ -244,8 +273,6 @@ namespace ConHexView
 
                 WriteLine();
             }
-
-            UpdateInfoMap();
         }
 
         /// <summary>
@@ -278,7 +305,8 @@ namespace ConHexView
         static void UpdateInfoMap()
         {
             SetCursorPosition(0, WindowHeight - 3);
-            Write($"{NAME_OFFSET} (DEC): {CurrentOffset, -12} {NAME_OFFSET} (HEX): {CurrentOffset.ToString("X8"), 8}  {NAME_OFFSET} (OCT): {Convert.ToString(CurrentOffset, 8), -10}");
+            // CAN'T THIS LINE BE ANY LONGER?
+            Write($"{NAME_OFFSET} (DEC): {CurrentOffset, -10} | {NAME_OFFSET} (HEX): {CurrentOffset.ToString("X8")} | {NAME_OFFSET} (OCT): {Convert.ToString(CurrentOffset, 8), -10}");
         }
 
         /// <summary>
@@ -357,7 +385,14 @@ namespace ConHexView
         /// <param name="pMessage">Message to show.</param>
         static void Message(string pMessage)
         {
-            //TODO: void Message(string)
+            string msg = $"[ {pMessage} ]";
+
+            SetCursorPosition((WindowWidth / 2) - (msg.Length / 2), WindowHeight - 3);
+            ToggleColors();
+
+            Write(msg);
+
+            ResetColor();
         }
 
         static int ReadValue()
@@ -374,11 +409,7 @@ namespace ConHexView
         /// <remarks>It's false due to the while loop.</remarks>
         static bool Exit()
         {
-            // Past characters are still on screen:
-            WriteLine();
-            WriteLine();
-            // Or: Clear screen
-            //Clear();
+            Clear();
 
             return false;
         }

@@ -11,4 +11,4 @@
 
 Written in C# 6.0 on .NET 4.5 with Visual Studio 2015.
 
-Untested with Mono.
+Compatible with Mono.

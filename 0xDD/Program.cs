@@ -51,15 +51,36 @@ namespace ConHexView
         {
             if (args.Length == 0)
             {
+                // Future reminder:
+                // New buffer in editing mode if no arguments
                 ShowHelp();
                 return 0;
             }
 
-            //TODO: Treat arguments
-            // -V/--offsetview [h]exa/[d]ecimal/[o]ctal
+            HexView.OffsetViewMode ovm = HexView.OffsetViewMode.Hexadecimal;
             for (int i = 0; i < args.Length; i++)
             {
-
+                switch (args[i])
+                {
+                    case "-v":
+                    case "/v":
+                        switch (args[i + 1])
+                        {
+                            case "h":
+                                // Default, so do nothing.
+                                break;
+                            case "d":
+                                ovm = HexView.OffsetViewMode.Decimal;
+                                break;
+                            case "o":
+                                ovm = HexView.OffsetViewMode.Octal;
+                                break;
+                            default:
+                                WriteLine($"Aborted: {args[i + 1]} is invalid for -v");
+                                return 1;
+                        }
+                        break;
+                }
             }
             
             string file = args[args.Length - 1];
@@ -69,7 +90,7 @@ namespace ConHexView
                 Clear();
                 try
                 {
-                    HexView.Open(file);
+                    HexView.Open(file, ovm);
                 }
                 catch (Exception e)
                 {
@@ -92,7 +113,9 @@ namespace ConHexView
             //         1       10        20        30        40        50        60        70        80
             //         |--------|---------|---------|---------|---------|---------|---------|---------|
             WriteLine(" Usage:");
-            WriteLine($"  {CurrentFilenameWithoutExtension} [options] <file>");
+            WriteLine($"  {CurrentFilenameWithoutExtension} [-v {{h|d|o}}] <file>");
+            WriteLine();
+            WriteLine("  -v     Changes the offset view between hex, dec, or oct.");
             WriteLine();
             WriteLine("  /help, /?   Shows this screen and exits.");
             WriteLine("  /version    Shows version and exits.");
