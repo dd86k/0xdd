@@ -6,6 +6,21 @@ using static System.IO.Path;
 
 //TODO: Edit mode
 
+/*
+    Box of ideas (Lazy TODO list)
+    - --scrollable (BufferHeight) (if possible)
+    - currenfile fileinfo
+    - --dump
+    - Scrollbar (-ish)
+    - Top right: Insert(INS)/Overwrite(OVR)
+    - Help section (F1)
+    - Search: /regex/ (Begins with && ends with)
+    - Info: Lines, Length
+    - no args -> empty buffer
+    - Message() -> [ Example message! ]
+    - Message(ProgressBar=bool) -> Progress bar (Dump) -> [ Done! ]
+*/
+
 namespace ConHexView
 {
     static class HexView
@@ -166,7 +181,7 @@ namespace ConHexView
             switch (cki.Key)
             {
                 case ConsoleKey.Escape:
-                    return false;
+                    return Exit();
 
                 case ConsoleKey.X:
                     if (cki.Modifiers == ConsoleModifiers.Control)
@@ -399,6 +414,21 @@ namespace ConHexView
         {
             //TODO: int ReadValue()
             throw new NotImplementedException();
+        }
+
+        static void Dump()
+        {
+            //TODO: Finish void Dump()
+            using (StreamWriter sw = new StreamWriter($"{CurrentFile.Filename}.txt"))
+            {
+                sw.WriteLine(CurrentFile.Filename);
+                sw.WriteLine();
+
+                using (StreamReader sr = new StreamReader(CurrentFile.Path))
+                {
+
+                }
+            }
         }
 
         /// <summary>
