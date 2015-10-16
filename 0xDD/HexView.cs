@@ -67,6 +67,8 @@ namespace ConHexView
         /// </summary>
         static int ElementsWidth = 16;
 
+        static int FrameCapacity = ElementsWidth * FrameHeight;
+
         static byte[] Buffer = new byte[0];
         #endregion
 
@@ -100,16 +102,17 @@ namespace ConHexView
 
             CurrentOffsetViewMode = pOffsetViewMode;
 
+            Read();
+
             UpdateTitleMap();
             PlaceOffsetMap();
+            UpdateMainScreen();
             UpdateInfoMap();
             PlaceMainControlMap();
 
-            Read();
-
             do
             {
-                //UpdateMainScreen();
+
             } while (ReadUserKey());
         }
         #endregion
@@ -137,7 +140,7 @@ namespace ConHexView
                     sr.BaseStream.Length < ElementsWidth * FrameHeight ?
                     (int)sr.BaseStream.Length :
                     ElementsWidth * FrameHeight;
-            
+
                 Buffer = new byte[len];
 
                 for (int x = 0; x < len; x++)
@@ -155,7 +158,7 @@ namespace ConHexView
         {
             ConsoleKeyInfo cki = ReadKey(true);
 
-            switch (ReadKey(true).Key)
+            switch (cki.Key)
             {
                 case ConsoleKey.Escape:
                     return Exit();
@@ -171,6 +174,7 @@ namespace ConHexView
                         Message($"Size: {CurrentFile.Length}");
                     break;
 
+                // -- Nagivation --
                 case ConsoleKey.Home:
                     CurrentFileOffset = 0;
                     ReadAndUpdate(CurrentFileOffset);
@@ -233,12 +237,6 @@ namespace ConHexView
         static void UpdateMainScreen()
         {
             int buflen = Buffer.Length;
-            int blocks = (buflen / ElementsWidth);
-
-            int lines = blocks > 1 ?
-                blocks : blocks + 1;
-
-            int FrameLength = ElementsWidth * FrameHeight;
 
             int BufferOffsetHex = 0;
             int BufferOffsetData = 0;
@@ -254,7 +252,7 @@ namespace ConHexView
                         break;
 
                     case OffsetViewMode.Decimal:
-                        Write($"{(line * ElementsWidth) + CurrentFileOffset.ToString("00000000")}  ");
+                        Write($"{((line * ElementsWidth) + CurrentFileOffset).ToString("00000000")}  ");
                         break;
 
                     case OffsetViewMode.Octal:
@@ -265,9 +263,9 @@ namespace ConHexView
                 for (int x = 0; x < ElementsWidth; x++)
                 {
                     if (CurrentFileOffset + BufferOffsetData < buflen)
-                        Write($"{Buffer[CurrentFileOffset + BufferOffsetData].ToString("X2")} ");
+                        Write($"{Buffer[BufferOffsetData].ToString("X2")} ");
                     else
-                        Write(" ");
+                        Write("   ");
 
                     BufferOffsetData++;
                 }
@@ -277,7 +275,7 @@ namespace ConHexView
                 for (int x = 0; x < ElementsWidth; x++)
                 {
                     if (CurrentFileOffset + BufferOffsetHex < buflen)
-                        Write($"{Buffer[CurrentFileOffset + BufferOffsetHex].ToSafeChar()}");
+                        Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
                     else
                         Write(" ");
 
@@ -286,71 +284,6 @@ namespace ConHexView
 
                 WriteLine();
             }
-
-            /*
-            SetCursorPosition(0, 2);
-
-            //TODO: Find a way to stop rendering before total length
-            // Hint:
-            // CurrentOffset [+ index] <= CurrentFile.Length
-
-            for (int i = 0; i < lines; i++)
-            {
-                switch (CurrentOffsetViewMode)
-                {
-                    case OffsetViewMode.Hexadecimal:
-                        // 00000010
-                        Write($"{((i * ElementsWidth) + CurrentFileOffset).ToString("X8")}  ");
-                        break;
-                    case OffsetViewMode.Decimal:
-                        // 00000016
-                        Write($"{(i * ElementsWidth) + CurrentFileOffset.ToString("00000000")}  ");
-                        break;
-                    case OffsetViewMode.Octal:
-                        //       20
-                        Write($"{Convert.ToString((i * ElementsWidth) + CurrentFileOffset, 8), 8}  ");
-                        break;
-                }
-
-                int x = 0;
-
-                //TODO: for(;;)?
-                while (x < ElementsWidth)
-                {
-                    if (CurrentFileOffset + BufferOffsetHex < buflen)
-                    {
-                        Write($"{Buffer[CurrentFileOffset + BufferOffsetHex].ToString("X2")} ");
-                    }
-                    else
-                    {
-                        Write("   ");
-                    }
-
-                    x++;
-                    BufferOffsetHex++;
-                }
-
-                Write(" ");
-                 
-                x = 0;
-
-                //TODO: for(;;)?
-                while (x < ElementsWidth)
-                {
-                    if (CurrentFileOffset + BufferOffsetHex < buflen)
-                    {
-                        Write($"{Buffer[CurrentFileOffset + BufferOffsetData].ToChar()}");
-                    }
-                    else
-                        x += ElementsWidth;
-
-                    x++;
-                    BufferOffsetData++;
-                }
-
-                WriteLine();
-            }
-            */
         }
 
         /// <summary>
@@ -503,7 +436,7 @@ namespace ConHexView
         /// The user is exiting the application.
         /// So we prepare the departure.
         /// </summary>
-        /// <returns>Always true.</returns>
+        /// <returns>Always false.</returns>
         /// <remarks>It's false due to the while loop.</remarks>
         static bool Exit()
         {
