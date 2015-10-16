@@ -29,28 +29,45 @@ namespace ConHexView
         const int SCROLL_LINE = 0x10;
         const int SCROLL_SECTION = 0x80;
         const int SCROLL_PAGE = 0x0100;
+
+        /// <example>
+        /// Offset (HEX): 000000A0
+        /// </example>
         const string NAME_OFFSET = "Offset";
+
+        /// <summary>
+        /// Extension of data dump files.
+        /// </summary>
+        const string NAME_EXTENSION = "datdmp";
         #endregion
 
         #region Properties
         /// <summary>
-        /// Index.
+        /// Current offset in the file.
         /// </summary>
-        static int CurrentOffset = 0;
+        static int CurrentFileOffset = 0;
 
+        /// <summary>
+        /// Information about the current file.
+        /// </summary>
         static FileInfo CurrentFile;
 
         /// <summary>
-        /// Current <see cref="OffsetViewMode"/> mode.
+        /// Current <see cref="OffsetViewMode"/>.
         /// </summary>
         static OffsetViewMode CurrentOffsetViewMode;
 
         /// <summary>
-        /// Offset height.
+        /// Height of the main frame. (Hex)
         /// </summary>
-        static int OffsetHeight = WindowHeight - 5;
+        static int FrameHeight = WindowHeight - 5;
 
-        static byte[] Buffer = new byte[OffsetHeight * 16];
+        /// <summary>
+        /// Data width, default is 16.
+        /// </summary>
+        static int ElementsWidth = 16;
+
+        static byte[] Buffer = new byte[0];
         #endregion
 
         #region Enumerations
@@ -59,14 +76,8 @@ namespace ConHexView
         /// </summary>
         public enum OffsetViewMode
         {
-            // Offset h
-            // 00000010
             Hexadecimal,
-            // Offset d
-            // 00000016
             Decimal,
-            // Offset o
-            // 00000020
             Octal
         }
         #endregion
@@ -90,7 +101,7 @@ namespace ConHexView
             CurrentOffsetViewMode = pOffsetViewMode;
 
             UpdateTitleMap();
-            UpdateOffsetMap();
+            PlaceOffsetMap();
             UpdateInfoMap();
             PlaceMainControlMap();
 
@@ -98,7 +109,7 @@ namespace ConHexView
 
             do
             {
-                UpdateMainScreen();
+                //UpdateMainScreen();
             } while (ReadUserKey());
         }
         #endregion
@@ -118,18 +129,20 @@ namespace ConHexView
         /// <param name="pBaseOffset">Position.</param>
         static void Read(int pBaseOffset)
         {
-            //TODO: Do smart reading to reduce the input lag (you know)
-
             using (StreamReader sr = new StreamReader(CurrentFile.FullName))
             {
                 sr.BaseStream.Position = pBaseOffset;
+                
+                int len =
+                    sr.BaseStream.Length < ElementsWidth * FrameHeight ?
+                    (int)sr.BaseStream.Length :
+                    ElementsWidth * FrameHeight;
+            
+                Buffer = new byte[len];
 
-                for (int y = 0; y < OffsetHeight; y++)
+                for (int x = 0; x < len; x++)
                 {
-                    for (int x = 0; x < 16; x++)
-                    {
-                        Buffer[x] = (byte)sr.Read();
-                    }
+                    Buffer[x] = (byte)sr.Read();
                 }
             }
         }
@@ -137,12 +150,12 @@ namespace ConHexView
         /// <summary>
         /// Read the user's key.
         /// </summary>
-        /// <returns><see cref="true"/> if using the program.</returns>
+        /// <returns><see cref="true"/> if still using the program.</returns>
         static bool ReadUserKey()
         {
             ConsoleKeyInfo cki = ReadKey(true);
 
-            switch (cki.Key)
+            switch (ReadKey(true).Key)
             {
                 case ConsoleKey.Escape:
                     return Exit();
@@ -159,41 +172,41 @@ namespace ConHexView
                     break;
 
                 case ConsoleKey.Home:
-                    CurrentOffset = 0;
-                    ReadAndUpdate(CurrentOffset);
+                    CurrentFileOffset = 0;
+                    ReadAndUpdate(CurrentFileOffset);
                     break;
                 case ConsoleKey.End:
-                    CurrentOffset = (int)CurrentFile.Length - OffsetHeight;
-                    ReadAndUpdate(CurrentOffset);
+                    CurrentFileOffset = (int)(CurrentFile.Length) - FrameHeight;
+                    ReadAndUpdate(CurrentFileOffset);
                     break;
 
                 case ConsoleKey.PageUp:
-                    if (CurrentOffset - SCROLL_PAGE >= 0)
+                    if (CurrentFileOffset - SCROLL_PAGE >= 0)
                     {
-                        CurrentOffset -= SCROLL_PAGE;
-                        ReadAndUpdate(CurrentOffset, SCROLL_PAGE);
+                        CurrentFileOffset -= SCROLL_PAGE;
+                        ReadAndUpdate(CurrentFileOffset, SCROLL_PAGE);
                     }
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentOffset + SCROLL_PAGE < CurrentFile.Length)
+                    if (CurrentFileOffset + SCROLL_PAGE < CurrentFile.Length)
                     {
-                        CurrentOffset += SCROLL_PAGE;
-                        ReadAndUpdate(CurrentOffset, SCROLL_PAGE);
+                        CurrentFileOffset += SCROLL_PAGE;
+                        ReadAndUpdate(CurrentFileOffset, SCROLL_PAGE);
                     }
                     break;
                     
                 case ConsoleKey.UpArrow:
-                    if (CurrentOffset - SCROLL_LINE >= 0)
+                    if (CurrentFileOffset - SCROLL_LINE >= 0)
                     {
-                        CurrentOffset -= SCROLL_LINE;
-                        ReadAndUpdate(CurrentOffset, SCROLL_PAGE);
+                        CurrentFileOffset -= SCROLL_LINE;
+                        ReadAndUpdate(CurrentFileOffset, SCROLL_PAGE);
                     }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentOffset + SCROLL_LINE < CurrentFile.Length)
+                    if (CurrentFileOffset + SCROLL_LINE < CurrentFile.Length)
                     {
-                        CurrentOffset += SCROLL_LINE;
-                        ReadAndUpdate(CurrentOffset, SCROLL_PAGE);
+                        CurrentFileOffset += SCROLL_LINE;
+                        ReadAndUpdate(CurrentFileOffset, SCROLL_PAGE);
                     }
                     break;
             }
@@ -203,7 +216,7 @@ namespace ConHexView
 
         static void ReadAndUpdate(int pOffset)
         {
-            ReadAndUpdate(pOffset, OffsetHeight);
+            ReadAndUpdate(pOffset, FrameHeight);
         }
 
         static void ReadAndUpdate(int pOffset, int pLength)
@@ -214,55 +227,130 @@ namespace ConHexView
             UpdateInfoMap();
         }
 
-        static void UpdateMainScreen()
-        {
-            UpdateMainScreen(Buffer.Length);
-        }
-
         /// <summary>
         /// Update the section of the screen with the data.
         /// </summary>
-        static void UpdateMainScreen(int pLength)
+        static void UpdateMainScreen()
         {
+            int buflen = Buffer.Length;
+            int blocks = (buflen / ElementsWidth);
+
+            int lines = blocks > 1 ?
+                blocks : blocks + 1;
+
+            int FrameLength = ElementsWidth * FrameHeight;
+
+            int BufferOffsetHex = 0;
+            int BufferOffsetData = 0;
+
+            SetCursorPosition(0, 2);
+
+            for (int line = 0; line < FrameHeight; line++)
+            {
+                switch (CurrentOffsetViewMode)
+                {
+                    case OffsetViewMode.Hexadecimal:
+                        Write($"{((line * ElementsWidth) + CurrentFileOffset).ToString("X8")}  ");
+                        break;
+
+                    case OffsetViewMode.Decimal:
+                        Write($"{(line * ElementsWidth) + CurrentFileOffset.ToString("00000000")}  ");
+                        break;
+
+                    case OffsetViewMode.Octal:
+                        Write($"{Convert.ToString((line * ElementsWidth) + CurrentFileOffset, 8), 8}  ");
+                        break;
+                }
+
+                for (int x = 0; x < ElementsWidth; x++)
+                {
+                    if (CurrentFileOffset + BufferOffsetData < buflen)
+                        Write($"{Buffer[CurrentFileOffset + BufferOffsetData].ToString("X2")} ");
+                    else
+                        Write(" ");
+
+                    BufferOffsetData++;
+                }
+
+                Write(" ");
+
+                for (int x = 0; x < ElementsWidth; x++)
+                {
+                    if (CurrentFileOffset + BufferOffsetHex < buflen)
+                        Write($"{Buffer[CurrentFileOffset + BufferOffsetHex].ToSafeChar()}");
+                    else
+                        Write(" ");
+
+                    BufferOffsetHex++;
+                }
+
+                WriteLine();
+            }
+
+            /*
             SetCursorPosition(0, 2);
 
             //TODO: Find a way to stop rendering before total length
             // Hint:
             // CurrentOffset [+ index] <= CurrentFile.Length
 
-            for (int y = 0; y < pLength; y += 0x10)
+            for (int i = 0; i < lines; i++)
             {
                 switch (CurrentOffsetViewMode)
                 {
                     case OffsetViewMode.Hexadecimal:
                         // 00000010
-                        Write($"{((y * 0x10) + CurrentOffset).ToString("X8")}  ");
+                        Write($"{((i * ElementsWidth) + CurrentFileOffset).ToString("X8")}  ");
                         break;
                     case OffsetViewMode.Decimal:
                         // 00000016
-                        Write($"{(y * 16) + CurrentOffset.ToString("00000000")}");
+                        Write($"{(i * ElementsWidth) + CurrentFileOffset.ToString("00000000")}  ");
                         break;
                     case OffsetViewMode.Octal:
                         //       20
-                        Write($"{Convert.ToString((y * 16) + CurrentOffset, 8), 8}  ");
+                        Write($"{Convert.ToString((i * ElementsWidth) + CurrentFileOffset, 8), 8}  ");
                         break;
                 }
-                
-                //TODO: you know
-                for (int x = y; x < 16; x++)
+
+                int x = 0;
+
+                //TODO: for(;;)?
+                while (x < ElementsWidth)
                 {
-                    Write($"{Buffer[x].ToString("X2")} ");
+                    if (CurrentFileOffset + BufferOffsetHex < buflen)
+                    {
+                        Write($"{Buffer[CurrentFileOffset + BufferOffsetHex].ToString("X2")} ");
+                    }
+                    else
+                    {
+                        Write("   ");
+                    }
+
+                    x++;
+                    BufferOffsetHex++;
                 }
 
                 Write(" ");
-                
-                for (int x = 0; x < 16; x++)
+                 
+                x = 0;
+
+                //TODO: for(;;)?
+                while (x < ElementsWidth)
                 {
-                    Write($"{Buffer[x].ToChar()}");
+                    if (CurrentFileOffset + BufferOffsetHex < buflen)
+                    {
+                        Write($"{Buffer[CurrentFileOffset + BufferOffsetData].ToChar()}");
+                    }
+                    else
+                        x += ElementsWidth;
+
+                    x++;
+                    BufferOffsetData++;
                 }
 
                 WriteLine();
             }
+            */
         }
 
         /// <summary>
@@ -273,37 +361,33 @@ namespace ConHexView
             ToggleColors();
             
             SetCursorPosition(0, 0);
-            // Should I include the project's name in the upper bar?
-            Write($"{CurrentFile.Name}");
+            Write(CurrentFile.Name);
             Write(new string(' ', WindowWidth - CurrentFile.Name.Length));
 
             ResetColor();
         }
 
         /// <summary>
-        /// Update the offset map (left view)
+        /// Update the offset map
         /// </summary>
-        static void UpdateOffsetMap()
+        static void PlaceOffsetMap()
         {
             SetCursorPosition(0, 1);
             Write($"Offset {CurrentOffsetViewMode.GetChar()}  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
         }
 
         /// <summary>
-        /// Update the data map (right view)
+        /// Update the offset information
         /// </summary>
         static void UpdateInfoMap()
         {
             SetCursorPosition(0, WindowHeight - 3);
             // CAN'T THIS LINE BE ANY LONGER?
-            Write($@"
-{NAME_OFFSET} (DEC): {CurrentOffset.ToString("00000000")} |
-{NAME_OFFSET} (HEX): {CurrentOffset.ToString("X8")} |
-{NAME_OFFSET} (OCT): {Convert.ToString(CurrentOffset, 8), 8}");
+            Write($"{NAME_OFFSET} (DEC): {CurrentFileOffset.ToString("00000000")} | {NAME_OFFSET} (HEX): {CurrentFileOffset.ToString("X8")} | {NAME_OFFSET} (OCT): {Convert.ToString(CurrentFileOffset, 8), 8}");
         }
 
         /// <summary>
-        /// Places the control map on screen (e.g. ^D Die)
+        /// Places the control map on screen (e.g. ^J Try jumping)
         /// </summary>
         static void PlaceMainControlMap()
         {
@@ -400,14 +484,17 @@ namespace ConHexView
         static void Dump()
         {
             //TODO: Finish void Dump()
-            using (StreamWriter sw = new StreamWriter($"{CurrentFile.Name}.txt"))
+            using (StreamWriter sw = new StreamWriter($"{CurrentFile.Name}.{NAME_EXTENSION}"))
             {
-                sw.WriteLine(CurrentFile.Name);
+                sw.Write(CurrentFile.Name);
+                sw.Write(" - ");
+                sw.Write(CurrentFile.Length);
+                sw.WriteLine();
                 sw.WriteLine();
 
-                using (StreamReader sr = new StreamReader(CurrentFile.FullName))
+                using (FileStream fs = CurrentFile.OpenRead())
                 {
-
+                    fs.CopyTo(sw.BaseStream);
                 }
             }
         }
@@ -432,7 +519,7 @@ namespace ConHexView
         /// </summary>
         /// <param name="pIn">Byte to transform.</param>
         /// <returns>Safe console character.</returns>
-        static char ToChar(this byte pIn)
+        static char ToSafeChar(this byte pIn)
         {
             if (pIn < 0x20 || pIn > 0x7F)
                 return '.';

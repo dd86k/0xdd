@@ -65,6 +65,11 @@ namespace ConHexView
 
         static int Main(string[] args)
         {
+#if DEBUG
+            args = new string[] { CurrentFilenameWithoutExtension + ".exe" };
+            //args = new string[] { "f" };
+#endif
+
             if (args.Length == 0)
             {
                 // Future reminder:
@@ -108,6 +113,8 @@ namespace ConHexView
             if (Exists(file))
             {
                 Clear();
+
+#if RELEASE
                 try
                 {
                     HexView.Open(file, ovm);
@@ -116,6 +123,10 @@ namespace ConHexView
                 {
                     Abort(e);
                 }
+#elif DEBUG
+                HexView.Open(file, ovm);
+#endif
+
             }
             else
                 return 1;
@@ -152,7 +163,7 @@ namespace ConHexView
                 string answer = ReadLine().ToLower();
 
                 switch (answer)
-                { // I don't know man, I'm lazy
+                { // I'm lazy
                     case "y":
                     case "ye":
                     case "yes": break;
