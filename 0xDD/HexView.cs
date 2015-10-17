@@ -209,7 +209,6 @@ namespace ConHexView
                 // Info
                 case ConsoleKey.I:
                     if (cki.Modifiers == ConsoleModifiers.Control)
-                        //TODO: Better Info function
                         Message($"Size: {CurrentFile.Length} | Postion: {Math.Round(((decimal)CurrentFilePosition / CurrentFile.Length) * 100)}%");
                     break;
 
