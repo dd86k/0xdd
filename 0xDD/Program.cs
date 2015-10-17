@@ -66,8 +66,10 @@ namespace ConHexView
         static int Main(string[] args)
         {
 #if DEBUG
-            args = new string[] { CurrentFilenameWithoutExtension + ".exe" };
+            //args = new string[] { CurrentFilenameWithoutExtension + ".exe" };
             //args = new string[] { "f" };
+            //args = new string[] { "tt" };
+            //args = new string[] { "-dump", "tt" };
 #endif
 
             if (args.Length == 0)
@@ -77,6 +79,8 @@ namespace ConHexView
                 ShowHelp();
                 return 0;
             }
+            
+            string file = args[args.Length - 1];
 
             HexView.OffsetViewMode ovm = HexView.OffsetViewMode.Hexadecimal;
             for (int i = 0; i < args.Length; i++)
@@ -88,7 +92,7 @@ namespace ConHexView
                         switch (args[i + 1])
                         {
                             case "h":
-                                // Default, so do nothing.
+                                // Default, so leave it as it is.
                                 break;
                             case "d":
                                 ovm = HexView.OffsetViewMode.Decimal;
@@ -105,10 +109,15 @@ namespace ConHexView
                     case "-U":
                     case "/U":
                         return Update();
+
+                    case "/dump":
+                    case "-dump":
+                        WriteLine("Dumping file...");
+                        HexView.Dump(file, ovm);
+                        WriteLine("Dumping done!");
+                        return 0;
                 }
             }
-            
-            string file = args[args.Length - 1];
 
             if (Exists(file))
             {
@@ -124,6 +133,7 @@ namespace ConHexView
                     Abort(e);
                 }
 #elif DEBUG
+                // I want Visual Studio to catch the exceptions!
                 HexView.Open(file, ovm);
 #endif
 
@@ -242,7 +252,10 @@ namespace ConHexView
         static void Abort(Exception e)
         {
             WriteLine();
-            WriteLine(" !! Fatal error !!");
+            ForegroundColor = ConsoleColor.White;
+            BackgroundColor = ConsoleColor.Red;
+            WriteLine(" !! Fatal error !! ");
+            ResetColor();
             WriteLine($"Exception: {e.GetType()}");
             WriteLine($"Message: {e.Message}");
             WriteLine($"Stack: {e.StackTrace}");
@@ -254,10 +267,14 @@ namespace ConHexView
             //         1       10        20        30        40        50        60        70        80
             //         |--------|---------|---------|---------|---------|---------|---------|---------|
             WriteLine(" Usage:");
-            WriteLine($"  {CurrentFilenameWithoutExtension} [-v {{h|d|o}}] [-U] <file>");
+            WriteLine($"  {CurrentFilenameWithoutExtension} [-v {{h|d|o}}] [-U] [--dump] <file>");
             WriteLine();
-            WriteLine("  -v     Starts with the offset view between HEX, DEC, or OCT.");
-            WriteLine("  -U     Updates if necessary.");
+            WriteLine("  -v       Start with an offset view: Hex, Dec, Oct.");
+            /*
+            WriteLine("  -d       Start with a predefined width. Default: 16");
+            */
+            WriteLine("  -U       Updates if necessary.");
+            WriteLine("  -dump    Dumps a data file as plain text.");
             WriteLine();
             WriteLine("  /help, /?   Shows this screen and exits.");
             WriteLine("  /version    Shows version and exits.");
