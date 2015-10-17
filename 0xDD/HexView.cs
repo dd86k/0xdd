@@ -238,12 +238,18 @@ namespace ConHexView
         {
             int buflen = Buffer.Length;
 
+            int filelen = (int)CurrentFile.Length;
+
+            int lines = CurrentFileOffset + (FrameHeight * ElementsWidth) > filelen ?
+                (filelen - (CurrentFileOffset + FrameHeight)) / ElementsWidth :
+                FrameHeight;
+
             int BufferOffsetHex = 0;
             int BufferOffsetData = 0;
 
             SetCursorPosition(0, 2);
 
-            for (int line = 0; line < FrameHeight; line++)
+            for (int line = 0; line < lines; line++)
             {
                 switch (CurrentOffsetViewMode)
                 {
@@ -262,7 +268,7 @@ namespace ConHexView
 
                 for (int x = 0; x < ElementsWidth; x++)
                 {
-                    if (CurrentFileOffset + BufferOffsetData < buflen)
+                    if (CurrentFileOffset + BufferOffsetData < filelen)
                         Write($"{Buffer[BufferOffsetData].ToString("X2")} ");
                     else
                         Write("   ");
@@ -274,7 +280,7 @@ namespace ConHexView
 
                 for (int x = 0; x < ElementsWidth; x++)
                 {
-                    if (CurrentFileOffset + BufferOffsetHex < buflen)
+                    if (CurrentFileOffset + BufferOffsetHex < filelen)
                         Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
                     else
                         Write(" ");
