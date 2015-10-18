@@ -5,12 +5,9 @@ using System.IO;
 
 /*
     Box of ideas (Lazy TODO list)
-    - --dump
-    - Scrollbar (-ish)
+    - Scrollbar (-ish), you know style
     - Top right (under title): Insert(INS)/Overwrite(OVR)
-    - Help section (F1)
     - Search: /regex/ (Begins with && ends with)
-    - no args -> empty buffer/new file
     - Message(ProgressBar=bool) -> Progress bar (Dump) -> [ Done! ]
     - nagivation syncs (e.g. 32 - 33 -> 0 instead of just not doing it)
     - align offset (dividable by ElementsWidth)
@@ -284,12 +281,18 @@ namespace ConHexView
                     break;
 
                 case ConsoleKey.Home:
-                    CurrentFilePosition = 0;
-                    ReadAndUpdate(CurrentFilePosition);
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    {
+                        CurrentFilePosition = 0;
+                        ReadAndUpdate(CurrentFilePosition);
+                    }
                     break;
                 case ConsoleKey.End:
-                    CurrentFilePosition = CurrentFile.Length - (FrameHeight * ElementsWidth);
-                    ReadAndUpdate(CurrentFilePosition);
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    {
+                        CurrentFilePosition = CurrentFile.Length - (FrameHeight * ElementsWidth);
+                        ReadAndUpdate(CurrentFilePosition);
+                    }
                     break;
             }
 

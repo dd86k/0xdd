@@ -13,7 +13,7 @@ namespace ConHexView
         const string UPDATE_VERSIONFILE = "0xdd_ver";
 
         /// <summary>
-        /// Get the current version of the console oriented solution.
+        /// Get the current version of the project as a string object.
         /// </summary>
         static string ProjectVersionString
         {
@@ -25,6 +25,9 @@ namespace ConHexView
             }
         }
 
+        /// <summary>
+        /// Gets the current version of the project as a <see cref="Version"/> object.
+        /// </summary>
         static Version ProjectVersion
         {
             get

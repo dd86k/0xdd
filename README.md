@@ -31,11 +31,16 @@ Examples:
 # Navigation
 In 0xdd, navigation happens when a user changes the position to read of the file with a variety of keys:
 
-- Left and right arrowkeys: Moves by one byte.
-- Up and down arrowkeys: Moves by a line.
-- PageUp and PageDown: Moves by a page.
-- Home key: Moves the position to the start of the file.
-- End key: Moves the position to the end of the file.
+Move by...
+- One byte: __Up__ and __down__ arrow keys.
+- One line: __Left__ and __right__ arrow keys.
+- One page: __PageUp and __PageDown__ keys.
+
+Move to...
+- The beginning of the file: __CTRL+Home__ keys.
+- The beginning of a line: __Home__ key.
+- The end of the file: __CTRL+End__ keys.
+- A specific position: __CTRL+G__ keys.
 
 # Actions
 Actions, defined at the bottom, are activated by shortcuts.
