@@ -35,16 +35,7 @@ namespace ConHexView
                 return FrameHeight * ElementsWidth;
             }
         }
-
-        /// <summary>
-        /// Offset attribute name to write out at
-        /// 
-        /// </summary>
-        /// <example>
-        /// Offset (HEX): 000000A0
-        /// </example>
-        const string NAME_OFFSET = "Offset";
-
+        
         /// <summary>
         /// Extension of data dump files.
         /// </summary>
@@ -55,7 +46,7 @@ namespace ConHexView
         /// <summary>
         /// Current position in the file.
         /// </summary>
-        static int CurrentFilePosition = 0;
+        static long CurrentFilePosition = 0;
 
         /// <summary>
         /// Information about the current file.
@@ -153,7 +144,7 @@ namespace ConHexView
         /// Read the current file at a certain position.
         /// </summary>
         /// <param name="pBaseOffset">Position.</param>
-        static void Read(int pBaseOffset)
+        static void Read(long pBaseOffset)
         {
             using (StreamReader sr = new StreamReader(CurrentFile.FullName))
             {
@@ -209,7 +200,9 @@ namespace ConHexView
                 // Info
                 case ConsoleKey.I:
                     if (cki.Modifiers == ConsoleModifiers.Control)
-                        Message($"Size: {CurrentFile.Length} | Postion: {Math.Round(((decimal)CurrentFilePosition / CurrentFile.Length) * 100)}%");
+                        Message(
+                            $"Size: {CurrentFile.Length} | Postion: {Math.Round(((decimal)CurrentFilePosition / CurrentFile.Length) * 100)}%"
+                        );
                     break;
 
                 // Exit
@@ -237,7 +230,7 @@ namespace ConHexView
                     }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (CurrentFilePosition + 1 < CurrentFile.Length)
+                    if (CurrentFilePosition + (FrameHeight * ElementsWidth) + 1 <= CurrentFile.Length)
                     {
                         CurrentFilePosition++;
                         ReadAndUpdate(CurrentFilePosition);
@@ -250,12 +243,20 @@ namespace ConHexView
                         CurrentFilePosition -= SCROLL_LINE;
                         ReadAndUpdate(CurrentFilePosition);
                     }
+                    else
+                    {
+                        //TODO: Round
+                    }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentFilePosition + SCROLL_LINE < CurrentFile.Length)
+                    if (CurrentFilePosition + (FrameHeight * ElementsWidth) + SCROLL_LINE <= CurrentFile.Length)
                     {
                         CurrentFilePosition += SCROLL_LINE;
                         ReadAndUpdate(CurrentFilePosition);
+                    }
+                    else
+                    {
+                        //TODO: Round
                     }
                     break;
 
@@ -265,12 +266,20 @@ namespace ConHexView
                         CurrentFilePosition -= SCROLL_PAGE;
                         ReadAndUpdate(CurrentFilePosition);
                     }
+                    else
+                    {
+                        //TODO: Round
+                    }
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentFilePosition + SCROLL_PAGE < CurrentFile.Length)
+                    if (CurrentFilePosition + (FrameHeight * ElementsWidth) + SCROLL_PAGE <= CurrentFile.Length)
                     {
                         CurrentFilePosition += SCROLL_PAGE;
                         ReadAndUpdate(CurrentFilePosition);
+                    }
+                    else
+                    {
+                        //TODO: Round
                     }
                     break;
 
@@ -279,7 +288,7 @@ namespace ConHexView
                     ReadAndUpdate(CurrentFilePosition);
                     break;
                 case ConsoleKey.End:
-                    CurrentFilePosition = (int)(CurrentFile.Length) - (FrameHeight * ElementsWidth);
+                    CurrentFilePosition = CurrentFile.Length - (FrameHeight * ElementsWidth);
                     ReadAndUpdate(CurrentFilePosition);
                     break;
             }
@@ -287,12 +296,12 @@ namespace ConHexView
             return true;
         }
 
-        static void ReadAndUpdate(int pOffset)
+        static void ReadAndUpdate(long pOffset)
         {
             ReadAndUpdate(pOffset, FrameHeight);
         }
 
-        static void ReadAndUpdate(int pOffset, int pLength)
+        static void ReadAndUpdate(long pOffset, int pLength)
         {
             Read(pOffset);
             UpdateMainScreen();
@@ -304,12 +313,14 @@ namespace ConHexView
         /// </summary>
         static void UpdateMainScreen()
         {
-            int filelen = (int)CurrentFile.Length;
-
-            int lines = CurrentFilePosition + (FrameHeight * ElementsWidth) > filelen ?
+            long filelen = CurrentFile.Length;
+            /*
+            long lines = CurrentFilePosition + (FrameHeight * ElementsWidth) > filelen ?
                 //TODO: Fix this line
-                ((filelen - (CurrentFilePosition + FrameHeight)) / ElementsWidth) :
+                ((filelen - (CurrentFilePosition + FrameHeight)) / ElementsWidth) + 1:
                 FrameHeight;
+            */
+            long lines = FrameHeight;
 
             int BufferOffsetHex = 0;
             int BufferOffsetData = 0;
@@ -357,16 +368,18 @@ namespace ConHexView
 
                 Console.WriteLine();
             }
-
-            if (FrameHeight > lines)
+            
+            /*
+            if (lines < FrameHeight)
             {
                 // Force-fill the void with spaces in case the user scrolls up
-                for (int line = FrameHeight + 2; line > FrameHeight - lines; line--)
+                for (int line = FrameHeight + 2;line >  FrameHeight - lines; line--)
                 {
                     Console.SetCursorPosition(0, line);
                     Console.Write(new string(' ', Console.WindowWidth));
                 }
             }
+            */
         }
 
         /// <summary>
@@ -398,7 +411,9 @@ namespace ConHexView
         static void UpdateInfoMap()
         {
             Console.SetCursorPosition(0, Console.WindowHeight - 3);
-            Console.Write($"{NAME_OFFSET} (DEC): {CurrentFilePosition.ToString("00000000")} | {NAME_OFFSET} (HEX): {CurrentFilePosition.ToString("X8")} | {NAME_OFFSET} (OCT): {Convert.ToString(CurrentFilePosition, 8), 8}");
+            Console.Write(
+                $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8), 8}"
+            );
         }
 
         /// <summary>
@@ -505,13 +520,40 @@ namespace ConHexView
         {
             // Force refresh information
             FileInfo file = new FileInfo(pPath);
+            int filelen = (int)file.Length;
+            int line = 0;
+            int BufferPositionHex = 0;
+            int BufferPositionData = 0;
+            byte[] buffer = new byte[ElementsWidth];
 
             using (StreamWriter sw = new StreamWriter($"{pPath}.{NAME_EXTENSION}"))
             {
                 sw.WriteLine(file.Name);
                 sw.WriteLine();
-                sw.WriteLine($"Size: {file.Length} Bytes");
-                sw.WriteLine($"Attributes: {file.Attributes}");
+                sw.Write("Size:");
+
+                if (filelen > Math.Pow(1024, 3)) // GB
+                {
+                    sw.Write($" {Math.Round(filelen / Math.Pow(1024, 3), 2)} GB");
+                    sw.Write($" ({filelen} B)");
+                }
+                else if (filelen > Math.Pow(1024, 2)) // MB
+                {
+                    sw.Write($" {Math.Round(filelen / Math.Pow(1024, 2), 2)} MB");
+                    sw.Write($" ({filelen} B)");
+                }
+                else if (filelen > 1024) // KB
+                {
+                    sw.Write($" {Math.Round((decimal)filelen / 1024, 2)} KB");
+                    sw.Write($" ({filelen} B)");
+                }
+                else
+                {
+                    sw.Write($" {filelen} B");
+                }
+
+                sw.WriteLine();
+                sw.WriteLine($"Attributes: {file.Attributes.ToString()}");
                 sw.WriteLine($"Creation time: {file.CreationTime}");
                 sw.WriteLine();
 
@@ -519,12 +561,6 @@ namespace ConHexView
 
                 using (FileStream fs = file.OpenRead())
                 {
-                    int line = 0;
-                    int BufferPositionHex = 0;
-                    int BufferPositionData = 0;
-                    int filelen = (int)file.Length;
-                    byte[] buffer = new byte[ElementsWidth];
-
                     bool finished = false;
 
                     while (!finished)
@@ -532,15 +568,15 @@ namespace ConHexView
                         switch (pViewMode)
                         {
                             case OffsetViewMode.Hexadecimal:
-                                sw.Write($"{(line + CurrentFilePosition).ToString("X8")}  ");
+                                sw.Write($"{line.ToString("X8")}  ");
                                 break;
 
                             case OffsetViewMode.Decimal:
-                                sw.Write($"{(line + CurrentFilePosition).ToString("00000000")}  ");
+                                sw.Write($"{line.ToString("00000000")}  ");
                                 break;
 
                             case OffsetViewMode.Octal:
-                                sw.Write($"{Convert.ToString(line + CurrentFilePosition, 8), 8}  ");
+                                sw.Write($"{Convert.ToString(line, 8), 8}  ");
                                 break;
                         }
 
@@ -582,11 +618,12 @@ namespace ConHexView
         }
 
         /// <summary>
-        /// The user is exiting the application.
-        /// So we prepare the departure.
+        /// When the user exits the program.
         /// </summary>
-        /// <returns>Always false.</returns>
-        /// <remarks>It's false due to the while loop.</remarks>
+        /// <returns>Always <see cref="false"/>.</returns>
+        /// <remarks>
+        /// Returns false to return due to the while loop.
+        /// </remarks>
         static bool Exit()
         {
             Console.Clear();
@@ -597,10 +634,10 @@ namespace ConHexView
 
         #region Type extensions
         /// <summary>
-        /// Returns a safe character for the console (cmd) to display.
+        /// Returns a readable character if found.
         /// </summary>
         /// <param name="pIn">Byte to transform.</param>
-        /// <returns>Safe console character.</returns>
+        /// <returns>Readable character.</returns>
         static char ToSafeChar(this byte pIn)
         {
             if (pIn < 0x20 || pIn > 0x7F)

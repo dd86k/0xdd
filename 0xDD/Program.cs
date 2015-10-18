@@ -49,9 +49,9 @@ namespace ConHexView
         }
 
         /// <summary>
-        /// Get the current filename without extension of the executable.
+        /// Get the current executable's filename without extension.
         /// </summary>
-        static string CurrentFilenameWithoutExtension
+        static string ExecutableFilenameWithoutExtension
         {
             get
             {
@@ -66,10 +66,11 @@ namespace ConHexView
         static int Main(string[] args)
         {
 #if DEBUG
-            //args = new string[] { CurrentFilenameWithoutExtension + ".exe" };
+            //args = new string[] { ExecutableFilenameWithoutExtension + ".exe" };
             //args = new string[] { "f" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
+            args = new string[] { "gg.txt" };
 #endif
 
             if (args.Length == 0)
@@ -110,8 +111,8 @@ namespace ConHexView
                     case "/U":
                         return Update();
 
-                    case "/dump":
                     case "-dump":
+                    case "/dump":
                         WriteLine("Dumping file...");
                         HexView.Dump(file, ovm);
                         WriteLine("Dumping done!");
@@ -136,10 +137,12 @@ namespace ConHexView
                 // I want Visual Studio to catch the exceptions!
                 HexView.Open(file, ovm);
 #endif
-
             }
             else
+            {
+                WriteLine("File not found.");
                 return 1;
+            }
 
             return 0;
         }
@@ -267,9 +270,9 @@ namespace ConHexView
             //         1       10        20        30        40        50        60        70        80
             //         |--------|---------|---------|---------|---------|---------|---------|---------|
             WriteLine(" Usage:");
-            WriteLine($"  {CurrentFilenameWithoutExtension} [-v {{h|d|o}}] [-U] [--dump] <file>");
+            WriteLine($"  {ExecutableFilenameWithoutExtension} [-v {{h|d|o}}] [-U] [-dump] <file>");
             WriteLine();
-            WriteLine("  -v       Start with an offset view: Hex, Dec, Oct.");
+            WriteLine("  -v       Start with an offset view: Hex, Dec, Oct. Default: Hex");
             /*
             WriteLine("  -d       Start with a predefined width. Default: 16");
             */
