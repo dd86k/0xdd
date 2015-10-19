@@ -5,7 +5,7 @@
 
 (Old screenshot)
 
-0xdd is a straightforward, nano-like, interactive, hexadecimal file viewer for Windows.
+0xdd is a straightforward, simple, interactive, hexadecimal file viewer for Windows.
 
 0xdd is still a work in progress, so only a lot of functions are still in the works.
 
@@ -34,7 +34,7 @@ In 0xdd, navigation happens when a user changes the position to read of the file
 Move by...
 - One byte: __Up__ and __down__ arrow keys.
 - One line: __Left__ and __right__ arrow keys.
-- One page: __PageUp and __PageDown__ keys.
+- One page: __PageUp__ and __PageDown__ keys.
 
 Move to...
 - The beginning of the file: __CTRL+Home__ keys.
