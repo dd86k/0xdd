@@ -84,7 +84,7 @@ namespace ConHexView
         static int Main(string[] args)
         {
 #if DEBUG
-            //args = new string[] { ExecutableFilename + ".exe" };
+            //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
