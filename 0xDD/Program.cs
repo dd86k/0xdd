@@ -65,11 +65,26 @@ namespace ConHexView
                     );
             }
         }
+        
+        /// <summary>
+        /// Get the current executable's filename.
+        /// </summary>
+        static string ExecutableFilename
+        {
+            get
+            {
+                return
+                    Path.GetFileName(
+                        System.Diagnostics.Process
+                        .GetCurrentProcess().MainModule.FileName
+                    );
+            }
+        }
 
         static int Main(string[] args)
         {
 #if DEBUG
-            //args = new string[] { ExecutableFilenameWithoutExtension + ".exe" };
+            //args = new string[] { ExecutableFilename + ".exe" };
             //args = new string[] { "f" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
@@ -86,6 +101,7 @@ namespace ConHexView
             
             string file = args[args.Length - 1];
 
+            int bytesRow = 16;
             HexView.OffsetViewMode ovm = HexView.OffsetViewMode.Hexadecimal;
             for (int i = 0; i < args.Length; i++)
             {
@@ -138,7 +154,7 @@ namespace ConHexView
                 }
 #elif DEBUG
                 // I want Visual Studio to catch the exceptions!
-                HexView.Open(file, ovm);
+                HexView.Open(file, ovm, bytesRow);
 #endif
             }
             else
@@ -164,13 +180,21 @@ namespace ConHexView
                 {
                     ver = sr.ReadToEnd();
                 }
-                Version version = new Version(ver);
-
-                //TODO: Revise the update checking method
-                if (!(version.Minor > ProjectVersion.Minor || version.Major > ProjectVersion.Major))
+                try
                 {
-                    WriteLine("You already have the latest version.");
-                    return 0;
+                    Version version = new Version(ver);
+
+                    //TODO: Revise the update checking method
+                    if (!(version.Minor > ProjectVersion.Minor || version.Major > ProjectVersion.Major))
+                    {
+                        WriteLine("You already have the latest version.");
+                        return 0;
+                    }
+                }
+                catch (Exception)
+                {
+                    WriteLine("Couldn't check the version, aborted.");
+                    return 1;
                 }
 
                 WriteLine($"An update is available: {ver}");
@@ -182,8 +206,10 @@ namespace ConHexView
                 { // I'm lazy
                     case "y":
                     case "ye":
-                    case "yes": break;
-                    default: return 0;
+                    case "yes":
+                        break;
+                    default:
+                        return 0;
                 }
 
                 Write("Creating request...");
@@ -194,12 +220,12 @@ namespace ConHexView
                 WebResponse wres = wr.GetResponse();
                 Stream str = wres.GetResponseStream();
                 if (str == null)
-                    throw new NullReferenceException();
-                WriteLine(" Done.");
+                    throw new NullReferenceException("The response stream is null");
+                if (str.CanRead)
+                    throw new IOException("Can't read the response stream.");
 
-                Write("Saving file...");
+                WriteLine("Saving file...");
                 string newname = $"{UPDATE_FILENAME}.exe";
-
                 int i = 1;
                 bool foundname = false;
                 while (!foundname)
@@ -212,20 +238,18 @@ namespace ConHexView
                     else
                         foundname = true;
                 }
-
                 using (var sw = Create(newname))
                 {
                     str.CopyTo(sw);
                 }
-                WriteLine(" Done.");
 
                 //TODO: Find a way to replace the file.
 
                 //Write("...");
                 //
                 //WriteLine(" Done.");
-
-                WriteLine($"");
+                
+                WriteLine("Done.");
             }
             catch (Exception e)
             {

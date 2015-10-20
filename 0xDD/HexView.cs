@@ -18,20 +18,6 @@ namespace ConHexView
     static class HexView
     {
         #region Constants
-        static int SCROLL_LINE
-        {
-            get
-            {
-                return ElementsWidth;
-            }
-        }
-        static int SCROLL_PAGE
-        {
-            get
-            {
-                return FrameHeight * ElementsWidth;
-            }
-        }
         
         /// <summary>
         /// Extension of data dump files.
@@ -39,7 +25,29 @@ namespace ConHexView
         const string NAME_EXTENSION = "datdmp";
         #endregion
 
-        #region Properties
+        #region General properties
+        /// <summary>
+        /// Number of elements to move by a line.
+        /// </summary>
+        static int SCROLL_LINE
+        {
+            get
+            {
+                return MainPanel.NumberOfBytesInRow;
+            }
+        }
+
+        /// <summary>
+        /// Number of elements to move by a page.
+        /// </summary>
+        static int SCROLL_PAGE
+        {
+            get
+            {
+                return MainPanel.MaximumNumberOfBytesOnScreen;
+            }
+        }
+
         /// <summary>
         /// Current position in the file.
         /// </summary>
@@ -51,28 +59,50 @@ namespace ConHexView
         static FileInfo CurrentFile;
 
         /// <summary>
-        /// Current <see cref="OffsetViewMode"/>.
+        /// Temporary buffer used for on-screen display.
         /// </summary>
-        static OffsetViewMode CurrentOffsetViewMode;
-
-        /// <summary>
-        /// Height of the main frame. (Hex)
-        /// </summary>
-        static int FrameHeight = Console.WindowHeight - 5;
-
-        /// <summary>
-        /// Data width, default is 16.
-        /// </summary>
-        static int ElementsWidth = 16;
-
-        static int FrameCapacity = ElementsWidth * FrameHeight;
-
         static byte[] Buffer = new byte[0];
 
         /// <summary>
         /// Fullscreen mode, false by default.
         /// </summary>
         static bool Fullscreen;
+        #endregion
+
+        #region MainPanel properties
+        /// <summary>
+        /// Main panel which represents the offset, data as bytes,
+        /// and data as ASCII characters.
+        /// </summary>
+        struct MainPanel
+        {
+            /// <summary>
+            /// Gets or sets the heigth of the main panel.
+            /// </summary>
+            static internal int FrameHeight
+            {
+                get; set;
+            }
+
+            /// <summary>
+            /// Gets or sets the number of bytes showed in a row.
+            /// </summary>
+            static internal int NumberOfBytesInRow
+            {
+                get; set;
+            }
+
+            /// <summary>
+            /// Gets the number of elements which can be shown in the main panel.
+            /// </summary>
+            static internal int MaximumNumberOfBytesOnScreen
+            {
+                get
+                {
+                    return FrameHeight * NumberOfBytesInRow;
+                }
+            }
+        }
         #endregion
 
         #region Enumerations
@@ -85,16 +115,21 @@ namespace ConHexView
             Decimal,
             Octal
         }
+
+        /// <summary>
+        /// Current <see cref="OffsetViewMode"/>.
+        /// </summary>
+        static OffsetViewMode CurrentOffsetViewMode;
         #endregion
 
-        #region Public methods
+        #region Internal methods
         /// <summary>
         /// Open a file and starts the program.
         /// </summary>
         /// <param name="pFilePath">Path to the file.</param>
-        public static void Open(string pFilePath)
+        internal static void Open(string pFilePath)
         {
-            Open(pFilePath, OffsetViewMode.Hexadecimal);
+            Open(pFilePath, OffsetViewMode.Hexadecimal, 16);
         }
 
         /// <summary>
@@ -102,7 +137,7 @@ namespace ConHexView
         /// </summary>
         /// <param name="pFilePath">Path to the file.</param>
         /// <param name="pOffsetViewMode">Offset view to start with.</param>
-        public static void Open(string pFilePath, OffsetViewMode pOffsetViewMode)
+        internal static void Open(string pFilePath, OffsetViewMode pOffsetViewMode, int pBytesRow)
         {
             if (!File.Exists(pFilePath))
                 throw new FileNotFoundException
@@ -112,9 +147,12 @@ namespace ConHexView
 
             CurrentFile = new FileInfo(pFilePath);
 
+            MainPanel.FrameHeight = Console.WindowHeight - 5;
+            MainPanel.NumberOfBytesInRow = pBytesRow;
+
             CurrentOffsetViewMode = pOffsetViewMode;
 
-            Read();
+            ReadCurrentFile();
 
             UpdateTitleMap();
             PlaceOffsetMap();
@@ -126,31 +164,169 @@ namespace ConHexView
             while (ReadUserKey())
             { }
         }
+
+        internal static void OpenClipboard()
+        {
+            //TODO: void OpenClipboard()
+
+            bool foundData = false;
+            object Data;
+
+            // Specifies a Windows bitmap format.
+            if (System.Windows.Forms.Clipboard.ContainsData("Bitmap"))
+            {
+
+                foundData = true;
+            }
+            // Specifies a comma-separated value (CSV) format, which is a common interchange format used by spreadsheets.
+            // This format is not used directly by Windows Forms.
+            if (System.Windows.Forms.Clipboard.ContainsData("CommaSeperatedValues") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows device-independent bitmap (DIB) format.
+            if (System.Windows.Forms.Clipboard.ContainsData("Dib") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows Data Interchange Format (DIF), which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("Dif") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows enhanced metafile format.
+            if (System.Windows.Forms.Clipboard.ContainsData("EnhancedMetafile") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows file drop format, which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("FileDrop") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies text in the HTML Clipboard format.
+            if (System.Windows.Forms.Clipboard.ContainsData("Html") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows culture format, which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("Locale") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows metafile format, which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("MetafilePict") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the standard Windows original equipment manufacturer (OEM) text format.
+            if (System.Windows.Forms.Clipboard.ContainsData("OemText") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows palette format.
+            if (System.Windows.Forms.Clipboard.ContainsData("Palette") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows pen data format, which consists of pen strokes for handwriting software;
+            // Windows Forms does not use this format.
+            if (System.Windows.Forms.Clipboard.ContainsData("PenData") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Resource Interchange File Format (RIFF) audio format,
+            // which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("Riff") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies text consisting of Rich Text Format (RTF) data.
+            if (System.Windows.Forms.Clipboard.ContainsData("Rtf") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies a format that encapsulates any type of Windows Forms object.
+            if (System.Windows.Forms.Clipboard.ContainsData("Serializable") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows Forms string class format, which Windows Forms uses to store string objects.
+            if (System.Windows.Forms.Clipboard.ContainsData("StringFormat") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Windows symbolic link format, which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("SymbolicLink") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the standard ANSI text format.
+            if (System.Windows.Forms.Clipboard.ContainsData("Text") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the Tagged Image File Format (TIFF), which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("Tiff") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the standard Windows Unicode text format.
+            if (System.Windows.Forms.Clipboard.ContainsData("UnicodeText") && !foundData)
+            {
+
+                foundData = true;
+            }
+            // Specifies the wave audio format, which Windows Forms does not directly use.
+            if (System.Windows.Forms.Clipboard.ContainsData("WaveAudio") && !foundData)
+            {
+
+                foundData = true;
+            }
+        }
         #endregion
 
         #region Private methods
         /// <summary>
         /// Read the current file.
         /// </summary>
-        static void Read()
+        static void ReadCurrentFile()
         {
-            Read(CurrentFilePosition);
+            ReadCurrentFile(CurrentFilePosition);
         }
 
         /// <summary>
-        /// Read the current file at a certain position.
+        /// Read the current file at a position.
         /// </summary>
-        /// <param name="pBaseOffset">Position.</param>
-        static void Read(long pBaseOffset)
+        /// <param name="pBasePosition">Position.</param>
+        static void ReadCurrentFile(long pBasePosition)
         {
             using (StreamReader sr = new StreamReader(CurrentFile.FullName))
             {
-                sr.BaseStream.Position = pBaseOffset;
+                sr.BaseStream.Position = pBasePosition;
                 
                 int len =
-                    sr.BaseStream.Length < ElementsWidth * FrameHeight ?
+                    sr.BaseStream.Length < MainPanel.MaximumNumberOfBytesOnScreen ?
                     (int)sr.BaseStream.Length :
-                    ElementsWidth * FrameHeight;
+                    MainPanel.MaximumNumberOfBytesOnScreen;
 
                 Buffer = new byte[len];
 
@@ -172,11 +348,16 @@ namespace ConHexView
             switch (cki.Key)
             {
                 case ConsoleKey.Escape:
-                    return Exit();
+                    //TODO: Menu at ConsoleKey.Escape
+                    break;
 
                 // -- Hidden shortcuts --
                 case ConsoleKey.F11:
-                        //TODO: "Fullscreen" mode
+                    ToggleFullscreenMode();
+                    break;
+
+                case ConsoleKey.O:
+                        //TODO: Open Dialog
                     break;
 
                 // -- Shown shortcuts --
@@ -190,6 +371,18 @@ namespace ConHexView
 
                 // Find
                 case ConsoleKey.W:
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                        throw new NotImplementedException();
+                    break;
+
+                // Goto
+                case ConsoleKey.G:
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                        throw new NotImplementedException();
+                    break;
+
+                // Replace
+                case ConsoleKey.H:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                         throw new NotImplementedException();
                     break;
@@ -222,76 +415,79 @@ namespace ConHexView
                 case ConsoleKey.LeftArrow:
                     if (CurrentFilePosition - 1 >= 0)
                     {
-                        CurrentFilePosition--;
-                        ReadAndUpdate(CurrentFilePosition, SCROLL_PAGE);
+                        ReadAndUpdate(--CurrentFilePosition, SCROLL_PAGE);
                     }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (CurrentFilePosition + (FrameHeight * ElementsWidth) + 1 <= CurrentFile.Length)
+                    if (CurrentFilePosition + (MainPanel.MaximumNumberOfBytesOnScreen) + 1 <= CurrentFile.Length)
                     {
-                        CurrentFilePosition++;
-                        ReadAndUpdate(CurrentFilePosition);
+                        ReadAndUpdate(++CurrentFilePosition);
                     }
                     break;
 
                 case ConsoleKey.UpArrow:
                     if (CurrentFilePosition - SCROLL_LINE >= 0)
                     {
-                        CurrentFilePosition -= SCROLL_LINE;
-                        ReadAndUpdate(CurrentFilePosition);
+                        ReadAndUpdate(CurrentFilePosition -= SCROLL_LINE);
                     }
                     else
                     {
-                        //TODO: Round
+                        //TODO: Round if it reaches the beginning
                     }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentFilePosition + (FrameHeight * ElementsWidth) + SCROLL_LINE <= CurrentFile.Length)
+                    if (CurrentFilePosition + (MainPanel.MaximumNumberOfBytesOnScreen) + SCROLL_LINE <= CurrentFile.Length)
                     {
-                        CurrentFilePosition += SCROLL_LINE;
-                        ReadAndUpdate(CurrentFilePosition);
+                        ReadAndUpdate(CurrentFilePosition += SCROLL_LINE);
                     }
                     else
                     {
-                        //TODO: Round
+                        //TODO: Round if it reaches end
                     }
                     break;
 
                 case ConsoleKey.PageUp:
                     if (CurrentFilePosition - SCROLL_PAGE >= 0)
                     {
-                        CurrentFilePosition -= SCROLL_PAGE;
-                        ReadAndUpdate(CurrentFilePosition);
+                        ReadAndUpdate(CurrentFilePosition -= SCROLL_PAGE);
                     }
                     else
                     {
-                        //TODO: Round
+                        //TODO: Round if it reaches the beginning
                     }
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentFilePosition + (FrameHeight * ElementsWidth) + SCROLL_PAGE <= CurrentFile.Length)
+                    if (CurrentFilePosition + (MainPanel.MaximumNumberOfBytesOnScreen) + SCROLL_PAGE <= CurrentFile.Length)
                     {
-                        CurrentFilePosition += SCROLL_PAGE;
-                        ReadAndUpdate(CurrentFilePosition);
+                        ReadAndUpdate(CurrentFilePosition += SCROLL_PAGE);
                     }
                     else
                     {
-                        //TODO: Round
+                        //TODO: Round if it reaches end
                     }
                     break;
 
                 case ConsoleKey.Home:
+                    //TODO: Fix ^Home not working
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        CurrentFilePosition = 0;
-                        ReadAndUpdate(CurrentFilePosition);
+                        ReadAndUpdate(CurrentFilePosition = 0);
+                    }
+                    else
+                    {
+                        //TODO: Align to offset *******0
                     }
                     break;
                 case ConsoleKey.End:
+                    //TODO: Fix ^End not working
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        CurrentFilePosition = CurrentFile.Length - (FrameHeight * ElementsWidth);
+                        CurrentFilePosition = CurrentFile.Length - (MainPanel.MaximumNumberOfBytesOnScreen);
                         ReadAndUpdate(CurrentFilePosition);
+                    }
+                    else
+                    {
+                        //TODO: Align to offset *******F
                     }
                     break;
             }
@@ -301,12 +497,12 @@ namespace ConHexView
 
         static void ReadAndUpdate(long pOffset)
         {
-            ReadAndUpdate(pOffset, FrameHeight);
+            ReadAndUpdate(pOffset, MainPanel.FrameHeight);
         }
 
         static void ReadAndUpdate(long pOffset, int pLength)
         {
-            Read(pOffset);
+            ReadCurrentFile(pOffset);
             UpdateMainScreen();
             UpdateInfoMap();
         }
@@ -323,7 +519,7 @@ namespace ConHexView
                 ((filelen - (CurrentFilePosition + FrameHeight)) / ElementsWidth) + 1:
                 FrameHeight;
             */
-            long lines = FrameHeight;
+            long lines = MainPanel.FrameHeight;
 
             int BufferOffsetHex = 0;
             int BufferOffsetData = 0;
@@ -335,19 +531,19 @@ namespace ConHexView
                 switch (CurrentOffsetViewMode)
                 {
                     case OffsetViewMode.Hexadecimal:
-                        Console.Write($"{((line * ElementsWidth) + CurrentFilePosition).ToString("X8")}  ");
+                        Console.Write($"{((line * MainPanel.NumberOfBytesInRow) + CurrentFilePosition).ToString("X8")}  ");
                         break;
 
                     case OffsetViewMode.Decimal:
-                        Console.Write($"{((line * ElementsWidth) + CurrentFilePosition).ToString("00000000")}  ");
+                        Console.Write($"{((line * MainPanel.NumberOfBytesInRow) + CurrentFilePosition).ToString("00000000")}  ");
                         break;
 
                     case OffsetViewMode.Octal:
-                        Console.Write($"{Convert.ToString((line * ElementsWidth) + CurrentFilePosition, 8), 8}  ");
+                        Console.Write($"{Convert.ToString((line * MainPanel.NumberOfBytesInRow) + CurrentFilePosition, 8), 8}  ");
                         break;
                 }
 
-                for (int x = 0; x < ElementsWidth; x++)
+                for (int x = 0; x < MainPanel.NumberOfBytesInRow; x++)
                 {
                     if (CurrentFilePosition + BufferOffsetData < filelen)
                         Console.Write($"{Buffer[BufferOffsetData].ToString("X2")} ");
@@ -359,7 +555,7 @@ namespace ConHexView
 
                 Console.Write(" ");
 
-                for (int x = 0; x < ElementsWidth; x++)
+                for (int x = 0; x < MainPanel.NumberOfBytesInRow; x++)
                 {
                     if (CurrentFilePosition + BufferOffsetHex < filelen)
                         Console.Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
@@ -508,6 +704,15 @@ namespace ConHexView
             Console.ResetColor();
         }
 
+        static void ToggleFullscreenMode()
+        {
+            // TODO: void ToggleFullscreenMode();
+            /*
+            FrameHeight = Console.WindowHeight - 1;
+            ReadAndUpdate(CurrentFilePosition);
+            */
+        }
+
         static int ReadValue()
         {
             //TODO: int ReadValue()
@@ -527,7 +732,7 @@ namespace ConHexView
             int line = 0;
             int BufferPositionHex = 0;
             int BufferPositionData = 0;
-            byte[] buffer = new byte[ElementsWidth];
+            byte[] buffer = new byte[MainPanel.NumberOfBytesInRow];
 
             using (StreamWriter sw = new StreamWriter($"{pPath}.{NAME_EXTENSION}"))
             {
@@ -583,16 +788,16 @@ namespace ConHexView
                                 break;
                         }
 
-                        line += ElementsWidth;
+                        line += MainPanel.NumberOfBytesInRow;
 
-                        for (int c = 0; c < ElementsWidth; c++)
+                        for (int c = 0; c < MainPanel.NumberOfBytesInRow; c++)
                         {
                             byte b = (byte)fs.ReadByte();
 
                             buffer[c] = b;
                         }
 
-                        for (int pos = 0; pos < ElementsWidth; pos++)
+                        for (int pos = 0; pos < MainPanel.NumberOfBytesInRow; pos++)
                         {
                             if (BufferPositionHex < filelen)
                                 sw.Write($"{buffer[pos].ToString("X2")} ");
@@ -604,7 +809,7 @@ namespace ConHexView
 
                         sw.Write(" ");
 
-                        for (int pos = 0; pos < ElementsWidth; pos++)
+                        for (int pos = 0; pos < MainPanel.NumberOfBytesInRow; pos++)
                         {
                             if (BufferPositionData < filelen)
                                 sw.Write($"{buffer[pos].ToSafeChar()}");
