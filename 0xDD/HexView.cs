@@ -11,6 +11,10 @@ using System.IO;
     - Message(ProgressBar=bool) -> Progress bar (Dump) -> [ Done! ]
     - nagivation syncs (e.g. 32 - 33 -> 0 instead of just not doing it)
     - align offset (dividable by ElementsWidth)
+    - Edit: List<int, byte>(FilePosition, Byte)
+      - Rendering: If byte at position, write that byte to display instead
+      - Saving: Remove duplicates, loop through List and write
+      - Editing: If new data on same position, replace
 */
 
 namespace ConHexView
@@ -18,7 +22,6 @@ namespace ConHexView
     static class HexView
     {
         #region Constants
-        
         /// <summary>
         /// Extension of data dump files.
         /// </summary>
@@ -107,9 +110,9 @@ namespace ConHexView
 
         #region Enumerations
         /// <summary>
-        /// Enumeration of different offset views.
+        /// Offset view enumeration.
         /// </summary>
-        public enum OffsetViewMode
+        internal enum OffsetViewMode
         {
             Hexadecimal,
             Decimal,
@@ -120,6 +123,20 @@ namespace ConHexView
         /// Current <see cref="OffsetViewMode"/>.
         /// </summary>
         static OffsetViewMode CurrentOffsetViewMode;
+
+        /// <summary>
+        /// Writing mode enumeration.
+        /// </summary>
+        enum WritingMode
+        {
+            Overwrite,
+            Insert
+        }
+
+        /// <summary>
+        /// Current <see cref="WritingMode"/>.
+        /// </summary>
+        static WritingMode CurrentWritingMode;
         #endregion
 
         #region Internal methods
@@ -152,13 +169,10 @@ namespace ConHexView
 
             CurrentOffsetViewMode = pOffsetViewMode;
 
-            ReadCurrentFile();
+            PrepareScreen();
 
-            UpdateTitleMap();
-            PlaceOffsetMap();
+            ReadCurrentFile();
             UpdateMainScreen();
-            UpdateInfoMap();
-            PlaceMainControlMap();
 
             // Someone was unhappy with the do {} while() loop.
             while (ReadUserKey())
@@ -301,6 +315,23 @@ namespace ConHexView
 
                 foundData = true;
             }
+
+            if (!foundData)
+            {
+                Message("The clipboard is empty.");
+                return;
+            }
+        }
+
+        /// <summary>
+        /// Prepares the screen with the information needed.
+        /// </summary>
+        static void PrepareScreen()
+        {
+            UpdateTitleMap();
+            PlaceOffsetMap();
+            UpdateInfoMap();
+            PlaceMainControlMap();
         }
         #endregion
 
@@ -610,9 +641,9 @@ namespace ConHexView
         static void UpdateInfoMap()
         {
             Console.SetCursorPosition(0, Console.WindowHeight - 3);
-            Console.Write(
-                $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8), 8}"
-            );
+            string info = $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8),8}";
+            // Force clean last message.
+            Console.Write(info + new string (' ', Console.WindowWidth - info.Length));
         }
 
         /// <summary>
@@ -721,20 +752,23 @@ namespace ConHexView
 
         static void Dump()
         {
-            Dump($"{CurrentFile.Name}.{NAME_EXTENSION}", CurrentOffsetViewMode);
+            Dump(CurrentFile.Name, CurrentOffsetViewMode);
         }
 
-        static internal void Dump(string pPath, OffsetViewMode pViewMode)
+        static internal int Dump(string pCurrentFilePath, OffsetViewMode pViewMode)
         {
+            if (!File.Exists(pCurrentFilePath))
+                return 1;
+
             // Force refresh information
-            FileInfo file = new FileInfo(pPath);
+            FileInfo file = new FileInfo(pCurrentFilePath);
             int filelen = (int)file.Length;
             int line = 0;
             int BufferPositionHex = 0;
             int BufferPositionData = 0;
             byte[] buffer = new byte[MainPanel.NumberOfBytesInRow];
 
-            using (StreamWriter sw = new StreamWriter($"{pPath}.{NAME_EXTENSION}"))
+            using (StreamWriter sw = new StreamWriter($"{pCurrentFilePath}.{NAME_EXTENSION}"))
             {
                 sw.WriteLine(file.Name);
                 sw.WriteLine();
@@ -823,6 +857,8 @@ namespace ConHexView
                     }
                 }
             }
+
+            return 0;
         }
 
         /// <summary>
