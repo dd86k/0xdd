@@ -9,30 +9,34 @@ Inspired by nano, 0xdd is a straightforward, simple, interactive, hexadecimal fi
 
 0xdd is still a work in progress, so only a lot of functions are still in the works.
 
-Written in C# 6.0 on .NET 4.5 with Visual Studio 2015, compatible with Mono.
+Written in C# 6.0 on .NET 4.5 with Visual Studio 2015
+
+Compatible with Mono.
 
 # Requirements
 
 - .NET 4.5 (Windows) or Mono (OS X and GNU/Linux).
 - ISO/ANSI Screen size (80x24) cmd (Command Prompt) or Terminal.
-- A working computer. 
+- A working computer.
 
 # Arguments
-It's possible to give direct commands to 0xdd.
+It's possible to give direct commands to 0xdd. Note that slashes (/) can be replaced by dashes (-). Both can work at the same time.
 
-The order of the arguments matter, the last argument must be the file to open:
+The order of the arguments may matter, but the last argument must be the file to open:
 
-`0xdd [-v {h|d|o}] [-U] [-dump] <file>`
+`0xdd [/v {h|d|o}] [-w n] [/U] [/dump] <file>`
 
-`-v` : Starts with the offset view with either Hexadecimal, Decimal, or Octal. Example: `-v d`
+`/v` : Define the offset view as Hexadecimal, Decimal, or Octal. Example: `/v d`
 
-`-U` : Update. Please note that this feature is marked as "Please do not use this for now".
+`/w` : Define the number of bytes to show in a single row. Example: `/w 8`
+
+`/U` : Update 0xdd. __Not recommended for now.__
    
-`-dump` : Dump specified `<file>` in plain text and exit.
+`/dump` : Dump specified `<file>` in plain text and exit.
 
 Examples:
 
-- `0xdd -v d -dump NOTEPAD.EXE` - Dump the data from NOTEPAD.EXE to NOTEPAD.EXE.datdmp with the decimal offset view.
+- `0xdd /v d /dump NOTEPAD.EXE` - Dump the data from NOTEPAD.EXE to NOTEPAD.EXE.datdmp with the decimal offset view.
  
 # Navigation
 In 0xdd, navigation happens when a user changes the position to read of the file with a variety of keys:

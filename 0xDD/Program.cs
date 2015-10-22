@@ -1,8 +1,6 @@
 ﻿using System;
 using System.IO;
 using System.Diagnostics;
-using static System.Console;
-using static System.IO.File;
 
 namespace ConHexView
 {
@@ -84,8 +82,10 @@ namespace ConHexView
             
             string file = args[args.Length - 1];
 
-            int bytesRow = 16;
+            // Defaults
+            int bytesInRow = 16;
             HexView.OffsetViewMode ovm = HexView.OffsetViewMode.Hexadecimal;
+
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
@@ -94,9 +94,7 @@ namespace ConHexView
                     case "/v":
                         switch (args[i + 1])
                         {
-                            case "h":
-                                // Default, so leave it as it is.
-                                break;
+                            // h is default.
                             case "d":
                                 ovm = HexView.OffsetViewMode.Decimal;
                                 break;
@@ -104,39 +102,47 @@ namespace ConHexView
                                 ovm = HexView.OffsetViewMode.Octal;
                                 break;
                             default:
-                                WriteLine($"Aborted: {args[i + 1]} is invalid for -v");
+                                Console.WriteLine($"Invalid parameter for -v: {args[i + 1]}");
                                 return 1;
+                        }
+                        break;
+
+                    case "-w":
+                    case "/w":
+                        if (!int.TryParse(args[i + 1], out bytesInRow))
+                        {
+                            Console.WriteLine($"Invalid parameter for -w: {args[i + 1]}");
+                            return 1;
                         }
                         break;
 
                     case "-U":
                     case "/U":
-                        Update();
-                        return 0;
+                        return Update();
 
                     case "-dump":
                     case "/dump":
-                        WriteLine("Dumping file...");
-                        int err = HexView.Dump(file, ovm);
+                        Console.WriteLine("Dumping file...");
+                        int err = HexView.Dump(file, bytesInRow, ovm);
                         switch (err)
                         {
                             case 1:
-                                WriteLine("File not found, aborted.");
+                                Console.WriteLine("File not found, aborted.");
                                 break;
                             case 0:
-                                WriteLine("Dumping done!");
+                                Console.WriteLine("Dumping done!");
                                 break;
                             default:
-                                WriteLine("Unknown error, aborted.");
+                                Console.WriteLine("Unknown error, aborted.");
                                 break;
                         }
                         return err;
                 }
             }
 
-            if (Exists(file))
+            if (File.Exists(file))
             {
-                Clear();
+                Console.Clear();
 
 #if RELEASE
                 try
@@ -149,75 +155,79 @@ namespace ConHexView
                 }
 #elif DEBUG
                 // I want Visual Studio to catch the exceptions!
-                HexView.Open(file, ovm, bytesRow);
+                HexView.Open(file, ovm, bytesInRow);
 #endif
             }
             else
             {
-                WriteLine("File not found.");
+                Console.WriteLine("File not found.");
                 return 1;
             }
 
             return 0;
         }
 
-        static void Update()
+        static int Update()
         {
-            if (Exists(UPDATER_NAME))
+            if (File.Exists(UPDATER_NAME))
             {
-                //TODO: Fix
+                //TODO: Fix updater output
                 ProcessStartInfo updater = new ProcessStartInfo(UPDATER_NAME);
+                updater.RedirectStandardError = true;
+                updater.RedirectStandardInput = true;
                 updater.RedirectStandardOutput = true;
                 updater.UseShellExecute = false;
                 Process.Start(updater);
+                return 0;
             }
             else
-                WriteLine("ABORTED: Updater not found.");
+            {
+                Console.WriteLine("ABORTED: Updater not found. (0xdd_updater.exe)");
+                return 1;
+            }
         }
         
         static void Abort(Exception e)
         {
-            WriteLine();
-            ForegroundColor = ConsoleColor.White;
-            BackgroundColor = ConsoleColor.Red;
-            WriteLine(" !! Fatal error !! ");
-            ResetColor();
-            WriteLine($"Exception: {e.GetType()}");
-            WriteLine($"Message: {e.Message}");
-            WriteLine($"Stack: {e.StackTrace}");
-            WriteLine();
+            Console.WriteLine();
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.BackgroundColor = ConsoleColor.Red;
+            Console.WriteLine(" !! Fatal error !! ");
+            Console.ResetColor();
+            Console.WriteLine($"Exception: {e.GetType()}");
+            Console.WriteLine($"Message: {e.Message}");
+            Console.WriteLine($"Stack: {e.StackTrace}");
+            Console.WriteLine();
         }
 
         static void ShowHelp()
         {
-            //         1       10        20        30        40        50        60        70        80
-            //         |--------|---------|---------|---------|---------|---------|---------|---------|
-            WriteLine(" Usage:");
-            WriteLine($"  0xdd [-v {{h|d|o}}] [-U] [-dump] <file>");
-            WriteLine();
-            WriteLine("  -v       Start with an offset view: Hex, Dec, Oct. Default: Hex");
-            /*
-            WriteLine("  -d       Start with a predefined width. Default: 16");
-            */
-            WriteLine("  -U       Updates if necessary.");
-            WriteLine("  -dump    Dumps a data file as plain text.");
-            WriteLine();
-            WriteLine("  /help, /?   Shows this screen and exits.");
-            WriteLine("  /version    Shows version and exits.");
+            //                 1       10        20        30        40        50        60        70        80
+            //                 |--------|---------|---------|---------|---------|---------|---------|---------|
+            Console.WriteLine(" Usage:");
+            Console.WriteLine("  0xdd [-v {h|d|o}] [-w n] [-U] [-dump] <file>");
+            Console.WriteLine();
+            Console.WriteLine("  -v       Start with an offset view: Hex, Dec, Oct.          Default: Hex");
+            Console.WriteLine("  -w       Start with a number of bytes to show in a row.     Default: 16");
+            Console.WriteLine("  -U       Updates if necessary.");
+            Console.WriteLine("  -dump    Dumps a data file as plain text.");
+            Console.WriteLine();
+            Console.WriteLine("  /help, /?   Shows this screen and exits.");
+            Console.WriteLine("  /version    Shows version and exits.");
         }
 
         static void ShowVersion()
         {
             //         1       10        20        30        40        50        60        70        80
             //         |--------|---------|---------|---------|---------|---------|---------|---------|
-            WriteLine();
-            WriteLine($"0xDD - {ProjectVersion}");
-            WriteLine("Copyright (c) 2015 DD~!/guitarxhero");
-            WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
-            WriteLine("Project page: <https://github.com/guitarxhero/0xDD>");
-            WriteLine();
-            WriteLine(" -- Credits --");
-            WriteLine("DD~! (guitarxhero) - Original author");
+            Console.WriteLine();
+            Console.WriteLine($"0xDD - {ProjectVersion}");
+            Console.WriteLine("Copyright (c) 2015 DD~!/guitarxhero");
+            Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
+            Console.WriteLine("Project page: <https://github.com/guitarxhero/0xDD>");
+            Console.WriteLine();
+            Console.WriteLine(" -- Credits --");
+            Console.WriteLine("DD~! (guitarxhero) - Original author");
         }
     }
 }
