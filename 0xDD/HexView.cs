@@ -112,7 +112,7 @@ namespace ConHexView
         /// <summary>
         /// Offset view enumeration.
         /// </summary>
-        internal enum OffsetViewMode
+        internal enum OffsetViewMode : byte
         {
             Hexadecimal,
             Decimal,
@@ -127,7 +127,7 @@ namespace ConHexView
         /// <summary>
         /// Writing mode enumeration.
         /// </summary>
-        enum WritingMode
+        enum WritingMode : byte
         {
             Overwrite,
             Insert

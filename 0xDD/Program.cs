@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Diagnostics;
 using static System.Console;
 using static System.IO.File;
 
@@ -70,7 +71,7 @@ namespace ConHexView
             //args = new string[] { "f" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
-            args = new string[] { "gg.txt" };
+            //args = new string[] { "gg.txt" };
 #endif
 
             if (args.Length == 0)
@@ -111,7 +112,7 @@ namespace ConHexView
                     case "-U":
                     case "/U":
                         Update();
-                        break;
+                        return 0;
 
                     case "-dump":
                     case "/dump":
@@ -162,10 +163,14 @@ namespace ConHexView
 
         static void Update()
         {
-            //TODO: Extract the updater
-
             if (Exists(UPDATER_NAME))
-                System.Diagnostics.Process.Start(UPDATER_NAME);
+            {
+                //TODO: Fix
+                ProcessStartInfo updater = new ProcessStartInfo(UPDATER_NAME);
+                updater.RedirectStandardOutput = true;
+                updater.UseShellExecute = false;
+                Process.Start(updater);
+            }
             else
                 WriteLine("ABORTED: Updater not found.");
         }

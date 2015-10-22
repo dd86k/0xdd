@@ -1,9 +1,8 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using static System.Console;
-
-// NOTE: The updater's version __must__ be par with 0xdd's.
 
 namespace _0xdd_Updater
 {
@@ -13,22 +12,9 @@ namespace _0xdd_Updater
         const string UPDATE_FILENAME = "0xdd.exe";
         const string UPDATE_VERSIONFILE = "0xdd_ver";
 
-        /// <summary>
-        /// Gets the current version of the project as a <see cref="Version"/> object.
-        /// </summary>
-        static Version ProjectVersion
+        static int Main(string[] args)
         {
-            get
-            {
-                return
-                    System.Reflection.Assembly
-                    .GetExecutingAssembly().GetName().Version;
-            }
-        }
-
-        static void Main(string[] args)
-        {
-            Update();
+            return Update();
         }
 
         static int Update()
@@ -36,7 +22,21 @@ namespace _0xdd_Updater
             try
             {
                 WriteLine();
-                WriteLine("Checking version...");
+
+                WriteLine("Getting local version... ");
+                Version localVersion;
+                if (!File.Exists(UPDATE_FILENAME))
+                {
+                    WriteLine("0xdd couldn't be found, assuming version 0.0");
+                    localVersion = new Version(0, 0);
+                }
+                else
+                {
+                    FileVersionInfo fvi = FileVersionInfo.GetVersionInfo(UPDATE_FILENAME);
+                    localVersion = new Version(fvi.FileVersion);
+                }
+
+                WriteLine("Getting online version...");
                 WebRequest ver_wr = WebRequest.Create($"{UPDATE_URL}{UPDATE_VERSIONFILE}");
                 WebResponse ver_wb = ver_wr.GetResponse();
                 Stream ver_str = ver_wb.GetResponseStream();
@@ -47,9 +47,10 @@ namespace _0xdd_Updater
                 }
                 try
                 {
-                    Version version = new Version(ver);
+                    Version onlineVersion = new Version(ver);
 
-                    if (!(version.Minor > ProjectVersion.Minor || version.Major > ProjectVersion.Major))
+                    WriteLine("Checking versions...");
+                    if (!(onlineVersion.Minor > localVersion.Minor || onlineVersion.Major > localVersion.Major))
                     {
                         WriteLine("You already have the latest version.");
                         return 0;
@@ -83,10 +84,12 @@ namespace _0xdd_Updater
                 Write("Getting response...");
                 WebResponse wres = wr.GetResponse();
                 Stream str = wres.GetResponseStream();
-                if (str == null)
-                    throw new NullReferenceException("The response stream is null");
-                if (str.CanRead)
-                    throw new IOException("Can't read the response stream.");
+                if (str == null || !str.CanRead)
+                {
+                    WriteLine();
+                    WriteLine("Unable to read the response.");
+                    return 1;
+                }
                 WriteLine(" Done.");
 
                 Write("Saving file...");
@@ -127,10 +130,11 @@ namespace _0xdd_Updater
                 else if (e is IOException)
                 {
                     WriteLine("Unable to write in the current directory.");
+                    WriteLine("Additional message: " + e.Message);
                 }
                 else
                 {
-                    WriteLine("Unknown error");
+                    WriteLine("Unknown error.");
                 }
 
                 WriteLine();
