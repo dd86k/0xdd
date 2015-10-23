@@ -9,26 +9,27 @@ Inspired by nano, 0xdd is a straightforward, simple, interactive, hexadecimal fi
 
 0xdd is still a work in progress, so only a lot of functions are still in the works.
 
-Written in C# 6.0 on .NET 4.5 with Visual Studio 2015
+Written in C# 6.0 for .NET 4.5 with Visual Studio 2015.
 
-Compatible with Mono.
+Compatible with Mono, and probably Xamarin Studio and MonoDevelop as well.
 
 # Requirements
 
 - .NET 4.5 (Windows) or Mono (OS X and GNU/Linux).
-- ISO/ANSI Screen size (80x24) cmd (Command Prompt) or Terminal.
+- ISO/ANSI Screen size, which is 80x24, with a Command Prompt or Terminal.
 - A working computer.
 
 # Arguments
-It's possible to give direct commands to 0xdd. Note that slashes (/) can be replaced by dashes (-). Both can work at the same time.
+It's possible to give direct commands to 0xdd. Note that slashes (/) can be replaced by dashes (-) for parameters. Both can work at the same time.
 
 The order of the arguments may matter, but the last argument must be the file to open:
 
-`0xdd [/v {h|d|o}] [-w n] [/U] [/dump] <file>`
+`0xdd [/v {h|d|o}] [/w <Number>] [/U] [/dump] <file>`
 
 `/v` : Define the offset view as Hexadecimal, Decimal, or Octal. Example: `/v d`
 
-`/w` : Define the number of bytes to show in a single row. Example: `/w 8`
+`/w` : Define the number of bytes to show in a single row.
+Example: `/w 8`
 
 `/U` : Update 0xdd. __Not recommended for now.__
    
@@ -55,20 +56,33 @@ Move to...
 # Actions
 Actions, defined at the bottom, are activated by shortcuts.
 
-__^__ is a short way of saying __CTRL+__, per example, `^P` is `CTRL+P`.
+__^__ is a short way of saying __CTRL+__, so per example, `^P` is `CTRL+P`.
 
 ## Dump
 It is possible to dump a hexadecimal view of the file with the Dump action. (^D)
 
-0xdd will simply add the "datdmp" extention to the current filename being worked on.
+0xdd will simply add the "datdmp" extention (for Data dump) to the current filename being worked on.
 
 # FAQ
 ___Nothing here yet!___
 
 # Notes
-- This README file is updated as 0xdd gets the features.
-- The reason the Find action is now ^W instead of ^F is due to Windows 10 overriding (system wise) the CTRL+F shortcut which brings a Find dialog box.
-- CTRL+Home and CTRL+End don't seem to work on cmd.
+
+
+Keys stolen by Windows 10's cmd so far which we can't use:
+- F11 (Fullscreen)
+- CTRL+F (Search dialogbox)
+- CTRL+HOME and CTRL+END (Assuming it's due to the scrolling)
 
 # Development Notes
-___Nothing here yet!___
+- Messages are at the same TopPosition as the InfoPanel, so thus why the InfoPanel is showing in fullscreen mode.
+- Even if the `using static` feature is wonderful, I try to limit its use because I don't want to be confused with other methods and classes.
+- Parameters are usually expressed with a slash (e.g. /w 16)
+- Eventually every panel will have their own structs.
+- Eventually optimization will occur.
+
+- When doing commits, sometimes I use the following legend for descriptions:
+  - `+` : Addition
+  - `*` : Fix
+  - `~` : Notes
+  - `-` : Removal

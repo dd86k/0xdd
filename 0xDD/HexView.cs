@@ -3,11 +3,12 @@ using System.IO;
 using System.Windows;
 
 //TODO: Edit mode
+//TODO: Resize on Window resize
 
 /*
     Box of ideas (Lazy TODO/idea list)
     - Scrollbar (-ish), you know, style
-    - Top right (under title): Insert(INS)/Overwrite(OVR)
+    - Top right (under title): Insert(INS)/Overwrite(OVR) (bool)
     - Search: /regex/ (Begins with && ends with)
     - Message(ProgressBar=bool) -> Progress bar (Dump) -> [ Done! ]
     - nagivation syncs (e.g. 32 - 33 -> 0 instead of just not doing it)
@@ -17,6 +18,7 @@ using System.Windows;
       - Saving: Remove duplicates, loop through List and write
       - Editing: If new data on same position, replace
     - open memory process!!!!!!!!!!! (Windows)
+    - Dump buffer only at the current position
 */
 
 namespace ConHexView
@@ -60,12 +62,14 @@ namespace ConHexView
         struct MainPanel
         {
             /// <summary>
+            /// Position to start rendering on the console (Y axis).
+            /// </summary>
+            static internal int StartingTopPosition = 2;
+
+            /// <summary>
             /// Gets or sets the heigth of the main panel.
             /// </summary>
-            static internal int FrameHeight
-            {
-                get; set;
-            }
+            static internal int FrameHeight = Console.WindowHeight - 5;
 
             /// <summary>
             /// Gets or sets the number of bytes showed in a row.
@@ -84,6 +88,87 @@ namespace ConHexView
                 {
                     return FrameHeight * BytesInRow;
                 }
+            }
+
+            /// <summary>
+            /// Update the section of the screen with the data.
+            /// </summary>
+            static internal void Update()
+            {
+                long filelen = CurrentFile.Length;
+
+                int BufferOffsetHex = 0;
+                int BufferOffsetData = 0;
+
+                Console.SetCursorPosition(0, StartingTopPosition);
+
+                for (int line = 0; line < FrameHeight; line++)
+                {
+                    switch (CurrentOffsetViewMode)
+                    {
+                        case OffsetViewMode.Hexadecimal:
+                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("X8")}  ");
+                            break;
+
+                        case OffsetViewMode.Decimal:
+                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("00000000")}  ");
+                            break;
+
+                        case OffsetViewMode.Octal:
+                            Console.Write($"{Convert.ToString((line * BytesInRow) + CurrentFilePosition, 8), 8}  ");
+                            break;
+                    }
+
+                    for (int x = 0; x < BytesInRow; x++)
+                    {
+                        if (CurrentFilePosition + BufferOffsetData < filelen)
+                            Console.Write($"{Buffer[BufferOffsetData].ToString("X2")} ");
+                        else
+                            Console.Write("   ");
+
+                        BufferOffsetData++;
+                    }
+
+                    Console.Write(" ");
+
+                    for (int x = 0; x < BytesInRow; x++)
+                    {
+                        if (CurrentFilePosition + BufferOffsetHex < filelen)
+                            Console.Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
+                        else
+                        {
+                            Console.Write(new string(' ', BytesInRow - BufferOffsetHex));
+                            // End rendering completely
+                            x += BytesInRow;
+                            line += FrameHeight;
+                        }
+
+                        BufferOffsetHex++;
+                    }
+
+                    Console.WriteLine();
+                }
+            }
+        }
+        #endregion
+
+        #region InfoPanel properties
+        struct InfoPanel
+        {
+            /// <summary>
+            /// Position to start rendering on the console (Y axis).
+            /// </summary>
+            static internal int StartingTopPosition = Console.WindowHeight - 3;
+
+            /// <summary>
+            /// Update the offset information
+            /// </summary>
+            static internal void Update()
+            {
+                Console.SetCursorPosition(0, StartingTopPosition);
+                string s = $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8),8}";
+                // Force clean last message.
+                Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
             }
         }
         #endregion
@@ -143,8 +228,7 @@ namespace ConHexView
                 };
 
             CurrentFile = new FileInfo(pFilePath);
-
-            MainPanel.FrameHeight = Console.WindowHeight - 5;
+            
             MainPanel.BytesInRow = pBytesRow;
 
             CurrentOffsetViewMode = pOffsetViewMode;
@@ -152,7 +236,7 @@ namespace ConHexView
             PrepareScreen();
 
             Refresh();
-            UpdateMainPanel();
+            MainPanel.Update();
 
             // Someone was unhappy with the do {} while() loop.
             while (ReadUserKey())
@@ -310,7 +394,7 @@ namespace ConHexView
         {
             UpdateTitlePanel();
             PlaceOffsetPanel();
-            UpdateInfoPanel();
+            InfoPanel.Update();
             PlaceControlPanel();
         }
         #endregion
@@ -321,7 +405,7 @@ namespace ConHexView
         /// </summary>
         static void Refresh()
         {
-            ReadCurrentFile(CurrentFilePosition);
+            ReadAndUpdate(CurrentFilePosition);
         }
 
         /// <summary>
@@ -351,7 +435,7 @@ namespace ConHexView
         /// <summary>
         /// Read the user's key.
         /// </summary>
-        /// <returns><see cref="true"/> if still using the program.</returns>
+        /// <returns>True if still using 0xdd.</returns>
         static bool ReadUserKey()
         {
             ConsoleKeyInfo cki = Console.ReadKey(true);
@@ -363,7 +447,7 @@ namespace ConHexView
                     break;
 
                 // -- Hidden shortcuts --
-                case ConsoleKey.F11:
+                case ConsoleKey.F10:
                     ToggleFullscreenMode();
                     break;
 
@@ -403,9 +487,7 @@ namespace ConHexView
                                     gotNumber = true;
                                 }
                                 else
-                                {
                                     Message("Position out of bound!");
-                                }
                             }
                             else
                                 Message("Need a number!");
@@ -503,8 +585,7 @@ namespace ConHexView
                     ReadAndUpdate(CurrentFilePosition = 0);
                     break;
                 case ConsoleKey.End:
-                    CurrentFilePosition = CurrentFile.Length - (MainPanel.ScreenMaxBytes);
-                    ReadAndUpdate(CurrentFilePosition);
+                    ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                     break;
             }
 
@@ -519,67 +600,8 @@ namespace ConHexView
         static void ReadAndUpdate(long pPosition, int pLength)
         {
             ReadCurrentFile(pPosition);
-            UpdateMainPanel();
-            UpdateInfoPanel();
-        }
-
-        /// <summary>
-        /// Update the section of the screen with the data.
-        /// </summary>
-        static void UpdateMainPanel()
-        {
-            long filelen = CurrentFile.Length;
-
-            int BufferOffsetHex = 0;
-            int BufferOffsetData = 0;
-
-            Console.SetCursorPosition(0, 2);
-
-            for (int line = 0; line < MainPanel.FrameHeight; line++)
-            {
-                switch (CurrentOffsetViewMode)
-                {
-                    case OffsetViewMode.Hexadecimal:
-                        Console.Write($"{((line * MainPanel.BytesInRow) + CurrentFilePosition).ToString("X8")}  ");
-                        break;
-
-                    case OffsetViewMode.Decimal:
-                        Console.Write($"{((line * MainPanel.BytesInRow) + CurrentFilePosition).ToString("00000000")}  ");
-                        break;
-
-                    case OffsetViewMode.Octal:
-                        Console.Write($"{Convert.ToString((line * MainPanel.BytesInRow) + CurrentFilePosition, 8), 8}  ");
-                        break;
-                }
-
-                for (int x = 0; x < MainPanel.BytesInRow; x++)
-                {
-                    if (CurrentFilePosition + BufferOffsetData < filelen)
-                        Console.Write($"{Buffer[BufferOffsetData].ToString("X2")} ");
-                    else
-                        Console.Write("   ");
-
-                    BufferOffsetData++;
-                }
-
-                Console.Write(" ");
-
-                for (int x = 0; x < MainPanel.BytesInRow; x++)
-                {
-                    if (CurrentFilePosition + BufferOffsetHex < filelen)
-                        Console.Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
-                    else
-                    {
-                        //Console.Write(" ");
-                        x += MainPanel.BytesInRow;
-                        line += MainPanel.FrameHeight;
-                    }
-
-                    BufferOffsetHex++;
-                }
-
-                Console.WriteLine();
-            }
+            MainPanel.Update();
+            InfoPanel.Update();
         }
 
         /// <summary>
@@ -603,17 +625,6 @@ namespace ConHexView
         {
             Console.SetCursorPosition(0, 1);
             Console.Write($"Offset {CurrentOffsetViewMode.GetChar()}  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
-        }
-
-        /// <summary>
-        /// Update the offset information
-        /// </summary>
-        static void UpdateInfoPanel()
-        {
-            Console.SetCursorPosition(0, Console.WindowHeight - 3);
-            string info = $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8), 8}";
-            // Force clean last message.
-            Console.Write(info + new string (' ', Console.WindowWidth - info.Length));
         }
 
         /// <summary>
@@ -692,11 +703,11 @@ namespace ConHexView
         /// <param name="pMessage">Message to show.</param>
         static void Message(string pMessage)
         {
-            Console.SetCursorPosition(0, Console.WindowHeight - 3);
-            Console.Write(new string(' ', Console.WindowWidth));
+            Console.SetCursorPosition(0, InfoPanel.StartingTopPosition);
+            Console.Write(new string(' ', Console.WindowWidth - 1));
 
             string msg = $"[ {pMessage} ]";
-            Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2), Console.WindowHeight - 3);
+            Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2), InfoPanel.StartingTopPosition);
 
             ToggleColors();
 
@@ -707,11 +718,28 @@ namespace ConHexView
 
         static void ToggleFullscreenMode()
         {
-            // TODO: void ToggleFullscreenMode();
-            /*
-            FrameHeight = Console.WindowHeight - 1;
-            ReadAndUpdate(CurrentFilePosition);
-            */
+            if (Fullscreen)
+            { // Turning off
+                MainPanel.StartingTopPosition = 2;
+                MainPanel.FrameHeight = Console.WindowHeight - 5;
+                InfoPanel.StartingTopPosition = Console.WindowHeight - 3;
+                Fullscreen = false;
+                Console.Clear();
+                PlaceControlPanel();
+                PlaceOffsetPanel();
+                UpdateTitlePanel();
+                Refresh();
+            }
+            else
+            { // Turning on
+                MainPanel.StartingTopPosition = 1;
+                MainPanel.FrameHeight = Console.WindowHeight - 2;
+                InfoPanel.StartingTopPosition = Console.WindowHeight - 1;
+                Fullscreen = true;
+                Console.Clear();
+                UpdateTitlePanel();
+                Refresh();
+            }
         }
 
         static void Goto(int pPosition)
@@ -760,7 +788,7 @@ namespace ConHexView
             Console.Write(new string(' ', width - 2));
 
             Console.SetCursorPosition(startx + 1, starty + 2);
-            string t = ConsoleTools.ReadLine(25);
+            string t = ConsoleTools.ReadLine(width - 2);
             Console.ResetColor();
             return t;
         }
@@ -774,13 +802,13 @@ namespace ConHexView
         {
             if (!File.Exists(pFileToDump))
                 return 1;
-
-            // Force refresh information
+            
             FileInfo file = new FileInfo(pFileToDump);
             int filelen = (int)file.Length;
             int line = 0;
             int BufferPositionHex = 0;
             int BufferPositionData = 0;
+            // To not change the current buffer, we use a new one.
             byte[] buffer = new byte[pBytesInRow];
 
             using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{NAME_EXTENSION}"))

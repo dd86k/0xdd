@@ -56,7 +56,7 @@ namespace ConHexView
             {
                 return
                     Path.GetFileName(
-                        System.Diagnostics.Process
+                        Process
                         .GetCurrentProcess().MainModule.FileName
                     );
             }
@@ -94,15 +94,15 @@ namespace ConHexView
                     case "/v":
                         switch (args[i + 1])
                         {
-                            // h is default.
                             case "d":
                                 ovm = HexView.OffsetViewMode.Decimal;
                                 break;
                             case "o":
                                 ovm = HexView.OffsetViewMode.Octal;
                                 break;
+                            // h is default.
                             default:
-                                Console.WriteLine($"Invalid parameter for -v: {args[i + 1]}");
+                                Console.WriteLine($"Invalid parameter for /v: {args[i + 1]}");
                                 return 1;
                         }
                         break;
@@ -111,7 +111,7 @@ namespace ConHexView
                     case "/w":
                         if (!int.TryParse(args[i + 1], out bytesInRow))
                         {
-                            Console.WriteLine($"Invalid parameter for -w: {args[i + 1]}");
+                            Console.WriteLine($"Invalid parameter for /w: {args[i + 1]}");
                             return 1;
                         }
                         break;
@@ -218,12 +218,12 @@ namespace ConHexView
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine(" Usage:");
-            Console.WriteLine("  0xdd [-v {h|d|o}] [-w n] [-U] [-dump] <file>");
+            Console.WriteLine("  0xdd [/v {h|d|o}] [/w <Number>] [/U] [/dump] <file>");
             Console.WriteLine();
-            Console.WriteLine("  -v       Start with an offset view: Hex, Dec, Oct.          Default: Hex");
-            Console.WriteLine("  -w       Start with a number of bytes to show in a row.     Default: 16");
-            Console.WriteLine("  -U       Updates if necessary.");
-            Console.WriteLine("  -dump    Dumps a data file as plain text.");
+            Console.WriteLine("  /v       Start with an offset view: Hex, Dec, Oct.          Default: Hex");
+            Console.WriteLine("  /w       Start with a number of bytes to show in a row.     Default: 16");
+            Console.WriteLine("  /U       Updates if necessary.");
+            Console.WriteLine("  /dump    Dumps a data file as plain text.");
             Console.WriteLine();
             Console.WriteLine("  /help, /?   Shows this screen and exits.");
             Console.WriteLine("  /version    Shows version and exits.");

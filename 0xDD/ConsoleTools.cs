@@ -38,9 +38,11 @@ namespace ConHexView
 
                 switch (c.Key)
                 {
+                    // Ignore keys
                     case ConsoleKey.Tab:
                         break;
 
+                    // Returns the string
                     case ConsoleKey.Enter:
                         _get = false;
                         break;
