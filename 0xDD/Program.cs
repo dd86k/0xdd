@@ -70,6 +70,7 @@ namespace ConHexView
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
+            //args = new string[] { "-U" };
 #endif
 
             if (args.Length == 0)
@@ -80,11 +81,10 @@ namespace ConHexView
                 return 0;
             }
             
-            string file = args[args.Length - 1];
-
             // Defaults
             int bytesInRow = 16;
             HexView.OffsetViewMode ovm = HexView.OffsetViewMode.Hexadecimal;
+            bool dump = false;
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -118,45 +118,56 @@ namespace ConHexView
 
                     case "-U":
                     case "/U":
-                        return Update();
+                        Update();
+                        break;
 
                     case "-dump":
                     case "/dump":
-                        Console.WriteLine("Dumping file...");
-                        int err = HexView.Dump(file, bytesInRow, ovm);
-                        switch (err)
-                        {
-                            case 1:
-                                Console.WriteLine("File not found, aborted.");
-                                break;
-                            case 0:
-                                Console.WriteLine("Dumping done!");
-                                break;
-                            default:
-                                Console.WriteLine("Unknown error, aborted.");
-                                break;
-                        }
-                        return err;
+                        dump = true;
+                        break;
                 }
             }
+
+            string file = args[args.Length - 1];
 
             if (File.Exists(file))
             {
                 Console.Clear();
 
-#if RELEASE
-                try
+                if (dump)
                 {
-                    HexView.Open(file, ovm);
+                    Console.WriteLine("Dumping file...");
+                    int err = HexView.Dump(file, bytesInRow, ovm);
+                    switch (err)
+                    {
+                        case 1:
+                            Console.WriteLine("File not found, aborted.");
+                            break;
+                        case 0:
+                            Console.WriteLine("Dumping done!");
+                            break;
+                        default:
+                            Console.WriteLine("Unknown error, aborted.");
+                            break;
+                    }
+                    return err;
                 }
-                catch (Exception e)
+                else
                 {
-                    Abort(e);
+                    #if RELEASE
+                    try
+                    {
+                        HexView.Open(file, ovm);
+                    }
+                    catch (Exception e)
+                    {
+                        Abort(e);
+                    }
+                    #elif DEBUG
+                    // I want Visual Studio to catch the exceptions!
+                    HexView.Open(file, ovm, bytesInRow);
+                    #endif
                 }
-#elif DEBUG
-                // I want Visual Studio to catch the exceptions!
-                HexView.Open(file, ovm, bytesInRow);
-#endif
             }
             else
             {
@@ -167,7 +178,7 @@ namespace ConHexView
             return 0;
         }
 
-        static int Update()
+        static void Update()
         {
             if (File.Exists(UPDATER_NAME))
             {
@@ -176,14 +187,16 @@ namespace ConHexView
                 updater.RedirectStandardError = true;
                 updater.RedirectStandardInput = true;
                 updater.RedirectStandardOutput = true;
+                updater.CreateNoWindow = true;
                 updater.UseShellExecute = false;
+                updater.ErrorDialog = false;
                 Process.Start(updater);
-                return 0;
+                //return 0;
             }
             else
             {
                 Console.WriteLine("ABORTED: Updater not found. (0xdd_updater.exe)");
-                return 1;
+                //return 1;
             }
         }
         

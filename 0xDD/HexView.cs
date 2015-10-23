@@ -5,7 +5,7 @@ using System.Windows;
 //TODO: Edit mode
 
 /*
-    Box of ideas (Lazy TODO list)
+    Box of ideas (Lazy TODO/idea list)
     - Scrollbar (-ish), you know, style
     - Top right (under title): Insert(INS)/Overwrite(OVR)
     - Search: /regex/ (Begins with && ends with)
@@ -16,6 +16,7 @@ using System.Windows;
       - Rendering: If byte at position, write that byte to display instead
       - Saving: Remove duplicates, loop through List and write
       - Editing: If new data on same position, replace
+    - open memory process!!!!!!!!!!! (Windows)
 */
 
 namespace ConHexView
@@ -30,28 +31,6 @@ namespace ConHexView
         #endregion
 
         #region General properties
-        /// <summary>
-        /// Number of elements to move by a line.
-        /// </summary>
-        static int SCROLL_LINE
-        {
-            get
-            {
-                return MainPanel.BytesInRow;
-            }
-        }
-
-        /// <summary>
-        /// Number of elements to move by a page.
-        /// </summary>
-        static int SCROLL_PAGE
-        {
-            get
-            {
-                return MainPanel.MaximumNumberOfBytesOnScreen;
-            }
-        }
-
         /// <summary>
         /// Current position in the file.
         /// </summary>
@@ -99,7 +78,7 @@ namespace ConHexView
             /// <summary>
             /// Gets the number of elements which can be shown in the main panel.
             /// </summary>
-            static internal int MaximumNumberOfBytesOnScreen
+            static internal int ScreenMaxBytes
             {
                 get
                 {
@@ -356,9 +335,9 @@ namespace ConHexView
                 sr.BaseStream.Position = pBasePosition;
                 
                 int len =
-                    sr.BaseStream.Length < MainPanel.MaximumNumberOfBytesOnScreen ?
+                    sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
                     (int)sr.BaseStream.Length :
-                    MainPanel.MaximumNumberOfBytesOnScreen;
+                    MainPanel.ScreenMaxBytes;
 
                 Buffer = new byte[len];
 
@@ -418,8 +397,15 @@ namespace ConHexView
                             string t = ReadValue("Goto position:");
                             if (int.TryParse(t, out Position))
                             {
-                                Goto(Position);
-                                gotNumber = true;
+                                if (Position >= 0 && Position <= CurrentFile.Length)
+                                {
+                                    Goto(Position);
+                                    gotNumber = true;
+                                }
+                                else
+                                {
+                                    Message("Position out of bound!");
+                                }
                             }
                             else
                                 Message("Need a number!");
@@ -461,20 +447,20 @@ namespace ConHexView
                 case ConsoleKey.LeftArrow:
                     if (CurrentFilePosition - 1 >= 0)
                     {
-                        ReadAndUpdate(--CurrentFilePosition, SCROLL_PAGE);
+                        ReadAndUpdate(--CurrentFilePosition, MainPanel.ScreenMaxBytes);
                     }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (CurrentFilePosition + (MainPanel.MaximumNumberOfBytesOnScreen) + 1 <= CurrentFile.Length)
+                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes) + 1 <= CurrentFile.Length)
                     {
                         ReadAndUpdate(++CurrentFilePosition);
                     }
                     break;
 
                 case ConsoleKey.UpArrow:
-                    if (CurrentFilePosition - SCROLL_LINE >= 0)
+                    if (CurrentFilePosition - MainPanel.BytesInRow >= 0)
                     {
-                        ReadAndUpdate(CurrentFilePosition -= SCROLL_LINE);
+                        ReadAndUpdate(CurrentFilePosition -= MainPanel.BytesInRow);
                     }
                     else
                     {
@@ -482,9 +468,9 @@ namespace ConHexView
                     }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentFilePosition + (MainPanel.MaximumNumberOfBytesOnScreen) + SCROLL_LINE <= CurrentFile.Length)
+                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes) + MainPanel.BytesInRow <= CurrentFile.Length)
                     {
-                        ReadAndUpdate(CurrentFilePosition += SCROLL_LINE);
+                        ReadAndUpdate(CurrentFilePosition += MainPanel.BytesInRow);
                     }
                     else
                     {
@@ -493,9 +479,9 @@ namespace ConHexView
                     break;
 
                 case ConsoleKey.PageUp:
-                    if (CurrentFilePosition - SCROLL_PAGE >= 0)
+                    if (CurrentFilePosition - MainPanel.ScreenMaxBytes >= 0)
                     {
-                        ReadAndUpdate(CurrentFilePosition -= SCROLL_PAGE);
+                        ReadAndUpdate(CurrentFilePosition -= MainPanel.ScreenMaxBytes);
                     }
                     else
                     {
@@ -503,9 +489,9 @@ namespace ConHexView
                     }
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentFilePosition + (MainPanel.MaximumNumberOfBytesOnScreen) + SCROLL_PAGE <= CurrentFile.Length)
+                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes) + MainPanel.ScreenMaxBytes <= CurrentFile.Length)
                     {
-                        ReadAndUpdate(CurrentFilePosition += SCROLL_PAGE);
+                        ReadAndUpdate(CurrentFilePosition += MainPanel.ScreenMaxBytes);
                     }
                     else
                     {
@@ -514,27 +500,11 @@ namespace ConHexView
                     break;
 
                 case ConsoleKey.Home:
-                    //TODO: Fix ^Home not working
-                    if (cki.Modifiers == ConsoleModifiers.Control)
-                    {
-                        ReadAndUpdate(CurrentFilePosition = 0);
-                    }
-                    else
-                    {
-                        //TODO: Align to offset *******0
-                    }
+                    ReadAndUpdate(CurrentFilePosition = 0);
                     break;
                 case ConsoleKey.End:
-                    //TODO: Fix ^End not working
-                    if (cki.Modifiers == ConsoleModifiers.Control)
-                    {
-                        CurrentFilePosition = CurrentFile.Length - (MainPanel.MaximumNumberOfBytesOnScreen);
-                        ReadAndUpdate(CurrentFilePosition);
-                    }
-                    else
-                    {
-                        //TODO: Align to offset *******F
-                    }
+                    CurrentFilePosition = CurrentFile.Length - (MainPanel.ScreenMaxBytes);
+                    ReadAndUpdate(CurrentFilePosition);
                     break;
             }
 
@@ -559,20 +529,13 @@ namespace ConHexView
         static void UpdateMainPanel()
         {
             long filelen = CurrentFile.Length;
-            /*
-            long lines = CurrentFilePosition + (FrameHeight * ElementsWidth) > filelen ?
-                //TODO: Fix this line
-                ((filelen - (CurrentFilePosition + FrameHeight)) / ElementsWidth) + 1:
-                FrameHeight;
-            */
-            long lines = MainPanel.FrameHeight;
 
             int BufferOffsetHex = 0;
             int BufferOffsetData = 0;
 
             Console.SetCursorPosition(0, 2);
 
-            for (int line = 0; line < lines; line++)
+            for (int line = 0; line < MainPanel.FrameHeight; line++)
             {
                 switch (CurrentOffsetViewMode)
                 {
@@ -606,7 +569,11 @@ namespace ConHexView
                     if (CurrentFilePosition + BufferOffsetHex < filelen)
                         Console.Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
                     else
-                        Console.Write(" ");
+                    {
+                        //Console.Write(" ");
+                        x += MainPanel.BytesInRow;
+                        line += MainPanel.FrameHeight;
+                    }
 
                     BufferOffsetHex++;
                 }
@@ -644,7 +611,7 @@ namespace ConHexView
         static void UpdateInfoPanel()
         {
             Console.SetCursorPosition(0, Console.WindowHeight - 3);
-            string info = $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8),8}";
+            string info = $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8), 8}";
             // Force clean last message.
             Console.Write(info + new string (' ', Console.WindowWidth - info.Length));
         }
@@ -749,16 +716,8 @@ namespace ConHexView
 
         static void Goto(int pPosition)
         {
-            if (pPosition >= 0 && pPosition <= CurrentFile.Length)
-            {
-                CurrentFilePosition = pPosition;
-                ReadAndUpdate(CurrentFilePosition);
-            }
-            else
-            {
-                Message("Position out of bound!");
-                Refresh();
-            }
+            CurrentFilePosition = pPosition;
+            ReadAndUpdate(CurrentFilePosition);
         }
 
         static string ReadValue(string pMessage)
