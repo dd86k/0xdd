@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Windows;
+using System.Windows.Forms;
 
 //TODO: Edit mode
 //TODO: Resize on Window resize
@@ -251,130 +251,130 @@ namespace ConHexView
             object Data;
 
             // Specifies a Windows bitmap format.
-            if (System.Windows.Forms.Clipboard.ContainsData("Bitmap"))
+            if (Clipboard.ContainsData("Bitmap"))
             {
 
                 foundData = true;
             }
             // Specifies a comma-separated value (CSV) format, which is a common interchange format used by spreadsheets.
             // This format is not used directly by Windows Forms.
-            if (System.Windows.Forms.Clipboard.ContainsData("CommaSeperatedValues") && !foundData)
+            if (Clipboard.ContainsData("CommaSeperatedValues") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows device-independent bitmap (DIB) format.
-            if (System.Windows.Forms.Clipboard.ContainsData("Dib") && !foundData)
+            if (Clipboard.ContainsData("Dib") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows Data Interchange Format (DIF), which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("Dif") && !foundData)
+            if (Clipboard.ContainsData("Dif") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows enhanced metafile format.
-            if (System.Windows.Forms.Clipboard.ContainsData("EnhancedMetafile") && !foundData)
+            if (Clipboard.ContainsData("EnhancedMetafile") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows file drop format, which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("FileDrop") && !foundData)
+            if (Clipboard.ContainsData("FileDrop") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies text in the HTML Clipboard format.
-            if (System.Windows.Forms.Clipboard.ContainsData("Html") && !foundData)
+            if (Clipboard.ContainsData("Html") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows culture format, which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("Locale") && !foundData)
+            if (Clipboard.ContainsData("Locale") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows metafile format, which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("MetafilePict") && !foundData)
+            if (Clipboard.ContainsData("MetafilePict") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the standard Windows original equipment manufacturer (OEM) text format.
-            if (System.Windows.Forms.Clipboard.ContainsData("OemText") && !foundData)
+            if (Clipboard.ContainsData("OemText") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows palette format.
-            if (System.Windows.Forms.Clipboard.ContainsData("Palette") && !foundData)
+            if (Clipboard.ContainsData("Palette") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows pen data format, which consists of pen strokes for handwriting software;
             // Windows Forms does not use this format.
-            if (System.Windows.Forms.Clipboard.ContainsData("PenData") && !foundData)
+            if (Clipboard.ContainsData("PenData") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Resource Interchange File Format (RIFF) audio format,
             // which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("Riff") && !foundData)
+            if (Clipboard.ContainsData("Riff") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies text consisting of Rich Text Format (RTF) data.
-            if (System.Windows.Forms.Clipboard.ContainsData("Rtf") && !foundData)
+            if (Clipboard.ContainsData("Rtf") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies a format that encapsulates any type of Windows Forms object.
-            if (System.Windows.Forms.Clipboard.ContainsData("Serializable") && !foundData)
+            if (Clipboard.ContainsData("Serializable") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows Forms string class format, which Windows Forms uses to store string objects.
-            if (System.Windows.Forms.Clipboard.ContainsData("StringFormat") && !foundData)
+            if (Clipboard.ContainsData("StringFormat") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Windows symbolic link format, which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("SymbolicLink") && !foundData)
+            if (Clipboard.ContainsData("SymbolicLink") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the standard ANSI text format.
-            if (System.Windows.Forms.Clipboard.ContainsData("Text") && !foundData)
+            if (Clipboard.ContainsData("Text") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the Tagged Image File Format (TIFF), which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("Tiff") && !foundData)
+            if (Clipboard.ContainsData("Tiff") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the standard Windows Unicode text format.
-            if (System.Windows.Forms.Clipboard.ContainsData("UnicodeText") && !foundData)
+            if (Clipboard.ContainsData("UnicodeText") && !foundData)
             {
 
                 foundData = true;
             }
             // Specifies the wave audio format, which Windows Forms does not directly use.
-            if (System.Windows.Forms.Clipboard.ContainsData("WaveAudio") && !foundData)
+            if (Clipboard.ContainsData("WaveAudio") && !foundData)
             {
 
                 foundData = true;

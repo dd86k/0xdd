@@ -51,7 +51,6 @@ namespace ConHexView
                         if (_index > 0)
                         {
                             // Erase whole
-                            //TODO: Erase word
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
                                 _out = new System.Text.StringBuilder();
@@ -60,8 +59,9 @@ namespace ConHexView
                                 Console.Write(new string(' ', pLimit));
                                 Console.SetCursorPosition(OrigninalLeft, Console.CursorTop);
                             }
+                            // Erase one character
                             else
-                            { // Erase one character
+                            {
                                 _out = _out.Remove(_out.Length - 1, 1);
                                 _index--;
                                 Console.SetCursorPosition(OrigninalLeft + _index, Console.CursorTop);
