@@ -157,7 +157,7 @@ namespace ConHexView
                     #if RELEASE
                     try
                     {
-                        HexView.Open(file, ovm);
+                        HexView.Open(file, ovm, bytesInRow);
                     }
                     catch (Exception e)
                     {
