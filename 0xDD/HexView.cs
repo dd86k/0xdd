@@ -102,17 +102,17 @@ namespace ConHexView
 
                 for (int line = 0; line < FrameHeight; line++)
                 {
-                    switch (CurrentOffsetViewMode)
+                    switch (CurrentOffsetBaseView)
                     {
-                        case OffsetViewMode.Hexadecimal:
+                        case OffsetBaseView.Hexadecimal:
                             Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("X8")}  ");
                             break;
 
-                        case OffsetViewMode.Decimal:
+                        case OffsetBaseView.Decimal:
                             Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("00000000")}  ");
                             break;
 
-                        case OffsetViewMode.Octal:
+                        case OffsetBaseView.Octal:
                             Console.Write($"{Convert.ToString((line * BytesInRow) + CurrentFilePosition, 8), 8}  ");
                             break;
                     }
@@ -146,6 +146,21 @@ namespace ConHexView
                     Console.WriteLine();
                 }
             }
+            
+            static internal void Refresh()
+            {
+                Clear();
+                ReadAndUpdate(CurrentFilePosition);
+            }
+
+            static void Clear()
+            {
+                Console.SetCursorPosition(0, StartingTopPosition);
+                for (int i = 0; i < FrameHeight; i++)
+                {
+                    Console.Write(new string(' ', Console.WindowWidth));
+                }
+            }
         }
 
         /// <summary>
@@ -164,7 +179,7 @@ namespace ConHexView
             static internal void Update()
             {
                 Console.SetCursorPosition(0, StartingTopPosition);
-                string s = $"DEC: {CurrentFilePosition.ToString("00000000")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8),8}";
+                string s = $"DEC: {CurrentFilePosition.ToString("D8")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8), 8}";
                 // Force clean last message.
                 Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
             }
@@ -173,9 +188,9 @@ namespace ConHexView
 
         #region Enumerations
         /// <summary>
-        /// Offset view enumeration.
+        /// Enumeration of the different offset base views.
         /// </summary>
-        internal enum OffsetViewMode : byte
+        internal enum OffsetBaseView : byte
         {
             Hexadecimal,
             Decimal,
@@ -183,9 +198,9 @@ namespace ConHexView
         }
 
         /// <summary>
-        /// Current <see cref="OffsetViewMode"/>.
+        /// Current <see cref="OffsetBaseView"/>.
         /// </summary>
-        static OffsetViewMode CurrentOffsetViewMode;
+        static OffsetBaseView CurrentOffsetBaseView;
 
         /// <summary>
         /// Writing mode enumeration.
@@ -209,15 +224,15 @@ namespace ConHexView
         /// <param name="pFilePath">Path to the file.</param>
         internal static void Open(string pFilePath)
         {
-            Open(pFilePath, OffsetViewMode.Hexadecimal, 16);
+            Open(pFilePath, OffsetBaseView.Hexadecimal, 16);
         }
 
         /// <summary>
         /// Open a file and starts the program.
         /// </summary>
         /// <param name="pFilePath">Path to the file.</param>
-        /// <param name="pOffsetViewMode">Offset view to start with.</param>
-        internal static void Open(string pFilePath, OffsetViewMode pOffsetViewMode, int pBytesRow)
+        /// <param name="pOffsetViewMode">Offset base to start with.</param>
+        internal static void Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
         {
             if (!File.Exists(pFilePath))
                 throw new FileNotFoundException
@@ -229,11 +244,11 @@ namespace ConHexView
             
             MainPanel.BytesInRow = pBytesRow;
 
-            CurrentOffsetViewMode = pOffsetViewMode;
+            CurrentOffsetBaseView = pOffsetViewMode;
 
             PrepareScreen();
 
-            Refresh();
+            MainPanel.Refresh();
             MainPanel.Update();
 
             // Someone was unhappy with the do {} while(); loop.
@@ -399,14 +414,6 @@ namespace ConHexView
 
         #region Private methods
         /// <summary>
-        /// Read the current file.
-        /// </summary>
-        static void Refresh()
-        {
-            ReadAndUpdate(CurrentFilePosition);
-        }
-
-        /// <summary>
         /// Read the current file at a position.
         /// </summary>
         /// <param name="pBasePosition">Position.</param>
@@ -449,9 +456,9 @@ namespace ConHexView
                     ToggleFullscreenMode();
                     break;
 
-                case ConsoleKey.O:
+                //case ConsoleKey.:
                         //TODO: Open Dialog
-                    break;
+                    //break;
 
                 // -- Shown shortcuts --
                 // Help
@@ -489,6 +496,54 @@ namespace ConHexView
                             }
                             else
                                 Message("Need a number!");
+                        }
+                    }
+                    break;
+
+                // Offset base
+                case ConsoleKey.O:
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    {
+                        string c = ReadValue("Hex, Dec, or Oct?:");
+
+                        if (c == null || c.Length < 1)
+                        {
+                            MainPanel.Update();
+                            Message("Field was empty!");
+                            break;
+                        }
+
+                        switch (c[0])
+                        {
+                            case 'H':
+                            case 'h':
+                                CurrentOffsetBaseView = OffsetBaseView.Hexadecimal;
+                                PlaceOffsetPanel();
+                                MainPanel.Update();
+                                // In case of remaining message.
+                                InfoPanel.Update();
+                                break;
+
+                            case 'O':
+                            case 'o':
+                                CurrentOffsetBaseView = OffsetBaseView.Octal;
+                                PlaceOffsetPanel();
+                                MainPanel.Update();
+                                InfoPanel.Update();
+                                break;
+
+                            case 'D':
+                            case 'd':
+                                CurrentOffsetBaseView = OffsetBaseView.Decimal;
+                                PlaceOffsetPanel();
+                                MainPanel.Update();
+                                InfoPanel.Update();
+                                break;
+
+                            default:
+                                Message("Invalid view mode!");
+                                MainPanel.Update();
+                                break;
                         }
                     }
                     break;
@@ -622,7 +677,7 @@ namespace ConHexView
         static void PlaceOffsetPanel()
         {
             Console.SetCursorPosition(0, 1);
-            Console.Write($"Offset {CurrentOffsetViewMode.GetChar()}  ");
+            Console.Write($"Offset {CurrentOffsetBaseView.GetChar()}  ");
             for (int i = 0; i < MainPanel.BytesInRow; i++)
             {
                 Console.Write($"{i.ToString("X2")} ");
@@ -679,14 +734,16 @@ namespace ConHexView
             Console.Write(" Dump         ");
 
             ToggleColors();
-            Console.Write("^V");
+            Console.Write("^O");
             Console.ResetColor();
-            Console.Write(" Offset view  ");
+            Console.Write(" Offset base  ");
 
+            /*
             ToggleColors();
-            Console.Write("^A");
+            Console.Write("^");
             Console.ResetColor();
-            Console.Write(" Data view");
+            Console.Write(" ");
+            */
         }
 
         /// <summary>
@@ -730,7 +787,7 @@ namespace ConHexView
                 PlaceControlPanel();
                 PlaceOffsetPanel();
                 UpdateTitlePanel();
-                Refresh();
+                MainPanel.Refresh();
             }
             else
             { // Turning on
@@ -740,7 +797,7 @@ namespace ConHexView
                 Fullscreen = true;
                 Console.Clear();
                 UpdateTitlePanel();
-                Refresh();
+                MainPanel.Refresh();
             }
         }
 
@@ -797,10 +854,10 @@ namespace ConHexView
 
         static void Dump()
         {
-            Dump(CurrentFile.Name, MainPanel.BytesInRow, CurrentOffsetViewMode);
+            Dump(CurrentFile.Name, MainPanel.BytesInRow, CurrentOffsetBaseView);
         }
 
-        static internal int Dump(string pFileToDump, int pBytesInRow, OffsetViewMode pViewMode)
+        static internal int Dump(string pFileToDump, int pBytesInRow, OffsetBaseView pViewMode)
         {
             if (!File.Exists(pFileToDump))
                 return 1;
@@ -817,26 +874,26 @@ namespace ConHexView
             {
                 sw.WriteLine(file.Name);
                 sw.WriteLine();
-                sw.Write("Size:");
+                sw.Write("Size: ");
 
                 if (filelen > Math.Pow(1024, 3)) // GB
                 {
-                    sw.Write($" {Math.Round(filelen / Math.Pow(1024, 3), 2)} GB");
-                    sw.Write($" ({filelen} B)");
+                    sw.Write($"{Math.Round(filelen / Math.Pow(1024, 3), 2)} GB");
+                    sw.Write($"({filelen} B)");
                 }
                 else if (filelen > Math.Pow(1024, 2)) // MB
                 {
-                    sw.Write($" {Math.Round(filelen / Math.Pow(1024, 2), 2)} MB");
-                    sw.Write($" ({filelen} B)");
+                    sw.Write($"{Math.Round(filelen / Math.Pow(1024, 2), 2)} MB");
+                    sw.Write($"({filelen} B)");
                 }
                 else if (filelen > 1024) // KB
                 {
-                    sw.Write($" {Math.Round((double)filelen / 1024, 1)} KB");
-                    sw.Write($" ({filelen} B)");
+                    sw.Write($"{Math.Round((double)filelen / 1024, 1)} KB");
+                    sw.Write($"({filelen} B)");
                 }
                 else
                 {
-                    sw.Write($" {filelen} B");
+                    sw.Write($"{filelen} B");
                 }
 
                 sw.WriteLine();
@@ -859,15 +916,15 @@ namespace ConHexView
                     {
                         switch (pViewMode)
                         {
-                            case OffsetViewMode.Hexadecimal:
+                            case OffsetBaseView.Hexadecimal:
                                 sw.Write($"{line.ToString("X8")}  ");
                                 break;
 
-                            case OffsetViewMode.Decimal:
+                            case OffsetBaseView.Decimal:
                                 sw.Write($"{line.ToString("00000000")}  ");
                                 break;
 
-                            case OffsetViewMode.Octal:
+                            case OffsetBaseView.Octal:
                                 sw.Write($"{Convert.ToString(line, 8), 8}  ");
                                 break;
                         }
@@ -942,19 +999,19 @@ namespace ConHexView
 
         /// <summary>
         /// Gets the character for the upper bar depending on the
-        /// offset view mode.
+        /// offset base view.
         /// </summary>
-        /// <param name="pObject">This <see cref="OffsetViewMode"/></param>
+        /// <param name="pObject">This <see cref="OffsetBaseView"/></param>
         /// <returns>Character.</returns>
-        static char GetChar(this OffsetViewMode pObject)
+        static char GetChar(this OffsetBaseView pObject)
         {
             switch (pObject)
             {
-                case OffsetViewMode.Hexadecimal:
+                case OffsetBaseView.Hexadecimal:
                     return 'h';
-                case OffsetViewMode.Decimal:
+                case OffsetBaseView.Decimal:
                     return 'd';
-                case OffsetViewMode.Octal:
+                case OffsetBaseView.Octal:
                     return 'o';
                 default:
                     return '?'; // ??????????

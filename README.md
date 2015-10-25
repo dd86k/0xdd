@@ -69,10 +69,12 @@ ___Nothing here yet!___
 # Notes
 
 
-Keys stolen by Windows 10's cmd so far which we can't use:
-- F11 (Fullscreen)
-- CTRL+F (Search dialogbox)
-- CTRL+HOME and CTRL+END (Assuming it's due to the scrolling)
+Keys stolen by Windows (At least in 10) (and unuseable):
+- F11 : Fullscreen
+- CTRL+F : Search DialogBox
+- CTRL+HOME and CTRL+END : No idea
+- CTRL+A : Selects all output
+- CTRL+C and CTRL+V : Copy and paste
 
 # Development Notes
 - Messages are at the same TopPosition as the InfoPanel, so thus why the InfoPanel is showing in fullscreen mode.
@@ -81,7 +83,7 @@ Keys stolen by Windows 10's cmd so far which we can't use:
 - Eventually every panel will have their own structs.
 - Eventually optimization will occur.
 
-- When doing commits, sometimes I use the following legend for descriptions:
+- When doing commits, I try to stick with the following legend for descriptions:
   - `+` : Addition
   - `*` : Fix
   - `~` : Notes

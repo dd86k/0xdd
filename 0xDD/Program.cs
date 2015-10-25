@@ -83,7 +83,7 @@ namespace ConHexView
             
             // Defaults
             int bytesInRow = 16;
-            HexView.OffsetViewMode ovm = HexView.OffsetViewMode.Hexadecimal;
+            HexView.OffsetBaseView ovm = HexView.OffsetBaseView.Hexadecimal;
             bool dump = false;
 
             for (int i = 0; i < args.Length; i++)
@@ -98,10 +98,10 @@ namespace ConHexView
                                 // Don't change, h is default anyway.
                                 break;
                             case "d":
-                                ovm = HexView.OffsetViewMode.Decimal;
+                                ovm = HexView.OffsetBaseView.Decimal;
                                 break;
                             case "o":
-                                ovm = HexView.OffsetViewMode.Octal;
+                                ovm = HexView.OffsetBaseView.Octal;
                                 break;
                             default:
                                 Console.WriteLine($"Invalid parameter for /v: {args[i + 1]}");
@@ -206,7 +206,7 @@ namespace ConHexView
             }
             else
             {
-                Console.WriteLine("ABORTED: Updater not found. (0xdd_updater.exe)");
+                Console.WriteLine($"ABORTED: Updater not found. ({UPDATER_NAME})");
                 //return 1;
             }
         }
