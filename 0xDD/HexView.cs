@@ -52,9 +52,7 @@ namespace ConHexView
         /// Fullscreen mode, false by default.
         /// </summary>
         static bool Fullscreen;
-        #endregion
 
-        #region MainPanel properties
         /// <summary>
         /// Main panel which represents the offset, data as bytes,
         /// and data as ASCII characters.
@@ -137,7 +135,6 @@ namespace ConHexView
                             Console.Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
                         else
                         {
-                            Console.Write(new string(' ', BytesInRow - BufferOffsetHex));
                             // End rendering completely
                             x += BytesInRow;
                             line += FrameHeight;
@@ -150,9 +147,10 @@ namespace ConHexView
                 }
             }
         }
-        #endregion
 
-        #region InfoPanel properties
+        /// <summary>
+        /// Info panel: Offsets and current offsets (positions) are shown.
+        /// </summary>
         struct InfoPanel
         {
             /// <summary>
@@ -206,7 +204,7 @@ namespace ConHexView
 
         #region Internal methods
         /// <summary>
-        /// Open a file and starts the program.
+        /// Open a file and starts the program with defaults.
         /// </summary>
         /// <param name="pFilePath">Path to the file.</param>
         internal static void Open(string pFilePath)
@@ -238,7 +236,7 @@ namespace ConHexView
             Refresh();
             MainPanel.Update();
 
-            // Someone was unhappy with the do {} while() loop.
+            // Someone was unhappy with the do {} while(); loop.
             while (ReadUserKey())
             { }
         }
@@ -847,7 +845,7 @@ namespace ConHexView
                 sw.WriteLine();
 
                 sw.Write($"Offset {pViewMode.GetChar()}  ");
-                for (int i = 0; i < MainPanel.BytesInRow; i++)
+                for (int i = 0; i < pBytesInRow; i++)
                 {
                     sw.Write($"{i.ToString("X2")} ");
                 }

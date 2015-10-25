@@ -70,7 +70,7 @@ namespace ConHexView
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
-            //args = new string[] { "-U" };
+            //args = new string[] { "/w", "a", "gg.txt" };
 #endif
 
             if (args.Length == 0)
@@ -114,13 +114,16 @@ namespace ConHexView
                         // Automatic
                         if (args[i + 1][0] == 'a')
                         {
-                            //TODO: AUTOMATIC
+                            bytesInRow = ((Console.WindowWidth - 10) / 4) - 1;
                         }
                         // User-defined
-                        else if (!int.TryParse(args[i + 1], out bytesInRow))
+                        else if (int.TryParse(args[i + 1], out bytesInRow))
                         {
-                            Console.WriteLine($"Invalid parameter for /w: {args[i + 1]}");
-                            return 1;
+                            if (bytesInRow < 1)
+                            {
+                                Console.WriteLine($"Invalid parameter for /w: {args[i + 1]}");
+                                return 1;
+                            }
                         }
                         break;
 
