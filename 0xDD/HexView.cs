@@ -624,7 +624,11 @@ namespace ConHexView
         static void PlaceOffsetPanel()
         {
             Console.SetCursorPosition(0, 1);
-            Console.Write($"Offset {CurrentOffsetViewMode.GetChar()}  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
+            Console.Write($"Offset {CurrentOffsetViewMode.GetChar()}  ");
+            for (int i = 0; i < MainPanel.BytesInRow; i++)
+            {
+                Console.Write($"{i.ToString("X2")} ");
+            }
         }
 
         /// <summary>
@@ -842,7 +846,12 @@ namespace ConHexView
                 sw.WriteLine($"Creation time: {file.CreationTime}");
                 sw.WriteLine();
 
-                sw.WriteLine($"Offset {pViewMode.GetChar()}  00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F");
+                sw.Write($"Offset {pViewMode.GetChar()}  ");
+                for (int i = 0; i < MainPanel.BytesInRow; i++)
+                {
+                    sw.Write($"{i.ToString("X2")} ");
+                }
+                sw.WriteLine();
 
                 using (FileStream fs = file.OpenRead())
                 {

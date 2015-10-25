@@ -94,13 +94,15 @@ namespace ConHexView
                     case "/v":
                         switch (args[i + 1])
                         {
+                            case "h":
+                                // Don't change, h is default anyway.
+                                break;
                             case "d":
                                 ovm = HexView.OffsetViewMode.Decimal;
                                 break;
                             case "o":
                                 ovm = HexView.OffsetViewMode.Octal;
                                 break;
-                            // h is default.
                             default:
                                 Console.WriteLine($"Invalid parameter for /v: {args[i + 1]}");
                                 return 1;
@@ -109,7 +111,13 @@ namespace ConHexView
 
                     case "-w":
                     case "/w":
-                        if (!int.TryParse(args[i + 1], out bytesInRow))
+                        // Automatic
+                        if (args[i + 1][0] == 'a')
+                        {
+                            //TODO: AUTOMATIC
+                        }
+                        // User-defined
+                        else if (!int.TryParse(args[i + 1], out bytesInRow))
                         {
                             Console.WriteLine($"Invalid parameter for /w: {args[i + 1]}");
                             return 1;
@@ -218,7 +226,7 @@ namespace ConHexView
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine(" Usage:");
-            Console.WriteLine("  0xdd [/v {h|d|o}] [/w <Number>] [/U] [/dump] <file>");
+            Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>");
             Console.WriteLine();
             Console.WriteLine("  /v       Start with an offset view: Hex, Dec, Oct.          Default: Hex");
             Console.WriteLine("  /w       Start with a number of bytes to show in a row.     Default: 16");
