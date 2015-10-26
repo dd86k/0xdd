@@ -501,7 +501,7 @@ namespace _0xdd
                     }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes) + MainPanel.BytesInRow <= CurrentFile.Length)
+                    if (CurrentFilePosition + MainPanel.ScreenMaxBytes + MainPanel.BytesInRow <= CurrentFile.Length)
                     {
                         ReadAndUpdate(CurrentFilePosition += MainPanel.BytesInRow);
                     }
@@ -522,7 +522,7 @@ namespace _0xdd
                     }
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes) + MainPanel.ScreenMaxBytes <= CurrentFile.Length)
+                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes * 2) <= CurrentFile.Length)
                     {
                         ReadAndUpdate(CurrentFilePosition += MainPanel.ScreenMaxBytes);
                     }
