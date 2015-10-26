@@ -4,7 +4,7 @@
     Various tools for the command prompt and terminal.
 */
 
-namespace ConHexView
+namespace _0xdd
 {
     static class ConsoleTools
     {

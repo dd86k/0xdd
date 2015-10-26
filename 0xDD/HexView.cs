@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Windows.Forms;
 
 //TODO: Edit mode
 //TODO: Resize on Window resize
@@ -18,12 +17,12 @@ using System.Windows.Forms;
       - Saving: Remove duplicates, loop through List and write
       - Editing: If new data on same position, replace
     - open memory process!!!!!!!!!!! (Windows)
-    - Dump buffer only at the current position
+    - Dump buffer only at the current position feature
 */
 
-namespace ConHexView
+namespace _0xdd
 {
-    static class HexView
+    static class _0xdd
     {
         #region Constants
         /// <summary>
@@ -252,152 +251,7 @@ namespace ConHexView
             MainPanel.Update();
 
             // Someone was unhappy with the do {} while(); loop.
-            while (ReadUserKey())
-            { }
-        }
-
-        internal static void OpenClipboard()
-        {
-            //TODO: void OpenClipboard()
-
-            bool foundData = false;
-            object Data;
-
-            // Specifies a Windows bitmap format.
-            if (Clipboard.ContainsData("Bitmap"))
-            {
-
-                foundData = true;
-            }
-            // Specifies a comma-separated value (CSV) format, which is a common interchange format used by spreadsheets.
-            // This format is not used directly by Windows Forms.
-            if (Clipboard.ContainsData("CommaSeperatedValues") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows device-independent bitmap (DIB) format.
-            if (Clipboard.ContainsData("Dib") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows Data Interchange Format (DIF), which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("Dif") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows enhanced metafile format.
-            if (Clipboard.ContainsData("EnhancedMetafile") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows file drop format, which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("FileDrop") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies text in the HTML Clipboard format.
-            if (Clipboard.ContainsData("Html") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows culture format, which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("Locale") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows metafile format, which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("MetafilePict") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the standard Windows original equipment manufacturer (OEM) text format.
-            if (Clipboard.ContainsData("OemText") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows palette format.
-            if (Clipboard.ContainsData("Palette") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows pen data format, which consists of pen strokes for handwriting software;
-            // Windows Forms does not use this format.
-            if (Clipboard.ContainsData("PenData") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Resource Interchange File Format (RIFF) audio format,
-            // which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("Riff") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies text consisting of Rich Text Format (RTF) data.
-            if (Clipboard.ContainsData("Rtf") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies a format that encapsulates any type of Windows Forms object.
-            if (Clipboard.ContainsData("Serializable") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows Forms string class format, which Windows Forms uses to store string objects.
-            if (Clipboard.ContainsData("StringFormat") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Windows symbolic link format, which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("SymbolicLink") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the standard ANSI text format.
-            if (Clipboard.ContainsData("Text") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the Tagged Image File Format (TIFF), which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("Tiff") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the standard Windows Unicode text format.
-            if (Clipboard.ContainsData("UnicodeText") && !foundData)
-            {
-
-                foundData = true;
-            }
-            // Specifies the wave audio format, which Windows Forms does not directly use.
-            if (Clipboard.ContainsData("WaveAudio") && !foundData)
-            {
-
-                foundData = true;
-            }
-
-            if (!foundData)
-            {
-                Message("The clipboard is empty.");
-                return;
-            }
+            while (ReadUserKey()) { }
         }
 
         /// <summary>
@@ -419,16 +273,21 @@ namespace ConHexView
         /// <param name="pBasePosition">Position.</param>
         static void ReadCurrentFile(long pBasePosition)
         {
+            int len;
             using (StreamReader sr = new StreamReader(CurrentFile.FullName))
             {
                 sr.BaseStream.Position = pBasePosition;
-                
-                int len =
-                    sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
-                    (int)sr.BaseStream.Length :
-                    MainPanel.ScreenMaxBytes;
 
-                Buffer = new byte[len];
+                if (sr.BaseStream.Length < MainPanel.ScreenMaxBytes)
+                {
+                    len = (int)sr.BaseStream.Length;
+                    Buffer = new byte[len];
+                }
+                else
+                {
+                    len = MainPanel.ScreenMaxBytes;
+                    Buffer = new byte[len];
+                }
 
                 for (int x = 0; x < len; x++)
                 {
@@ -484,18 +343,49 @@ namespace ConHexView
                         while (!gotNumber)
                         {
                             string t = ReadValue("Goto position:");
-                            if (int.TryParse(t, out Position))
+                            // Hex
+                            if (t.StartsWith("0x"))
                             {
-                                if (Position >= 0 && Position <= CurrentFile.Length)
+                                try
                                 {
-                                    Goto(Position);
-                                    gotNumber = true;
+                                    Position = Convert.ToInt32(t, 16);
                                 }
-                                else
-                                    Message("Position out of bound!");
+                                catch (Exception)
+                                {
+                                    Message("Need a valid number!");
+                                    //break;
+                                }
+                            }
+                            // Oct
+                            else if (t[0] == '0')
+                            {
+                                try
+                                {
+                                    Position = Convert.ToInt32(t, 8);
+                                }
+                                catch (Exception)
+                                {
+                                    Message("Need a valid number!");
+                                    //break;
+                                }
+                            }
+                            // Dec
+                            else
+                            {
+                                if (!int.TryParse(t, out Position))
+                                {
+                                    Message("Need a valid number!");
+                                    //break;
+                                }
+                            }
+
+                            if (Position >= 0 && Position <= CurrentFile.Length - MainPanel.ScreenMaxBytes)
+                            {
+                                Goto(Position);
+                                gotNumber = true;
                             }
                             else
-                                Message("Need a number!");
+                                Message("Position out of bound!");
                         }
                     }
                     break;
@@ -809,45 +699,47 @@ namespace ConHexView
 
         static string ReadValue(string pMessage)
         {
-            int width = 27;
-            int height = 4;
+            return ReadValue(pMessage, 27, 4);
+        }
 
-            int startx = (Console.WindowWidth / 2) - (width / 2);
-            int starty = (Console.WindowHeight / 2) - (height / 2);
+        static string ReadValue(string pMessage, int pWidth, int pHeight)
+        {
+            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
+            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
 
             Console.SetCursorPosition(startx, starty);
             Console.Write('┌');
-            Console.Write(new string('─', width - 2));
+            Console.Write(new string('─', pWidth - 2));
             Console.Write('┐');
 
-            for (int i = 0; i < height - 2; i++)
+            for (int i = 0; i < pHeight - 2; i++)
             {
                 Console.SetCursorPosition(startx, starty + i + 1);
                 Console.Write('│');
             }
-            for (int i = 0; i < height - 2; i++)
+            for (int i = 0; i < pHeight - 2; i++)
             {
-                Console.SetCursorPosition(startx + width - 1, starty + i + 1);
+                Console.SetCursorPosition(startx + pWidth - 1, starty + i + 1);
                 Console.Write('│');
             }
 
-            Console.SetCursorPosition(startx, starty + height - 1);
+            Console.SetCursorPosition(startx, starty + pHeight - 1);
             Console.Write('└');
-            Console.Write(new string('─', width - 2));
+            Console.Write(new string('─', pWidth - 2));
             Console.Write('┘');
             
             Console.SetCursorPosition(startx + 1, starty + 1);
             Console.Write(pMessage);
-            if (pMessage.Length < width - 2)
-                Console.Write(new string(' ', width - pMessage.Length - 2));
+            if (pMessage.Length < pWidth - 2)
+                Console.Write(new string(' ', pWidth - pMessage.Length - 2));
 
             Console.ForegroundColor = ConsoleColor.Black;
             Console.BackgroundColor = ConsoleColor.Gray;
             Console.SetCursorPosition(startx + 1, starty + 2);
-            Console.Write(new string(' ', width - 2));
+            Console.Write(new string(' ', pWidth - 2));
 
             Console.SetCursorPosition(startx + 1, starty + 2);
-            string t = ConsoleTools.ReadLine(width - 2);
+            string t = ConsoleTools.ReadLine(pWidth - 2);
             Console.ResetColor();
             return t;
         }

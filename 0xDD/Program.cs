@@ -2,7 +2,7 @@
 using System.IO;
 using System.Diagnostics;
 
-namespace ConHexView
+namespace _0xdd
 {
     class Program
     {
@@ -83,7 +83,7 @@ namespace ConHexView
             
             // Defaults
             int bytesInRow = 16;
-            HexView.OffsetBaseView ovm = HexView.OffsetBaseView.Hexadecimal;
+            _0xdd.OffsetBaseView ovm = _0xdd.OffsetBaseView.Hexadecimal;
             bool dump = false;
 
             for (int i = 0; i < args.Length; i++)
@@ -98,10 +98,10 @@ namespace ConHexView
                                 // Don't change, h is default anyway.
                                 break;
                             case "d":
-                                ovm = HexView.OffsetBaseView.Decimal;
+                                ovm = _0xdd.OffsetBaseView.Decimal;
                                 break;
                             case "o":
-                                ovm = HexView.OffsetBaseView.Octal;
+                                ovm = _0xdd.OffsetBaseView.Octal;
                                 break;
                             default:
                                 Console.WriteLine($"Invalid parameter for /v: {args[i + 1]}");
@@ -148,7 +148,7 @@ namespace ConHexView
                 if (dump)
                 {
                     Console.WriteLine("Dumping file...");
-                    int err = HexView.Dump(file, bytesInRow, ovm);
+                    int err = _0xdd.Dump(file, bytesInRow, ovm);
                     switch (err)
                     {
                         case 1:
@@ -176,7 +176,7 @@ namespace ConHexView
                     }
                     #elif DEBUG
                     // I want Visual Studio to catch the exceptions!
-                    HexView.Open(file, ovm, bytesInRow);
+                    _0xdd.Open(file, ovm, bytesInRow);
                     #endif
                 }
             }
@@ -231,8 +231,8 @@ namespace ConHexView
             Console.WriteLine(" Usage:");
             Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>");
             Console.WriteLine();
-            Console.WriteLine("  /v       Start with an offset view: Hex, Dec, Oct.          Default: Hex");
-            Console.WriteLine("  /w       Start with a number of bytes to show in a row.     Default: 16");
+            Console.WriteLine("  /v       Start with an offset view: Hex, Dec, Oct.       Default: Hex");
+            Console.WriteLine("  /w       Start with a number of bytes to show in a row.  Default: 16");
             Console.WriteLine("  /U       Updates if necessary.");
             Console.WriteLine("  /dump    Dumps a data file as plain text.");
             Console.WriteLine();

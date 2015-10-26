@@ -35,7 +35,7 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>ConHexView.Program</StartupObject>
+    <StartupObject>_0xdd.Program</StartupObject>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

@@ -1,9 +1,7 @@
 ## 0xdd
 ### Hexadecimal Console File Viewer
 
-![Old screenshot](http://didi.wilomgfx.net/p/0xdd1.png)
-
-(Old screenshot)
+![0xdd in action](http://didi.wilomgfx.net/p/0xdd2.png)
 
 Inspired by nano, 0xdd is a straightforward, simple, interactive, hexadecimal file viewer for Windows.
 
@@ -11,7 +9,9 @@ Inspired by nano, 0xdd is a straightforward, simple, interactive, hexadecimal fi
 
 Written in C# 6.0 for .NET 4.5 with Visual Studio 2015.
 
-Compatible with Mono, and probably Xamarin Studio and MonoDevelop as well.
+Compatible with Mono, and probably compatible with Xamarin Studio and MonoDevelop as well.
+
+I do not guarantee Mono compability.
 
 # Requirements
 
@@ -24,16 +24,16 @@ It's possible to give direct commands to 0xdd. Note that slashes (/) can be repl
 
 The order of the arguments may matter, but the last argument must be the file to open:
 
-`0xdd [/v {h|d|o}] [/w <Number>] [/U] [/dump] <file>`
+`0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>`
 
 `/v` : Define the offset view as Hexadecimal, Decimal, or Octal. Example: `/v d`
 
-`/w` : Define the number of bytes to show in a single row.
-Example: `/w 8`
+`/w` : Define the number of bytes to show in a single row. It's possible to let 0xdd automatically adjust the size with the `auto` option.
+Example: `/w 8`, `/w a`
 
-`/U` : Update 0xdd. __Not recommended for now.__
+`/U` : Update 0xdd. __Not available.__
    
-`/dump` : Dump specified `<file>` in plain text and exit.
+`/dump` : Dump specified `<file>` in plain text and exit. If `auto` has been specified to `/w`, 16 will be used by defaut.
 
 Examples:
 
@@ -58,18 +58,29 @@ Actions, defined at the bottom, are activated by shortcuts.
 
 __^__ is a short way of saying __CTRL+__, so per example, `^P` is `CTRL+P`.
 
-## Dump
-It is possible to dump a hexadecimal view of the file with the Dump action. (^D)
+## ^G Goto
+Goes to an exact position.
 
-0xdd will simply add the "datdmp" extention (for Data dump) to the current filename being worked on.
+By default, it will read the user's value as decimal.
+
+Adding an `0x` or `0` at the beginning will respectively read the value as hexadecimal or octal.
+
+## ^D Dump
+Dumps the readable data under a text file encoded in UTF-8 under the datdmp extension.
+
+## ^O Offset base
+Changes the offset base to either hexadecimal, decimal, or octal.
+
+# Hidden shortcuts
+
+`F10` : Fullscreen mode
 
 # FAQ
 ___Nothing here yet!___
 
 # Notes
 
-
-Keys stolen by Windows (At least in 10) (and unuseable):
+Keys stolen by Windows (At least sand unuseable by 0xdd):
 - F11 : Fullscreen
 - CTRL+F : Search DialogBox
 - CTRL+HOME and CTRL+END : No idea
@@ -79,7 +90,7 @@ Keys stolen by Windows (At least in 10) (and unuseable):
 # Development Notes
 - Messages are at the same TopPosition as the InfoPanel, so thus why the InfoPanel is showing in fullscreen mode.
 - Even if the `using static` feature is wonderful, I try to limit its use because I don't want to be confused with other methods and classes.
-- Parameters are usually expressed with a slash (e.g. /w 16)
+- Parameters are usually expressed with a slash (e.g. /w 16) in documents.
 - Eventually every panel will have their own structs.
 - Eventually optimization will occur.
 
