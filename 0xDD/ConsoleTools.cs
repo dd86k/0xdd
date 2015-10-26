@@ -1,7 +1,7 @@
 ﻿using System;
 
 /*
-    Various tools for the command prompt and terminal.
+    Tools for the command prompt and terminal.
 */
 
 namespace _0xdd
@@ -28,11 +28,11 @@ namespace _0xdd
         internal static string ReadLine(int pLimit, bool pPassword)
         {
             System.Text.StringBuilder _out = new System.Text.StringBuilder();
-            int _index = 0;
-            bool _get = true;
-            int OrigninalLeft = Console.CursorLeft;
+            int Index = 0;
+            bool gotString = false;
+            int OrigninalLeftPosition = Console.CursorLeft;
 
-            while (_get)
+            while (!gotString)
             {
                 ConsoleKeyInfo c = Console.ReadKey(true);
 
@@ -42,40 +42,47 @@ namespace _0xdd
                     case ConsoleKey.Tab:
                         break;
 
+                    // Cancel
+                    case ConsoleKey.Escape:
+                        gotString = true;
+                        return string.Empty;
+
                     // Returns the string
                     case ConsoleKey.Enter:
-                        _get = false;
+                        gotString = true;
+                        if (_out.Length > 0)
+                            return _out.ToString();
                         break;
 
                     case ConsoleKey.Backspace:
-                        if (_index > 0)
+                        if (Index > 0)
                         {
                             // Erase whole
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
                                 _out = new System.Text.StringBuilder();
-                                _index = 0;
-                                Console.SetCursorPosition(OrigninalLeft, Console.CursorTop);
+                                Index = 0;
+                                Console.SetCursorPosition(OrigninalLeftPosition, Console.CursorTop);
                                 Console.Write(new string(' ', pLimit));
-                                Console.SetCursorPosition(OrigninalLeft, Console.CursorTop);
+                                Console.SetCursorPosition(OrigninalLeftPosition, Console.CursorTop);
                             }
                             // Erase one character
                             else
                             {
                                 _out = _out.Remove(_out.Length - 1, 1);
-                                _index--;
-                                Console.SetCursorPosition(OrigninalLeft + _index, Console.CursorTop);
+                                Index--;
+                                Console.SetCursorPosition(OrigninalLeftPosition + Index, Console.CursorTop);
                                 Console.Write(' ');
-                                Console.SetCursorPosition(OrigninalLeft + _index, Console.CursorTop);
+                                Console.SetCursorPosition(OrigninalLeftPosition + Index, Console.CursorTop);
                             }
                         }
                         break;
 
                     default:
-                        if (_index < pLimit)
+                        if (Index < pLimit)
                         {
                             _out.Append(c.KeyChar);
-                            _index++;
+                            Index++;
 
                             if (pPassword)
                                 Console.Write('*');
@@ -86,8 +93,7 @@ namespace _0xdd
                 }
             }
 
-            if (_out.Length > 0) return _out.ToString();
-            return null;
+            return string.Empty;
         }
         #endregion
     }

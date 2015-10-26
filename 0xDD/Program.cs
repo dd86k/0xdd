@@ -168,7 +168,7 @@ namespace _0xdd
                     #if RELEASE
                     try
                     {
-                        HexView.Open(file, ovm, bytesInRow);
+                        _0xdd.Open(file, ovm, bytesInRow);
                     }
                     catch (Exception e)
                     {
@@ -213,6 +213,7 @@ namespace _0xdd
         
         static void Abort(Exception e)
         {
+            Console.SetCursorPosition(0, Console.WindowHeight - 1);
             Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Red;
@@ -220,7 +221,7 @@ namespace _0xdd
             Console.ResetColor();
             Console.WriteLine($"Exception: {e.GetType()}");
             Console.WriteLine($"Message: {e.Message}");
-            Console.WriteLine($"Stack: {e.StackTrace}");
+            Console.WriteLine($"Stack: {Environment.NewLine}{e.StackTrace}");
             Console.WriteLine();
         }
 

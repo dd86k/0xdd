@@ -1,7 +1,7 @@
 ## 0xdd
 ### Hexadecimal Console File Viewer
 
-![0xdd in action](http://didi.wilomgfx.net/p/0xdd2.png)
+![0xdd](http://didi.wilomgfx.net/p/0xdd2.png)
 
 Inspired by nano, 0xdd is a straightforward, simple, interactive, hexadecimal file viewer for Windows.
 
@@ -13,84 +13,30 @@ Compatible with Mono, and probably compatible with Xamarin Studio and MonoDevelo
 
 I do not guarantee Mono compability.
 
+The Wiki is available [here](https://github.com/guitarxhero/0xDD/wiki). For now, it's restricted to collaborators.
+
 # Requirements
 
 - .NET 4.5 (Windows) or Mono (OS X and GNU/Linux).
 - ISO/ANSI Screen size, which is 80x24, with a Command Prompt or Terminal.
 - A working computer.
 
-# Arguments
-It's possible to give direct commands to 0xdd. Note that slashes (/) can be replaced by dashes (-) for parameters. Both can work at the same time.
-
-The order of the arguments may matter, but the last argument must be the file to open:
-
-`0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>`
-
-`/v` : Define the offset view as Hexadecimal, Decimal, or Octal. Example: `/v d`
-
-`/w` : Define the number of bytes to show in a single row. It's possible to let 0xdd automatically adjust the size with the `auto` option.
-Example: `/w 8`, `/w a`
-
-`/U` : Update 0xdd. __Not available.__
-   
-`/dump` : Dump specified `<file>` in plain text and exit. If `auto` has been specified to `/w`, 16 will be used by defaut.
-
-Examples:
-
-- `0xdd /v d /dump NOTEPAD.EXE` - Dump the data from NOTEPAD.EXE to NOTEPAD.EXE.datdmp with the decimal offset view.
- 
-# Navigation
-In 0xdd, navigation happens when a user changes the position to read of the file with a variety of keys:
-
-Move by...
-- One byte: __Left__ and __right__ arrow keys.
-- One line: __Up__ and __down__ arrow keys.
-- One page: __PageUp__ and __PageDown__ keys.
-
-Move to...
-- The beginning of the file: __Home__ key.
-- The beginning of a line: To be decided.
-- The end of the file: __End__ key.
-- A specific position: __CTRL+G__ keys.
-
-# Actions
-Actions, defined at the bottom, are activated by shortcuts.
-
-__^__ is a short way of saying __CTRL+__, so per example, `^P` is `CTRL+P`.
-
-## ^G Goto
-Goes to an exact position.
-
-By default, it will read the user's value as decimal.
-
-Adding an `0x` or `0` at the beginning will respectively read the value as hexadecimal or octal.
-
-## ^D Dump
-Dumps the readable data under a text file encoded in UTF-8 under the datdmp extension.
-
-## ^O Offset base
-Changes the offset base to either hexadecimal, decimal, or octal.
-
-# Hidden shortcuts
-
-`F10` : Fullscreen mode
-
 # FAQ
 ___Nothing here yet!___
 
 # Notes
 
-Keys stolen by Windows (At least sand unuseable by 0xdd):
-- F11 : Fullscreen
-- CTRL+F : Search DialogBox
-- CTRL+HOME and CTRL+END : No idea
-- CTRL+A : Selects all output
-- CTRL+C and CTRL+V : Copy and paste
+Keys stolen by Windows (10) (Unuseable by 0xdd):
+- F11 : Fullscreen.
+- CTRL+F : Search DialogBox.
+- CTRL+HOME and CTRL+END : No idea, assuming to scroll to the end of cmd.
+- CTRL+A : Selects all output.
+- CTRL+C and CTRL+V : Copy and paste.
 
 # Development Notes
 - Messages are at the same TopPosition as the InfoPanel, so thus why the InfoPanel is showing in fullscreen mode.
 - Even if the `using static` feature is wonderful, I try to limit its use because I don't want to be confused with other methods and classes.
-- Parameters are usually expressed with a slash (e.g. /w 16) in documents.
+- Parameters are expressed with a slashes (e.g. /w 16) in documents.
 - Eventually every panel will have their own structs.
 - Eventually optimization will occur.
 

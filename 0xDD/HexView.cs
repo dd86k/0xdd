@@ -324,7 +324,8 @@ namespace _0xdd
                 case ConsoleKey.F1:
                 case ConsoleKey.K:
                     if (cki.Modifiers == ConsoleModifiers.Control &&
-                        cki.Key == ConsoleKey.K || cki.Key == ConsoleKey.F1)
+                        cki.Key == ConsoleKey.K ||
+                        cki.Key == ConsoleKey.F1)
                         throw new NotImplementedException();
                     break;
 
@@ -343,6 +344,13 @@ namespace _0xdd
                         while (!gotNumber)
                         {
                             string t = ReadValue("Goto position:");
+
+                            if (t.Length == 0)
+                            {
+                                MainPanel.Update();
+                                break;
+                            }
+
                             // Hex
                             if (t.StartsWith("0x"))
                             {
