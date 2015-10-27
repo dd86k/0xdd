@@ -456,7 +456,7 @@ namespace _0xdd
                 case ConsoleKey.I:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                         Message(
-                            $"Size: {CurrentFile.Length} | Postion: {Math.Round(((decimal)CurrentFilePosition / CurrentFile.Length) * 100)}%"
+                            $"Size: {CurrentFile.Length} | StartPos: {Math.Round(((decimal)CurrentFilePosition / CurrentFile.Length) * 100)}% | EndPos: {Math.Round(((decimal)(CurrentFilePosition + MainPanel.ScreenMaxBytes) / CurrentFile.Length) * 100)}%"
                         );
                     break;
 
