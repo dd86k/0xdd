@@ -69,7 +69,7 @@ namespace _0xdd
             //args = new string[] { "f" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
-            //args = new string[] { "gg.txt" };
+            args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
 #endif
 

@@ -152,7 +152,7 @@ namespace _0xdd
                 ReadAndUpdate(CurrentFilePosition);
             }
 
-            static void Clear()
+            static internal void Clear()
             {
                 Console.SetCursorPosition(0, StartingTopPosition);
                 for (int i = 0; i < FrameHeight; i++)
@@ -326,7 +326,7 @@ namespace _0xdd
                     if (cki.Modifiers == ConsoleModifiers.Control &&
                         cki.Key == ConsoleKey.K ||
                         cki.Key == ConsoleKey.F1)
-                        throw new NotImplementedException();
+                        ShowHelp();
                     break;
 
                 // Find
@@ -880,6 +880,76 @@ namespace _0xdd
             Console.Clear();
 
             return false;
+        }
+        #endregion
+
+        #region Help
+        static void ShowHelp()
+        {
+            MainPanel.StartingTopPosition = 2;
+            MainPanel.FrameHeight = Console.WindowHeight - 2;
+
+            int pos = 0;
+            MainPanel.Clear();
+            RenderHelp(pos);
+            while (HelpKeyDown(ref pos))
+            {
+                MainPanel.Clear();
+                RenderHelp(pos);
+            }
+
+            PlaceOffsetPanel();
+            MainPanel.Update();
+            MainPanel.StartingTopPosition = 1;
+            MainPanel.FrameHeight = Console.WindowHeight - 5;
+        }
+
+        static bool HelpKeyDown(ref int pPosition)
+        {
+            ConsoleKeyInfo cki = Console.ReadKey(true);
+
+            switch (cki.Key)
+            {
+                case ConsoleKey.X:
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                        return Exit();
+                    break;
+
+                case ConsoleKey.Escape:
+                    return false;
+
+                case ConsoleKey.UpArrow:
+                    pPosition -= 1;
+                    break;
+                case ConsoleKey.DownArrow:
+                    pPosition += 1;
+                    break;
+
+                case ConsoleKey.PageUp:
+                    pPosition -= MainPanel.FrameHeight;
+                    break;
+                case ConsoleKey.PageDown:
+                    pPosition += MainPanel.FrameHeight;
+                    break;
+            }
+
+            //RenderHelp(pPosition);
+            return true;
+        }
+
+        static void RenderHelp(int pPosition)
+        {
+            //todo: rawr by line pls maybe strin array????
+            Console.SetCursorPosition(0, MainPanel.StartingTopPosition);
+            Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("_0xdd.Help.txt");
+            using (StreamReader sr = new StreamReader(s))
+            {
+                sr.BaseStream.Position = pPosition;
+                for (int i = 0; i < MainPanel.FrameHeight; i++)
+                {
+                    Console.WriteLine(sr.ReadLine());
+                }
+            }
         }
         #endregion
 
