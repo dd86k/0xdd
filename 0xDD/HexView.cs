@@ -324,8 +324,7 @@ namespace _0xdd
                 case ConsoleKey.F1:
                 case ConsoleKey.K:
                     if (cki.Modifiers == ConsoleModifiers.Control &&
-                        cki.Key == ConsoleKey.K ||
-                        cki.Key == ConsoleKey.F1)
+                        cki.Key == ConsoleKey.K || cki.Key == ConsoleKey.F1)
                         ShowHelp();
                     break;
 
@@ -890,66 +889,57 @@ namespace _0xdd
             MainPanel.FrameHeight = Console.WindowHeight - 2;
 
             int pos = 0;
-            MainPanel.Clear();
-            RenderHelp(pos);
-            while (HelpKeyDown(ref pos))
+            bool inmenu = true;
+            string helptext;
+
+            Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("_0xdd.Help.txt");
+            using (StreamReader sr = new StreamReader(s))
             {
-                MainPanel.Clear();
-                RenderHelp(pos);
+                helptext = sr.ReadToEnd();
+            }
+
+            MainPanel.Clear();
+            while (inmenu)
+            {
+                ConsoleKeyInfo cki = Console.ReadKey(true);
+
+                switch (cki.Key)
+                {
+                    case ConsoleKey.X:
+                        if (cki.Modifiers == ConsoleModifiers.Control)
+                        {
+                            Exit();
+                            return;
+                        }
+                        break;
+
+                    case ConsoleKey.Escape:
+                        return;
+
+                    case ConsoleKey.UpArrow:
+                        if (pos - 1 < 0)
+                        {
+                            pos -= 1;
+                            Console.SetCursorPosition(0, MainPanel.StartingTopPosition);
+                        }
+                        break;
+                    case ConsoleKey.DownArrow:
+                        pos += 1;
+                        break;
+
+                    case ConsoleKey.PageUp:
+                        pos -= MainPanel.FrameHeight;
+                        break;
+                    case ConsoleKey.PageDown:
+                        pos += MainPanel.FrameHeight;
+                        break;
+                }
             }
 
             PlaceOffsetPanel();
             MainPanel.Update();
             MainPanel.StartingTopPosition = 1;
             MainPanel.FrameHeight = Console.WindowHeight - 5;
-        }
-
-        static bool HelpKeyDown(ref int pPosition)
-        {
-            ConsoleKeyInfo cki = Console.ReadKey(true);
-
-            switch (cki.Key)
-            {
-                case ConsoleKey.X:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
-                        return Exit();
-                    break;
-
-                case ConsoleKey.Escape:
-                    return false;
-
-                case ConsoleKey.UpArrow:
-                    pPosition -= 1;
-                    break;
-                case ConsoleKey.DownArrow:
-                    pPosition += 1;
-                    break;
-
-                case ConsoleKey.PageUp:
-                    pPosition -= MainPanel.FrameHeight;
-                    break;
-                case ConsoleKey.PageDown:
-                    pPosition += MainPanel.FrameHeight;
-                    break;
-            }
-
-            //RenderHelp(pPosition);
-            return true;
-        }
-
-        static void RenderHelp(int pPosition)
-        {
-            //todo: rawr by line pls maybe strin array????
-            Console.SetCursorPosition(0, MainPanel.StartingTopPosition);
-            Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("_0xdd.Help.txt");
-            using (StreamReader sr = new StreamReader(s))
-            {
-                sr.BaseStream.Position = pPosition;
-                for (int i = 0; i < MainPanel.FrameHeight; i++)
-                {
-                    Console.WriteLine(sr.ReadLine());
-                }
-            }
         }
         #endregion
 

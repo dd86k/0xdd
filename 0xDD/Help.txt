@@ -1,27 +1,20 @@
 ﻿Welcome to 0xdd! ...
+2
 
-Multiline test
+4
+5
+6
 
+8
 
-Multiline test 2
+10
 
+12
 
-Multiline test 6
-
-
-Multiline test 764
-
-
-Multiline test 25 415
-
-
-Multiline test 25324562
-
-
-Multiline test 63 525
-
-
-Multiline test 764 ADDA
-
-
-Multiline test 25 415 ER"QMKPI"
+14
+-15
+  -16
+  -17
+18
+19 9999999999999999999999999999999999999999
+20
