@@ -35,7 +35,7 @@ Keys stolen by Windows 10 (Unuseable by 0xdd):
 - Parameters are expressed with a slashes (e.g. /w 16) in documents.
 
 | Panel | Description |
-| -- | -- |
+| --- | --- |
 | MainPanel | Main panel with the offsets base, bytes and data as ASCII. |
 | InfoPanel | Where messages and the current positions are shown. |
 | OffsetPanel | Current offset base, and byte offsets. |
