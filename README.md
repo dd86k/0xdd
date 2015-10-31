@@ -22,7 +22,7 @@ ___Nothing here yet!___
 
 # Notes
 
-Keys stolen by Windows (10) (Unuseable by 0xdd):
+Keys stolen by Windows 10 (Unuseable by 0xdd):
 - F11 : Fullscreen.
 - CTRL+F : Search DialogBox.
 - CTRL+HOME and CTRL+END : No idea, assuming to scroll to the end of cmd.
@@ -33,7 +33,14 @@ Keys stolen by Windows (10) (Unuseable by 0xdd):
 - Messages are at the same TopPosition as the InfoPanel, so thus why the InfoPanel is showing in fullscreen mode.
 - Even if the `using static` feature is wonderful, I try to limit its use because I don't want to be confused with other methods and classes.
 - Parameters are expressed with a slashes (e.g. /w 16) in documents.
-- Eventually every panel will have their own structs.
+
+| Panel | Description |
+| -- | -- |
+| MainPanel | Main panel with the offsets base, bytes and data as ASCII. |
+| InfoPanel | Where messages and the current positions are shown. |
+| OffsetPanel | Current offset base, and byte offsets. |
+| ControlPanel | Actions and shortcuts. |
+
 - Eventually optimization will occur.
 
 - When doing commits, I try to stick with the following legend for descriptions:

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 
 //TODO: Edit mode
@@ -6,7 +7,6 @@ using System.IO;
 
 /*
     Box of ideas (Lazy TODO/idea list)
-    - Scrollbar (-ish), you know, style
     - Top right (under title): Insert(INS)/Overwrite(OVR) (bool)
     - Search: /regex/ (Begins with && ends with)
     - Message(ProgressBar=bool) -> Progress bar (Dump) -> [ Done! ]
@@ -51,7 +51,9 @@ namespace _0xdd
         /// Fullscreen mode, false by default.
         /// </summary>
         static bool Fullscreen;
+        #endregion
 
+        #region MainPanel
         /// <summary>
         /// Main panel which represents the offset, data as bytes,
         /// and data as ASCII characters.
@@ -161,7 +163,9 @@ namespace _0xdd
                 }
             }
         }
+        #endregion
 
+        #region InfoPanel
         /// <summary>
         /// Info panel: Offsets and current offsets (positions) are shown.
         /// </summary>
@@ -181,6 +185,95 @@ namespace _0xdd
                 string s = $"DEC: {CurrentFilePosition.ToString("D8")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8), 8}";
                 // Force clean last message.
                 Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
+            }
+        }
+        #endregion
+
+        #region OffsetPanel
+        /// <summary>
+        /// Shows offset base view and the offset on each byte.
+        /// e.g. Offset h  00 01 ...
+        /// </summary>
+        struct OffsetPanel
+        {
+            /// <summary>
+            /// Update the offset map
+            /// </summary>
+            static internal void Update()
+            {
+                Console.SetCursorPosition(0, 1);
+                Console.Write($"Offset {CurrentOffsetBaseView.GetChar()}  ");
+                for (int i = 0; i < MainPanel.BytesInRow; i++)
+                {
+                    Console.Write($"{i.ToString("X2")} ");
+                }
+            }
+        }
+        #endregion
+
+        #region ControlPanel
+        struct ControlPanel
+        {
+            /// <summary>
+            /// Places the control map on screen (e.g. ^T Try jumping )
+            /// </summary>
+            static internal void Place()
+            {
+                Console.SetCursorPosition(0, Console.WindowHeight - 2);
+
+                ToggleColors();
+                Console.Write("^K");
+                Console.ResetColor();
+                Console.Write(" Help         ");
+
+                ToggleColors();
+                Console.Write("^W");
+                Console.ResetColor();
+                Console.Write(" Find         ");
+
+                ToggleColors();
+                Console.Write("^G");
+                Console.ResetColor();
+                Console.Write(" Goto         ");
+
+                ToggleColors();
+                Console.Write("^H");
+                Console.ResetColor();
+                Console.Write(" Replace      ");
+
+                ToggleColors();
+                Console.Write("^E");
+                Console.ResetColor();
+                Console.Write(" Edit mode");
+
+                Console.WriteLine();
+
+                ToggleColors();
+                Console.Write("^X");
+                Console.ResetColor();
+                Console.Write(" Exit         ");
+
+                ToggleColors();
+                Console.Write("^I");
+                Console.ResetColor();
+                Console.Write(" Info         ");
+
+                ToggleColors();
+                Console.Write("^D");
+                Console.ResetColor();
+                Console.Write(" Dump         ");
+
+                ToggleColors();
+                Console.Write("^O");
+                Console.ResetColor();
+                Console.Write(" Offset base  ");
+
+                /*
+                ToggleColors();
+                Console.Write("^");
+                Console.ResetColor();
+                Console.Write(" ");
+                */
             }
         }
         #endregion
@@ -216,7 +309,7 @@ namespace _0xdd
         static WritingMode CurrentWritingMode;
         #endregion
 
-        #region Internal methods
+        #region Methods
         /// <summary>
         /// Open a file and starts the program with defaults.
         /// </summary>
@@ -260,13 +353,11 @@ namespace _0xdd
         static void PrepareScreen()
         {
             UpdateTitlePanel();
-            PlaceOffsetPanel();
+            OffsetPanel.Update();
             InfoPanel.Update();
-            PlaceControlPanel();
+            ControlPanel.Place();
         }
-        #endregion
 
-        #region Private methods
         /// <summary>
         /// Read the current file at a position.
         /// </summary>
@@ -306,10 +397,6 @@ namespace _0xdd
 
             switch (cki.Key)
             {
-                case ConsoleKey.Escape:
-                    //TODO: Menu at ConsoleKey.Escape
-                    break;
-
                 // -- Hidden shortcuts --
                 case ConsoleKey.F10:
                     ToggleFullscreenMode();
@@ -325,7 +412,7 @@ namespace _0xdd
                 case ConsoleKey.K:
                     if (cki.Modifiers == ConsoleModifiers.Control &&
                         cki.Key == ConsoleKey.K || cki.Key == ConsoleKey.F1)
-                        ShowHelp();
+                        return ShowHelp();
                     break;
 
                 // Find
@@ -415,7 +502,7 @@ namespace _0xdd
                             case 'H':
                             case 'h':
                                 CurrentOffsetBaseView = OffsetBaseView.Hexadecimal;
-                                PlaceOffsetPanel();
+                                OffsetPanel.Update();
                                 MainPanel.Update();
                                 // In case of remaining message.
                                 InfoPanel.Update();
@@ -424,7 +511,7 @@ namespace _0xdd
                             case 'O':
                             case 'o':
                                 CurrentOffsetBaseView = OffsetBaseView.Octal;
-                                PlaceOffsetPanel();
+                                OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
                                 break;
@@ -432,7 +519,7 @@ namespace _0xdd
                             case 'D':
                             case 'd':
                                 CurrentOffsetBaseView = OffsetBaseView.Decimal;
-                                PlaceOffsetPanel();
+                                OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
                                 break;
@@ -569,81 +656,6 @@ namespace _0xdd
         }
 
         /// <summary>
-        /// Update the offset map
-        /// </summary>
-        static void PlaceOffsetPanel()
-        {
-            Console.SetCursorPosition(0, 1);
-            Console.Write($"Offset {CurrentOffsetBaseView.GetChar()}  ");
-            for (int i = 0; i < MainPanel.BytesInRow; i++)
-            {
-                Console.Write($"{i.ToString("X2")} ");
-            }
-        }
-
-        /// <summary>
-        /// Places the control map on screen (e.g. ^T Try jumping )
-        /// </summary>
-        static void PlaceControlPanel()
-        {
-            Console.SetCursorPosition(0, Console.WindowHeight - 2);
-
-            ToggleColors();
-            Console.Write("^K");
-            Console.ResetColor();
-            Console.Write(" Help         ");
-
-            ToggleColors();
-            Console.Write("^W");
-            Console.ResetColor();
-            Console.Write(" Find         ");
-
-            ToggleColors();
-            Console.Write("^G");
-            Console.ResetColor();
-            Console.Write(" Goto         ");
-
-            ToggleColors();
-            Console.Write("^H");
-            Console.ResetColor();
-            Console.Write(" Replace      ");
-
-            ToggleColors();
-            Console.Write("^E");
-            Console.ResetColor();
-            Console.Write(" Edit mode");
-
-            Console.WriteLine();
-
-            ToggleColors();
-            Console.Write("^X");
-            Console.ResetColor();
-            Console.Write(" Exit         ");
-
-            ToggleColors();
-            Console.Write("^I");
-            Console.ResetColor();
-            Console.Write(" Info         ");
-
-            ToggleColors();
-            Console.Write("^D");
-            Console.ResetColor();
-            Console.Write(" Dump         ");
-
-            ToggleColors();
-            Console.Write("^O");
-            Console.ResetColor();
-            Console.Write(" Offset base  ");
-
-            /*
-            ToggleColors();
-            Console.Write("^");
-            Console.ResetColor();
-            Console.Write(" ");
-            */
-        }
-
-        /// <summary>
         /// Toggles current ForegroundColor to black
         /// and BackgroundColor to gray.
         /// </summary>
@@ -681,8 +693,8 @@ namespace _0xdd
                 InfoPanel.StartingTopPosition = Console.WindowHeight - 3;
                 Fullscreen = false;
                 Console.Clear();
-                PlaceControlPanel();
-                PlaceOffsetPanel();
+                ControlPanel.Place();
+                OffsetPanel.Update();
                 UpdateTitlePanel();
                 MainPanel.Refresh();
             }
@@ -883,22 +895,50 @@ namespace _0xdd
         #endregion
 
         #region Help
-        static void ShowHelp()
+        static bool ShowHelp()
         {
-            MainPanel.StartingTopPosition = 2;
-            MainPanel.FrameHeight = Console.WindowHeight - 2;
+            MainPanel.StartingTopPosition = 1;
+            MainPanel.FrameHeight = Console.WindowHeight - 3;
 
             int pos = 0;
             bool inmenu = true;
-            string helptext;
+            List<string> helplines = new List<string>();
 
             Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("_0xdd.Help.txt");
             using (StreamReader sr = new StreamReader(s))
             {
-                helptext = sr.ReadToEnd();
+                int WinWidth = Console.WindowWidth - 1;
+
+                while (!sr.EndOfStream)
+                {
+                    string tmp = sr.ReadLine();
+
+                    if (tmp.Length > WinWidth)
+                    {
+                        int tmppos = 0;
+                        bool finished = false;
+                        while (!finished)
+                        {
+                            if (tmppos + WinWidth > tmp.Length)
+                            {
+                                helplines.Add(tmp.Substring(tmppos));
+                                finished = true;
+                            }
+                            else
+                            {
+                                helplines.Add(tmp.Substring(tmppos, WinWidth));
+                                tmppos += WinWidth;
+                            }
+                        }
+                    }
+                    else
+                        helplines.Add(tmp);
+                }
+
             }
 
             MainPanel.Clear();
+            RenderHelp(ref helplines, pos);
             while (inmenu)
             {
                 ConsoleKeyInfo cki = Console.ReadKey(true);
@@ -908,38 +948,72 @@ namespace _0xdd
                     case ConsoleKey.X:
                         if (cki.Modifiers == ConsoleModifiers.Control)
                         {
-                            Exit();
-                            return;
+                            // Exit completely
+                            return Exit();
                         }
                         break;
 
                     case ConsoleKey.Escape:
-                        return;
+                        // Exit help, not 0xdd.
+                        inmenu = false;
+                        break;
 
                     case ConsoleKey.UpArrow:
-                        if (pos - 1 < 0)
+                        if (pos - 1 >= 0)
                         {
-                            pos -= 1;
-                            Console.SetCursorPosition(0, MainPanel.StartingTopPosition);
+                            MainPanel.Clear();
+                            RenderHelp(ref helplines, --pos);
                         }
                         break;
                     case ConsoleKey.DownArrow:
-                        pos += 1;
+                        if (pos + MainPanel.FrameHeight + 1 < helplines.Count)
+                        {
+                            MainPanel.Clear();
+                            RenderHelp(ref helplines, ++pos);
+                        }
                         break;
 
                     case ConsoleKey.PageUp:
-                        pos -= MainPanel.FrameHeight;
+                        if (pos - MainPanel.FrameHeight >= 0)
+                        {
+                            pos -= MainPanel.FrameHeight;
+                            MainPanel.Clear();
+                            RenderHelp(ref helplines, pos);
+                        }
                         break;
                     case ConsoleKey.PageDown:
-                        pos += MainPanel.FrameHeight;
+                        if (pos + (MainPanel.FrameHeight * 2) < helplines.Count)
+                        {
+                            pos += MainPanel.FrameHeight;
+                            MainPanel.Clear();
+                            RenderHelp(ref helplines, pos);
+                        }
                         break;
                 }
             }
 
-            PlaceOffsetPanel();
-            MainPanel.Update();
-            MainPanel.StartingTopPosition = 1;
+            MainPanel.StartingTopPosition = 2;
             MainPanel.FrameHeight = Console.WindowHeight - 5;
+            OffsetPanel.Update();
+            InfoPanel.Update();
+            MainPanel.Update();
+
+            return true;
+        }
+
+        static void RenderHelp(ref List<string> helplines, int pPosition)
+        {
+            Console.SetCursorPosition(0, MainPanel.StartingTopPosition);
+            for (int i = 0; i < MainPanel.FrameHeight; i++)
+            {
+                if (pPosition < helplines.Count)
+                {
+                    Console.WriteLine(helplines[pPosition]);
+                    pPosition++;
+                }
+                else
+                    return;
+            }
         }
         #endregion
 

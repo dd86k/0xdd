@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("0xdd")]
 [assembly: AssemblyDescription("Hexadecimal file viewer.")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("DD~!")]
 [assembly: AssemblyProduct("0xdd")]
 [assembly: AssemblyCopyright("Copyright © guitarxhero 2015")]
 [assembly: AssemblyTrademark("")]

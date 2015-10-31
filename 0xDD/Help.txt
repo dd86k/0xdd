@@ -1,20 +1,73 @@
-﻿Welcome to 0xdd! ...
-2
+﻿Welcome to 0xdd!
+In this help screen, you can navigate using the UP and DOWN arrow keys.
+PAGEUP and PAGEDOWN are used to go by page.
+ESCAPE to quit this help screen, ^X to exit 0xdd.
 
-4
-5
-6
+---------------
+1. Arguments
 
-8
+It's possible to give direct commands to 0xdd. Note that slashes (/) can be replaced by dashes (-) for parameters. Both can work at the same time.
 
-10
+The order of the arguments may matter, but the last argument must be the file to open:
 
-12
+0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>
 
-14
--15
-  -16
-  -17
-18
-19 9999999999999999999999999999999999999999
-20
+/v : Define the offset view as Hexadecimal, Decimal, or Octal. Example: /v d
+
+/w : Define the number of bytes to show in a single row. It's possible to let 0xdd automatically adjust the size with the auto option. Example: /w 8, /w a
+
+/U : Update 0xdd. Not available.
+
+/dump : Dump specified <file> in plain text and exit. If auto has been specified to /w, 16 will be used by defaut.
+
+Examples:
+
+0xdd /v d /dump NOTEPAD.EXE - Dump the data from NOTEPAD.EXE to NOTEPAD.EXE.datdmp with the decimal offset view.
+
+---------------
+2. Navigation
+
+In 0xdd, navigation happens when a user changes the position to read of the file with a variety of keys:
+
+Move by...
+One byte: Left and right arrow keys.
+One line: Up and down arrow keys.
+One page: PageUp and PageDown keys.
+
+Move to...
+The beginning of the file: Home key.
+The beginning of a line: To be decided.
+The end of the file: End key.
+A specific position: CTRL+G keys.
+
+---------------
+3. Actions
+
+Actions, shown at the bottom, are activated by shortcuts.
+
+^ is a short way of saying CTRL+, so ^P is interpreted as CTRL+P.
+
+^G Goto
+
+Go to an exact position.
+
+By default, it will read the user's value as decimal.
+
+Adding an 0x or 0 at the beginning will respectively read the value as hexadecimal or octal.
+
+^D Dump
+
+Dump the readable data under a text file encoded in UTF-8 under the datdmp extension.
+
+^O Offset base
+
+Change the offset base (left view) to either hexadecimal, decimal, or octal.
+
+---------------
+4. Hidden actions
+
+These shortcuts or keys are not shown at the bottom:
+
+F1 : Show Help.
+F5 : Refresh. Planned
+F10 : Fullscreen-mode.
