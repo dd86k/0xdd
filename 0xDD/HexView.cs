@@ -996,7 +996,7 @@ namespace _0xdd
             MainPanel.FrameHeight = Console.WindowHeight - 5;
             OffsetPanel.Update();
             InfoPanel.Update();
-            MainPanel.Update();
+            MainPanel.Refresh();
 
             return true;
         }
