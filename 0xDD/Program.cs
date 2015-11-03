@@ -62,14 +62,20 @@ namespace _0xdd
             }
         }
 
+        /// <summary>
+        /// Entry point (.ctor)
+        /// </summary>
+        /// <param name="args">CLI arguments.</param>
+        /// <returns>Error.</returns>
         static int Main(string[] args)
         {
 #if DEBUG
+            /* ~~ Used for debugging within Visual Studio */
             //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
-            args = new string[] { "gg.txt" };
+            //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
 #endif
 
@@ -82,6 +88,7 @@ namespace _0xdd
             }
             
             // Defaults
+            string file = args[args.Length - 1];
             int bytesInRow = 16;
             _0xdd.OffsetBaseView ovm = _0xdd.OffsetBaseView.Hexadecimal;
             bool dump = false;
@@ -92,6 +99,8 @@ namespace _0xdd
                 {
                     case "-v":
                     case "/v":
+                    case "-view":
+                    case "/view":
                         switch (args[i + 1])
                         {
                             case "h":
@@ -111,6 +120,8 @@ namespace _0xdd
 
                     case "-w":
                     case "/w":
+                    case "-width":
+                    case "/width":
                         // Automatic
                         if (args[i + 1][0] == 'a')
                         {
@@ -121,14 +132,22 @@ namespace _0xdd
                         {
                             if (bytesInRow < 1)
                             {
-                                Console.WriteLine($"Invalid parameter for /w: {args[i + 1]}");
+                                Console.WriteLine($"Invalid parameter for /w: {args[i + 1]} (Too low)");
                                 return 1;
                             }
+                        }
+                        // If parsing failed
+                        else
+                        {
+                            Console.WriteLine($"Invalid parameter for /w: {args[i + 1]} (Invalid format)");
+                            return 1;
                         }
                         break;
 
                     case "-U":
                     case "/U":
+                    case "-Update":
+                    case "/Update":
                         Update();
                         break;
 
@@ -136,10 +155,23 @@ namespace _0xdd
                     case "/dump":
                         dump = true;
                         break;
+
+                    case "/?":
+                    case "/help":
+                    case "-h":
+                    case "-help":
+                    case "--help":
+                        ShowHelp();
+                        return 0;
+
+                    case "/ver":
+                    case "-ver":
+                    case "/version":
+                    case "-version":
+                        ShowVersion();
+                        return 0;
                 }
             }
-
-            string file = args[args.Length - 1];
 
             if (File.Exists(file))
             {
@@ -159,13 +191,16 @@ namespace _0xdd
                             break;
                         default:
                             Console.WriteLine("Unknown error, aborted.");
-                            break;
+                            return int.MaxValue;
                     }
                     return err;
                 }
                 else
                 {
-                    #if RELEASE
+                    #if DEBUG
+                    // I want Visual Studio to catch the exceptions!
+                    _0xdd.Open(file, ovm, bytesInRow);
+                    #else
                     try
                     {
                         _0xdd.Open(file, ovm, bytesInRow);
@@ -174,9 +209,6 @@ namespace _0xdd
                     {
                         Abort(e);
                     }
-                    #elif DEBUG
-                    // I want Visual Studio to catch the exceptions!
-                    _0xdd.Open(file, ovm, bytesInRow);
                     #endif
                 }
             }
@@ -221,7 +253,9 @@ namespace _0xdd
             Console.ResetColor();
             Console.WriteLine($"Exception: {e.GetType()}");
             Console.WriteLine($"Message: {e.Message}");
-            Console.WriteLine($"Stack: {Environment.NewLine}{e.StackTrace}");
+            Console.WriteLine("  -- BEGIN TRACE --");
+            Console.WriteLine(e.StackTrace);
+            Console.WriteLine("  -- END TRACE --");
             Console.WriteLine();
         }
 
@@ -243,10 +277,10 @@ namespace _0xdd
 
         static void ShowVersion()
         {
-            //         1       10        20        30        40        50        60        70        80
-            //         |--------|---------|---------|---------|---------|---------|---------|---------|
+            //                 1       10        20        30        40        50        60        70        80
+            //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine();
-            Console.WriteLine($"0xDD - {ProjectVersion}");
+            Console.WriteLine($"0xdd - {ProjectVersion}");
             Console.WriteLine("Copyright (c) 2015 DD~!/guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
             Console.WriteLine("Project page: <https://github.com/guitarxhero/0xDD>");

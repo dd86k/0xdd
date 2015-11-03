@@ -9,15 +9,13 @@ using System.IO;
     Box of ideas (Lazy TODO/idea list)
     - Top right (under title): Insert(INS)/Overwrite(OVR) (bool)
     - Search: /regex/ (Begins with && ends with)
-    - Message(ProgressBar=bool) -> Progress bar (Dump) -> [ Done! ]
-    - nagivation syncs (e.g. 32 - 33 -> 0 instead of just not doing it)
     - align offset (dividable by ElementsWidth?)
     - Edit: List<int, byte>(FilePosition, Byte)
       - Rendering: If byte at position, write that byte to display instead
       - Saving: Remove duplicates, loop through List and write
       - Editing: If new data on same position, replace
     - open memory process!!!!!!!!!!! (Windows)
-    - Dump buffer only at the current position feature
+    - "Dump buffer (view) only at the current position"-feature
 */
 
 namespace _0xdd
@@ -45,6 +43,12 @@ namespace _0xdd
         /// <summary>
         /// Temporary buffer used for on-screen display.
         /// </summary>
+        /// <remarks>
+        /// This doesn't use a lot of memory.
+        /// Say the main panel size is 16x19 (16 bytes on 19 lines,
+        /// default with 80x24), the buffer will only use 309 bytes
+        /// (0.3 KB) of memory.
+        /// </remarks>
         static byte[] Buffer = new byte[0];
 
         /// <summary>
@@ -541,9 +545,11 @@ namespace _0xdd
                 // Info
                 case ConsoleKey.I:
                     if (cki.Modifiers == ConsoleModifiers.Control)
-                        Message(
-                            $"Size: {CurrentFile.Length} | StartPos: {Math.Round(((decimal)CurrentFilePosition / CurrentFile.Length) * 100)}% | EndPos: {Math.Round(((decimal)(CurrentFilePosition + MainPanel.ScreenMaxBytes) / CurrentFile.Length) * 100)}%"
-                        );
+                    {
+                        decimal ratioStart = Math.Round((decimal)CurrentFilePosition / CurrentFile.Length * 100);
+                        decimal ratioEnd = Math.Round((((decimal)CurrentFilePosition + MainPanel.ScreenMaxBytes) / CurrentFile.Length) * 100);
+                        Message($"Size: {Utilities.GetFormattedSize(CurrentFile.Length)} | StartPos: {ratioStart}% | EndPos: {ratioEnd}%");
+                    }
                     break;
 
                 // Exit
@@ -583,7 +589,7 @@ namespace _0xdd
                     }
                     else
                     {
-                        //TODO: Round if it reaches the beginning
+                        ReadAndUpdate(CurrentFilePosition = 0);
                     }
                     break;
                 case ConsoleKey.DownArrow:
@@ -593,7 +599,7 @@ namespace _0xdd
                     }
                     else
                     {
-                        //TODO: Round if it reaches end
+                        ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                     }
                     break;
 
@@ -604,7 +610,7 @@ namespace _0xdd
                     }
                     else
                     {
-                        //TODO: Round if it reaches the beginning
+                        ReadAndUpdate(CurrentFilePosition = 0);
                     }
                     break;
                 case ConsoleKey.PageDown:
@@ -614,7 +620,7 @@ namespace _0xdd
                     }
                     else
                     {
-                        //TODO: Round if it reaches end
+                        ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                     }
                     break;
 
@@ -684,6 +690,9 @@ namespace _0xdd
             Console.ResetColor();
         }
 
+        /// <summary>
+        /// Toggle the fullscreen mode.
+        /// </summary>
         static void ToggleFullscreenMode()
         {
             if (Fullscreen)
@@ -779,33 +788,17 @@ namespace _0xdd
             int BufferPositionHex = 0;
             int BufferPositionData = 0;
             // To not change the current buffer, we use a new one.
+            // Or if we come from the /dump CLI parameter.
             byte[] buffer = new byte[pBytesInRow];
 
             using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{NAME_EXTENSION}"))
             {
                 sw.WriteLine(file.Name);
                 sw.WriteLine();
-                sw.Write("Size: ");
 
-                if (filelen > Math.Pow(1024, 3)) // GB
-                {
-                    sw.Write($"{Math.Round(filelen / Math.Pow(1024, 3), 2)} GB");
-                    sw.Write($"({filelen} B)");
-                }
-                else if (filelen > Math.Pow(1024, 2)) // MB
-                {
-                    sw.Write($"{Math.Round(filelen / Math.Pow(1024, 2), 2)} MB");
-                    sw.Write($"({filelen} B)");
-                }
-                else if (filelen > 1024) // KB
-                {
-                    sw.Write($"{Math.Round((double)filelen / 1024, 1)} KB");
-                    sw.Write($"({filelen} B)");
-                }
-                else
-                {
-                    sw.Write($"{filelen} B");
-                }
+                sw.Write("Size: ");
+                sw.Write(Utilities.GetFormattedSize(filelen));
+                sw.WriteLine($" ({filelen} B)");
 
                 sw.WriteLine();
                 sw.WriteLine($"Attributes: {file.Attributes.ToString()}");
@@ -1025,6 +1018,7 @@ namespace _0xdd
         /// <returns>Readable character.</returns>
         static char ToSafeChar(this byte pIn)
         {
+            // If out of bound.
             if (pIn < 0x20 || pIn > 0x7F)
                 return '.';
             else
@@ -1052,135 +1046,5 @@ namespace _0xdd
             }
         }
         #endregion
-    }
-
-    /// <summary>
-    /// Sraightfoward TUI-oriented progress bar implementation.
-    /// </summary>
-    class ProgressBar
-    {
-        enum ProgressBarStyle
-        {
-            Continuous,
-            Marquee
-        }
-
-
-        internal ProgressBar()
-        {
-            TopPosition = Console.CursorTop;
-            LeftPosition = Console.CursorLeft;
-            Width = Console.WindowWidth;
-            //Height = 1;
-        }
-
-
-        internal ProgressBar(int pMaximumValue)
-        {
-
-        }
-
-
-        internal ProgressBar(int pValue, int pMaximumValue)
-        {
-
-        }
-
-
-        internal ProgressBar(int pTopPosition, int pLeftPosition, int pMaximumValue)
-        {
-
-        }
-
-
-        internal ProgressBar(int pTopPosition, int pLeftPosition, int pValue, int pMaximumValue)
-        {
-
-        }
-
-
-        internal bool Initiated
-        {
-            get; private set;
-        }
-
-
-        internal int TopPosition
-        {
-            get; set;
-        }
-
-
-        internal int LeftPosition
-        {
-            get; set;
-        }
-
-
-        internal int Width
-        {
-            get; set;
-        }
-
-        /*
-        internal int Height
-        {
-            get; set;
-        }
-        */
-
-        internal int Value
-        {
-            get; set;
-        }
-
-
-        internal int MaxValue
-        {
-            get; set;
-        }
-
-
-        internal string Text
-        {
-            get; set;
-        }
-
-
-        internal char BeginChar
-        {
-            get; set;
-        }
-
-
-        internal char EndChar
-        {
-            get; set;
-        }
-
-
-        void Initiate()
-        {
-            Console.SetCursorPosition(LeftPosition, TopPosition);
-            Console.Write(BeginChar);
-            Console.SetCursorPosition(LeftPosition + Width - 1, TopPosition);
-            Console.Write(EndChar);
-
-            Initiated = true;
-        }
-
-
-        void Update()
-        {
-            if (!Initiated)
-                Initiate();
-
-            
-        }
-
-        internal void Increment(int pValue)
-        {
-            Value += pValue;
-        }
     }
 }
