@@ -1055,10 +1055,132 @@ namespace _0xdd
     }
 
     /// <summary>
-    /// Progressbar specifically for the hex viewer.
+    /// Sraightfoward TUI-oriented progress bar implementation.
     /// </summary>
-    class HexViewProgressBar
+    class ProgressBar
     {
-        //TODO: HexViewProgressBar
+        enum ProgressBarStyle
+        {
+            Continuous,
+            Marquee
+        }
+
+
+        internal ProgressBar()
+        {
+            TopPosition = Console.CursorTop;
+            LeftPosition = Console.CursorLeft;
+            Width = Console.WindowWidth;
+            //Height = 1;
+        }
+
+
+        internal ProgressBar(int pMaximumValue)
+        {
+
+        }
+
+
+        internal ProgressBar(int pValue, int pMaximumValue)
+        {
+
+        }
+
+
+        internal ProgressBar(int pTopPosition, int pLeftPosition, int pMaximumValue)
+        {
+
+        }
+
+
+        internal ProgressBar(int pTopPosition, int pLeftPosition, int pValue, int pMaximumValue)
+        {
+
+        }
+
+
+        internal bool Initiated
+        {
+            get; private set;
+        }
+
+
+        internal int TopPosition
+        {
+            get; set;
+        }
+
+
+        internal int LeftPosition
+        {
+            get; set;
+        }
+
+
+        internal int Width
+        {
+            get; set;
+        }
+
+        /*
+        internal int Height
+        {
+            get; set;
+        }
+        */
+
+        internal int Value
+        {
+            get; set;
+        }
+
+
+        internal int MaxValue
+        {
+            get; set;
+        }
+
+
+        internal string Text
+        {
+            get; set;
+        }
+
+
+        internal char BeginChar
+        {
+            get; set;
+        }
+
+
+        internal char EndChar
+        {
+            get; set;
+        }
+
+
+        void Initiate()
+        {
+            Console.SetCursorPosition(LeftPosition, TopPosition);
+            Console.Write(BeginChar);
+            Console.SetCursorPosition(LeftPosition + Width - 1, TopPosition);
+            Console.Write(EndChar);
+
+            Initiated = true;
+        }
+
+
+        void Update()
+        {
+            if (!Initiated)
+                Initiate();
+
+            
+        }
+
+        internal void Increment(int pValue)
+        {
+            Value += pValue;
+        }
     }
 }
