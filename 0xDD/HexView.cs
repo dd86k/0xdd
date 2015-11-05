@@ -441,9 +441,15 @@ namespace _0xdd
                             }
                             else
                             {
+                                if (CurrentFilePosition >= CurrentFile.Length)
+                                {
+                                    Message("Already at the end of the file.");
+                                    break;
+                                }
+
                                 MainPanel.Update();
                                 Message("Searching...");
-                                long p = Find((byte)t);
+                                long p = Find((byte)t, CurrentFilePosition + 1);
 
                                 if (p < 0)
                                 {
@@ -452,7 +458,7 @@ namespace _0xdd
                                 }
 
                                 Goto(p - 1);
-                                Message($"Found {t} at position {(p - 1).ToString("X8")}");
+                                Message($"Found {t} at position {p - 1}");
                                 break;
                             }
                         }
@@ -469,57 +475,20 @@ namespace _0xdd
                 case ConsoleKey.G:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        int Position = -1;
                         bool gotNumber = false;
                         while (!gotNumber)
                         {
-                            string t = GetUserInput("Goto position:");
+                            int? t = GetUserInputForNumber("Find byte:");
 
-                            if (t.Length == 0)
+                            if (t == null)
                             {
                                 MainPanel.Update();
                                 break;
                             }
 
-                            // Hex
-                            if (t.StartsWith("0x"))
+                            if (t >= 0 && t <= CurrentFile.Length - MainPanel.ScreenMaxBytes)
                             {
-                                try
-                                {
-                                    Position = Convert.ToInt32(t, 16);
-                                }
-                                catch (Exception)
-                                {
-                                    Message("Need a valid number!");
-                                    //break;
-                                }
-                            }
-                            // Oct
-                            else if (t[0] == '0')
-                            {
-                                try
-                                {
-                                    Position = Convert.ToInt32(t, 8);
-                                }
-                                catch (Exception)
-                                {
-                                    Message("Need a valid number!");
-                                    //break;
-                                }
-                            }
-                            // Dec
-                            else
-                            {
-                                if (!int.TryParse(t, out Position))
-                                {
-                                    Message("Need a valid number!");
-                                    //break;
-                                }
-                            }
-
-                            if (Position >= 0 && Position <= CurrentFile.Length - MainPanel.ScreenMaxBytes)
-                            {
-                                Goto(Position);
+                                Goto((long)t);
                                 gotNumber = true;
                             }
                             else
@@ -966,9 +935,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="pData">Data as a byte.</param>
         /// <param name="pPosition">Positon to start searching from.</param>
-        /// <returns>
-        /// Positon.
-        /// </returns>
+        /// <returns>Positon.</returns>
         static long Find(byte pData, long pPosition)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
