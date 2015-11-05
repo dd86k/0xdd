@@ -33,7 +33,7 @@ namespace _0xdd
         /// <summary>
         /// Current position in the file.
         /// </summary>
-        static long CurrentFilePosition = 0;
+        static long CurrentFilePosition;
 
         /// <summary>
         /// Information about the current file.
@@ -233,7 +233,12 @@ namespace _0xdd
                 ToggleColors();
                 Console.Write("^W");
                 Console.ResetColor();
-                Console.Write(" Find         ");
+                Console.Write(" Find byte    ");
+
+                ToggleColors();
+                Console.Write("^J");
+                Console.ResetColor();
+                Console.Write(" Find data    ");
 
                 ToggleColors();
                 Console.Write("^G");
@@ -243,13 +248,9 @@ namespace _0xdd
                 ToggleColors();
                 Console.Write("^H");
                 Console.ResetColor();
-                Console.Write(" Replace      ");
+                Console.Write(" Replace");
 
-                ToggleColors();
-                Console.Write("^E");
-                Console.ResetColor();
-                Console.Write(" Edit mode");
-
+                // CHANGING LINE BOYS
                 Console.WriteLine();
 
                 ToggleColors();
@@ -271,13 +272,11 @@ namespace _0xdd
                 Console.Write("^O");
                 Console.ResetColor();
                 Console.Write(" Offset base  ");
-
-                /*
+                
                 ToggleColors();
-                Console.Write("^");
+                Console.Write("^E");
                 Console.ResetColor();
-                Console.Write(" ");
-                */
+                Console.Write(" Edit mode");
             }
         }
         #endregion
@@ -402,27 +401,58 @@ namespace _0xdd
             switch (cki.Key)
             {
                 // -- Hidden shortcuts --
+                case ConsoleKey.F5:
+                    MainPanel.Update();
+                    break;
+
                 case ConsoleKey.F10:
                     ToggleFullscreenMode();
                     break;
-
-                //case ConsoleKey.:
-                        //TODO: Open Dialog
-                    //break;
 
                 // -- Shown shortcuts --
                 // Help
                 case ConsoleKey.F1:
                 case ConsoleKey.K:
-                    if (cki.Modifiers == ConsoleModifiers.Control &&
-                        cki.Key == ConsoleKey.K || cki.Key == ConsoleKey.F1)
+                    if (cki.Modifiers == ConsoleModifiers.Control ||
+                        cki.Key == ConsoleKey.F1)
                         return ShowHelp();
                     break;
 
-                // Find
+                // Find byte
                 case ConsoleKey.W:
                     if (cki.Modifiers == ConsoleModifiers.Control)
-                        throw new NotImplementedException();
+                    {
+                        bool gotNumber = false;
+                        while (!gotNumber)
+                        {
+                            int? t = GetUserInputForNumber("Seach byte:");
+
+                            if (t == null)
+                            {
+                                MainPanel.Update();
+                                break;
+                            }
+
+                            if (t < 0 || t > 0xFF)
+                            {
+                                MainPanel.Update();
+                                Message("A byte is a value between 0 and 255.");
+                                break;
+                            }
+                            else
+                            {
+                                long p = Find((byte)t);
+                                Goto(p - 1);
+                                break;
+                            }
+                        }
+
+                    }
+                    break;
+
+                // Find data
+                case ConsoleKey.J:
+
                     break;
 
                 // Goto
@@ -433,7 +463,7 @@ namespace _0xdd
                         bool gotNumber = false;
                         while (!gotNumber)
                         {
-                            string t = ReadValue("Goto position:");
+                            string t = GetUserInput("Goto position:");
 
                             if (t.Length == 0)
                             {
@@ -492,7 +522,7 @@ namespace _0xdd
                 case ConsoleKey.O:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        string c = ReadValue("Hex, Dec, or Oct?:");
+                        string c = GetUserInput("Hex, Dec, or Oct?:");
 
                         if (c == null || c.Length < 1)
                         {
@@ -572,11 +602,11 @@ namespace _0xdd
                 case ConsoleKey.LeftArrow:
                     if (CurrentFilePosition - 1 >= 0)
                     {
-                        ReadAndUpdate(--CurrentFilePosition, MainPanel.ScreenMaxBytes);
+                        ReadAndUpdate(--CurrentFilePosition);
                     }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes) + 1 <= CurrentFile.Length)
+                    if (CurrentFilePosition + MainPanel.ScreenMaxBytes + 1 <= CurrentFile.Length)
                     {
                         ReadAndUpdate(++CurrentFilePosition);
                     }
@@ -636,11 +666,6 @@ namespace _0xdd
         }
 
         static void ReadAndUpdate(long pPosition)
-        {
-            ReadAndUpdate(pPosition, MainPanel.FrameHeight);
-        }
-
-        static void ReadAndUpdate(long pPosition, int pLength)
         {
             ReadCurrentFile(pPosition);
             MainPanel.Update();
@@ -719,19 +744,57 @@ namespace _0xdd
             }
         }
 
-        static void Goto(int pPosition)
+        static void Goto(long pPosition)
         {
             CurrentFilePosition = pPosition;
             ReadAndUpdate(CurrentFilePosition);
         }
 
-        static string ReadValue(string pMessage)
+        static string GetUserInput(string pMessage)
         {
-            return ReadValue(pMessage, 27, 4);
+            return GetUserInput(pMessage, 27, 4);
         }
 
-        static string ReadValue(string pMessage, int pWidth, int pHeight)
+        static int? GetUserInputForNumber(string pMessage)
         {
+            int width = 27;
+            int height = 4;
+
+            GenerateInputBox(pMessage, width, height);
+
+            int? t = null;
+
+            try
+            {
+                t = Utilities.ReadValue(width - 2);
+            }
+            catch
+            {
+                Message("Couldn't get a valid number!");
+            }
+
+            Console.ResetColor();
+
+            return t;
+        }
+
+        static string GetUserInput(string pMessage, int pWidth, int pHeight)
+        {
+            int width = 25;
+            int height = 4;
+
+            GenerateInputBox(pMessage, width, height);
+
+            string t = Utilities.ReadLine(pWidth - 2);
+
+            Console.ResetColor();
+
+            return t;
+        }
+
+        static void GenerateInputBox(string pMessage, int pWidth, int pHeight)
+        {
+            // -- Begin prepare box --
             int startx = (Console.WindowWidth / 2) - (pWidth / 2);
             int starty = (Console.WindowHeight / 2) - (pHeight / 2);
 
@@ -760,16 +823,14 @@ namespace _0xdd
             Console.Write(pMessage);
             if (pMessage.Length < pWidth - 2)
                 Console.Write(new string(' ', pWidth - pMessage.Length - 2));
+            // -- End prepare box --
 
-            Console.ForegroundColor = ConsoleColor.Black;
-            Console.BackgroundColor = ConsoleColor.Gray;
+            // -- Begin prepare text box --
+            ToggleColors();
             Console.SetCursorPosition(startx + 1, starty + 2);
             Console.Write(new string(' ', pWidth - 2));
-
             Console.SetCursorPosition(startx + 1, starty + 2);
-            string t = ConsoleTools.ReadLine(pWidth - 2);
-            Console.ResetColor();
-            return t;
+            // -- End prepare text box --
         }
 
         static void Dump()
@@ -870,6 +931,125 @@ namespace _0xdd
             }
 
             return 0;
+        }
+
+        /// <summary>
+        /// Find a byte starting at the CurrentFilePosition and
+        /// return its found position.
+        /// </summary>
+        /// <param name="pData">Data as a byte.</param>
+        /// <returns>Positon. -1 being not found.</returns>
+        static long Find(byte pData)
+        {
+           return Find(pData, CurrentFilePosition);
+        }
+
+        /// <summary>
+        /// Find a byte in the current file and
+        /// return its found position.
+        /// </summary>
+        /// <param name="pData">Data as a byte.</param>
+        /// <param name="pPosition">Positon to start searching from.</param>
+        /// <returns>
+        /// Positon.
+        /// -1 means the data couldn't be found.
+        /// -2 means that the file doesn't exist.
+        /// -3 means that the given position is out of bound.
+        /// </returns>
+        static long Find(byte pData, long pPosition)
+        {
+            if (pPosition < 0 || pPosition > CurrentFile.Length)
+                return -3;
+
+            if (!CurrentFile.Exists)
+                return -2;
+
+            using (FileStream fs = CurrentFile.OpenRead())
+            {
+                fs.Position = pPosition;
+
+                bool Found = false;
+                while (!Found)
+                {
+                    if (pData == (byte)fs.ReadByte())
+                        return fs.Position;
+                }
+            }
+
+            return -1;
+        }
+        
+
+        static long Find(char pData)
+        {
+            return Find(pData, CurrentFilePosition);
+        }
+        
+
+        static long Find(char pData, long pPosition)
+        {
+            if (pPosition < 0 || pPosition > CurrentFile.Length)
+                return -3;
+
+            if (!CurrentFile.Exists)
+                return -2;
+
+            using (FileStream fs = CurrentFile.OpenRead())
+            {
+                fs.Position = pPosition;
+
+                bool Found = false;
+                while (!Found)
+                {
+                    if (pData == (char)fs.ReadByte())
+                        return fs.Position;
+                }
+            }
+
+            return -1;
+        }
+
+
+        static long Find(string pData, System.Text.Encoding pEncoding)
+        {
+            return Find(pData, CurrentFilePosition, pEncoding);
+        }
+
+
+        static long Find(string pData, long pPosition, System.Text.Encoding pEncoding)
+        {
+            if (pPosition < 0 || pPosition > CurrentFile.Length)
+                return -3;
+
+            if (!CurrentFile.Exists)
+                return -2;
+
+            using (FileStream fs = CurrentFile.OpenRead())
+            {
+                fs.Position = pPosition;
+
+                bool Found = false;
+                byte[] buffer = new byte[pData.Length];
+                int length = pData.Length;
+                while (!Found)
+                {
+                    // Example:
+                    // File Length = 5
+                    // String Length = 2
+                    // Position = 3
+                    // 3 + 2 > 5 --> False --> Continue
+                    // 4 + 2 > 5 --> True --> Finish
+                    if (fs.Position + length > fs.Length)
+                        return -1;
+                    else
+                        fs.Read(buffer, 0, length);
+
+                    if (pData == pEncoding.GetString(buffer))
+                        return fs.Position;
+                }
+            }
+
+            return -1;
         }
 
         /// <summary>

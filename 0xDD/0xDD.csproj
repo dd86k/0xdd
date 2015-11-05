@@ -42,7 +42,6 @@
     <Reference Include="System.Windows.Forms" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ConsoleTools.cs" />
     <Compile Include="HexView.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="ProgressBar.cs" />
