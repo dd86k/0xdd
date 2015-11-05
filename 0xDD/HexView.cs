@@ -425,7 +425,7 @@ namespace _0xdd
                         bool gotNumber = false;
                         while (!gotNumber)
                         {
-                            int? t = GetUserInputForNumber("Seach byte:");
+                            int? t = GetUserInputForNumber("Find byte:");
 
                             if (t == null)
                             {
@@ -441,8 +441,18 @@ namespace _0xdd
                             }
                             else
                             {
+                                MainPanel.Update();
+                                Message("Searching...");
                                 long p = Find((byte)t);
+
+                                if (p < 0)
+                                {
+                                    Message("Data could not be found.");
+                                    break;
+                                }
+
                                 Goto(p - 1);
+                                Message($"Found {t} at position {(p - 1).ToString("X8")}");
                                 break;
                             }
                         }
@@ -578,7 +588,7 @@ namespace _0xdd
                     {
                         decimal ratioStart = Math.Round((decimal)CurrentFilePosition / CurrentFile.Length * 100);
                         decimal ratioEnd = Math.Round((((decimal)CurrentFilePosition + MainPanel.ScreenMaxBytes) / CurrentFile.Length) * 100);
-                        Message($"Size: {Utilities.GetFormattedSize(CurrentFile.Length)} | StartPos: {ratioStart}% | EndPos: {ratioEnd}%");
+                        Message($"Size: {Utilities.GetFormattedSize(CurrentFile.Length)} | Position: {ratioStart}~{ratioEnd}%");
                     }
                     break;
 
@@ -770,7 +780,7 @@ namespace _0xdd
             }
             catch
             {
-                Message("Couldn't get a valid number!");
+
             }
 
             Console.ResetColor();
@@ -936,6 +946,9 @@ namespace _0xdd
         /// <summary>
         /// Find a byte starting at the CurrentFilePosition and
         /// return its found position.
+        /// -1 means the data couldn't be found.
+        /// -2 means that the file doesn't exist.
+        /// -3 means that the given position is out of bound.
         /// </summary>
         /// <param name="pData">Data as a byte.</param>
         /// <returns>Positon. -1 being not found.</returns>
@@ -947,14 +960,14 @@ namespace _0xdd
         /// <summary>
         /// Find a byte in the current file and
         /// return its found position.
+        /// -1 means the data couldn't be found.
+        /// -2 means that the file doesn't exist.
+        /// -3 means that the given position is out of bound.
         /// </summary>
         /// <param name="pData">Data as a byte.</param>
         /// <param name="pPosition">Positon to start searching from.</param>
         /// <returns>
         /// Positon.
-        /// -1 means the data couldn't be found.
-        /// -2 means that the file doesn't exist.
-        /// -3 means that the given position is out of bound.
         /// </returns>
         static long Find(byte pData, long pPosition)
         {
@@ -968,11 +981,14 @@ namespace _0xdd
             {
                 fs.Position = pPosition;
 
-                bool Found = false;
-                while (!Found)
+                bool Continue = true;
+                while (Continue)
                 {
                     if (pData == (byte)fs.ReadByte())
                         return fs.Position;
+
+                    if (fs.Position >= fs.Length)
+                        Continue = false;
                 }
             }
 
@@ -998,11 +1014,14 @@ namespace _0xdd
             {
                 fs.Position = pPosition;
 
-                bool Found = false;
-                while (!Found)
+                bool Continue = true;
+                while (Continue)
                 {
                     if (pData == (char)fs.ReadByte())
                         return fs.Position;
+
+                    if (fs.Position >= fs.Length)
+                        Continue = false;
                 }
             }
 
@@ -1028,10 +1047,10 @@ namespace _0xdd
             {
                 fs.Position = pPosition;
 
-                bool Found = false;
+                bool Continue = false;
                 byte[] buffer = new byte[pData.Length];
                 int length = pData.Length;
-                while (!Found)
+                while (Continue)
                 {
                     // Example:
                     // File Length = 5
@@ -1040,7 +1059,7 @@ namespace _0xdd
                     // 3 + 2 > 5 --> False --> Continue
                     // 4 + 2 > 5 --> True --> Finish
                     if (fs.Position + length > fs.Length)
-                        return -1;
+                        Continue = false;
                     else
                         fs.Read(buffer, 0, length);
 
