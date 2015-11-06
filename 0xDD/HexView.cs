@@ -898,11 +898,7 @@ namespace _0xdd
 
                         line += pBytesInRow;
 
-                        //TODO: Read block
-                        for (int c = 0; c < pBytesInRow; c++)
-                        {
-                            Buffer[c] = (byte)fs.ReadByte();
-                        }
+                        fs.Read(Buffer, 0, pBytesInRow);
 
                         for (int pos = 0; pos < pBytesInRow; pos++)
                         {
