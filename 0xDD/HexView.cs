@@ -4,18 +4,20 @@ using System.IO;
 
 //TODO: Edit mode
 //TODO: Resize on Window resize
+//TODO: Menu on Dump Action, showing menu:
+// - Dump file
+// - Dump file from position
+// - Dump file from position + length
+// - Dump view
 
 /*
     Box of ideas (Lazy TODO/idea list)
     - Top right (under title): Insert(INS)/Overwrite(OVR) (bool)
     - Search: /regex/ (Begins with && ends with)
-    - align offset (dividable by ElementsWidth?)
     - Edit: List<int, byte>(FilePosition, Byte)
       - Rendering: If byte at position, write that byte to display instead
       - Saving: Remove duplicates, loop through List and write
       - Editing: If new data on same position, replace
-    - open memory process!!!!!!!!!!! (Windows)
-    - "Dump buffer (view) only at the current position"-feature
 */
 
 namespace _0xdd
@@ -380,16 +382,6 @@ namespace _0xdd
                 Buffer = new byte[len];
 
                 sr.BaseStream.Read(Buffer, 0, len);
-                /*
-                for (int x = 0; x < len; x++)
-                {
-                    int b = Convert.ToByte(sr.Read());
-
-                    sr.BaseStream.Read(Buffer, 0, len);
-
-                    Buffer[x] = b;
-                }
-                */
             }
         }
 
@@ -471,7 +463,7 @@ namespace _0xdd
 
                 // Find data
                 case ConsoleKey.J:
-
+                    // im lazy
                     break;
 
                 // Goto
@@ -953,7 +945,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="pData">Data as a byte.</param>
         /// <param name="pPosition">Positon to start searching from.</param>
-        /// <returns>Positon.</returns>
+        /// <returns>Found positon.</returns>
         static long Find(byte pData, long pPosition)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
@@ -979,47 +971,25 @@ namespace _0xdd
 
             return -1;
         }
-        
 
-        static long Find(char pData)
-        {
-            return Find(pData, CurrentFilePosition);
-        }
-        
-
-        static long Find(char pData, long pPosition)
-        {
-            if (pPosition < 0 || pPosition > CurrentFile.Length)
-                return -3;
-
-            if (!CurrentFile.Exists)
-                return -2;
-
-            using (FileStream fs = CurrentFile.OpenRead())
-            {
-                fs.Position = pPosition;
-
-                bool Continue = true;
-                while (Continue)
-                {
-                    if (pData == (char)fs.ReadByte())
-                        return fs.Position;
-
-                    if (fs.Position >= fs.Length)
-                        Continue = false;
-                }
-            }
-
-            return -1;
-        }
-
-
+        /// <summary>
+        /// Find a string of data.
+        /// </summary>
+        /// <param name="pData">Data as a string.</param>
+        /// <param name="pEncoding">Encoding.</param>
+        /// <returns>Position.</returns>
         static long Find(string pData, System.Text.Encoding pEncoding)
         {
             return Find(pData, CurrentFilePosition, pEncoding);
         }
 
-
+        /// <summary>
+        /// Find a string of data with a given position.
+        /// </summary>
+        /// <param name="pData">Data as a string.</param>
+        /// <param name="pPosition">Starting position.</param>
+        /// <param name="pEncoding">Encoding.</param>
+        /// <returns>Found position.</returns>
         static long Find(string pData, long pPosition, System.Text.Encoding pEncoding)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
@@ -1050,6 +1020,11 @@ namespace _0xdd
 
                     if (pData == pEncoding.GetString(buffer))
                         return fs.Position;
+
+                    // -- OR --
+                    // Go in a loop with a single character
+                    // If found, check the entire string
+                    // If not found, continue
                 }
             }
 

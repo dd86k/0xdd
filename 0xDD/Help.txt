@@ -1,7 +1,7 @@
 ﻿Welcome to 0xdd!
 In this help screen, you can navigate using the UP and DOWN arrow keys.
 PAGEUP and PAGEDOWN are used to go by page.
-ESCAPE to quit this help screen, ^X to exit 0xdd.
+ESCAPE to quit this help screen, ^X to exit this help screen.
 
 ---------------
 1. Arguments
@@ -54,6 +54,10 @@ Go to an exact position.
 By default, it will read the user's value as decimal.
 
 Adding an 0x or 0 at the beginning will respectively read the value as hexadecimal or octal.
+
+^W Find byte
+
+Find an exact byte of data in either decimal, octal, or hexadecimal.
 
 ^D Dump
 

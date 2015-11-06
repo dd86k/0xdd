@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Diagnostics;
+using System.Reflection;
 
 namespace _0xdd
 {
@@ -16,7 +17,7 @@ namespace _0xdd
             get
             {
                 return
-                    System.Reflection.Assembly
+                    Assembly
                     .GetExecutingAssembly().GetName().Version.ToString();
             }
         }
@@ -29,7 +30,7 @@ namespace _0xdd
             get
             {
                 return
-                    System.Reflection.Assembly
+                    Assembly
                     .GetExecutingAssembly().GetName().Version;
             }
         }
@@ -42,7 +43,7 @@ namespace _0xdd
             get
             {
                 return
-                    System.Reflection.Assembly
+                    Assembly
                     .GetExecutingAssembly().GetName().Name;
             }
         }
@@ -70,10 +71,10 @@ namespace _0xdd
         static int Main(string[] args)
         {
 #if DEBUG
-            /* ~~ Used for debugging within Visual Studio */
+            /* ~~ Used for debugging within Visual Studio ~~ */
             //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
-            args = new string[] { "fff" };
+            //args = new string[] { "fff" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
@@ -103,15 +104,18 @@ namespace _0xdd
                     case "/v":
                     case "-view":
                     case "/view":
-                        switch (args[i + 1])
+                        switch (args[i + 1][0])
                         {
-                            case "h":
+                            case 'h':
+                            case 'H':
                                 // Don't change, h is default anyway.
                                 break;
-                            case "d":
+                            case 'd':
+                            case 'D':
                                 ovm = _0xdd.OffsetBaseView.Decimal;
                                 break;
-                            case "o":
+                            case 'o':
+                            case 'O':
                                 ovm = _0xdd.OffsetBaseView.Octal;
                                 break;
                             default:
@@ -125,7 +129,7 @@ namespace _0xdd
                     case "-width":
                     case "/width":
                         // Automatic
-                        if (args[i + 1][0] == 'a')
+                        if (args[i + 1][0] == 'a' || args[i + 1][0] == 'A')
                         {
                             bytesInRow = ((Console.WindowWidth - 10) / 4) - 1;
                         }
@@ -158,9 +162,10 @@ namespace _0xdd
                         dump = true;
                         break;
 
+                        //TODO: Interactive mode
+
                     case "/?":
                     case "/help":
-                    case "-h":
                     case "-help":
                     case "--help":
                         ShowHelp();
@@ -170,6 +175,7 @@ namespace _0xdd
                     case "-ver":
                     case "/version":
                     case "-version":
+                    case "--version":
                         ShowVersion();
                         return 0;
                 }
@@ -193,7 +199,7 @@ namespace _0xdd
                             break;
                         default:
                             Console.WriteLine("Unknown error, aborted.");
-                            return int.MaxValue;
+                            return byte.MaxValue;
                     }
                     return err;
                 }
@@ -248,16 +254,21 @@ namespace _0xdd
         static void Abort(Exception e)
         {
             Console.SetCursorPosition(0, Console.WindowHeight - 1);
+
             Console.WriteLine();
+
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Red;
+
             Console.WriteLine(" !! Fatal error !! ");
             Console.ResetColor();
+
             Console.WriteLine($"Exception: {e.GetType()}");
             Console.WriteLine($"Message: {e.Message}");
             Console.WriteLine("  -- BEGIN TRACE --");
             Console.WriteLine(e.StackTrace);
             Console.WriteLine("  -- END TRACE --");
+
             Console.WriteLine();
         }
 
@@ -268,8 +279,8 @@ namespace _0xdd
             Console.WriteLine(" Usage:");
             Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>");
             Console.WriteLine();
-            Console.WriteLine("  /v       Start with an offset view: Hex, Dec, Oct.       Default: Hex");
-            Console.WriteLine("  /w       Start with a number of bytes to show in a row.  Default: 16");
+            Console.WriteLine("  /v       Start with an offset view: Hex, Dec, Oct.        Default: Hex");
+            Console.WriteLine("  /w       Start with a number of bytes to show in a row.   Default: 16");
             Console.WriteLine("  /U       Updates if necessary.");
             Console.WriteLine("  /dump    Dumps a data file as plain text.");
             Console.WriteLine();
