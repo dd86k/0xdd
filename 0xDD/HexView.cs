@@ -373,20 +373,23 @@ namespace _0xdd
                 sr.BaseStream.Position = pBasePosition;
 
                 if (sr.BaseStream.Length < MainPanel.ScreenMaxBytes)
-                {
                     len = (int)sr.BaseStream.Length;
-                    Buffer = new byte[len];
-                }
                 else
-                {
                     len = MainPanel.ScreenMaxBytes;
-                    Buffer = new byte[len];
-                }
 
+                Buffer = new byte[len];
+
+                sr.BaseStream.Read(Buffer, 0, len);
+                /*
                 for (int x = 0; x < len; x++)
                 {
-                    Buffer[x] = (byte)sr.Read();
+                    int b = Convert.ToByte(sr.Read());
+
+                    sr.BaseStream.Read(Buffer, 0, len);
+
+                    Buffer[x] = b;
                 }
+                */
             }
         }
 
@@ -849,7 +852,7 @@ namespace _0xdd
             int BufferPositionData = 0;
             // To not change the current buffer, we use a new one.
             // Or if we come from the /dump CLI parameter.
-            byte[] buffer = new byte[pBytesInRow];
+            Buffer = new byte[pBytesInRow];
 
             using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{NAME_EXTENSION}"))
             {
@@ -895,17 +898,16 @@ namespace _0xdd
 
                         line += pBytesInRow;
 
+                        //TODO: Read block
                         for (int c = 0; c < pBytesInRow; c++)
                         {
-                            byte b = (byte)fs.ReadByte();
-
-                            buffer[c] = b;
+                            Buffer[c] = (byte)fs.ReadByte();
                         }
 
                         for (int pos = 0; pos < pBytesInRow; pos++)
                         {
                             if (BufferPositionHex < filelen)
-                                sw.Write($"{buffer[pos].ToString("X2")} ");
+                                sw.Write($"{Buffer[pos].ToString("X2")} ");
                             else
                                 sw.Write("   ");
 
@@ -917,7 +919,7 @@ namespace _0xdd
                         for (int pos = 0; pos < pBytesInRow; pos++)
                         {
                             if (BufferPositionData < filelen)
-                                sw.Write($"{buffer[pos].ToSafeChar()}");
+                                sw.Write($"{Buffer[pos].ToSafeChar()}");
                             else
                                 finished = true;
 

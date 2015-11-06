@@ -73,8 +73,10 @@ namespace _0xdd
             /* ~~ Used for debugging within Visual Studio */
             //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
+            args = new string[] { "fff" };
             //args = new string[] { "tt" };
             //args = new string[] { "-dump", "tt" };
+            //args = new string[] { "gg.txt" };
             //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
 #endif
