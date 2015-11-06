@@ -736,23 +736,28 @@ namespace _0xdd
 
         static int? GetUserInputForNumber(string pMessage)
         {
-            int width = 27;
-            int height = 4;
+            return GetUserInputForNumber(pMessage, 27, 4);
+        }
 
-            GenerateInputBox(pMessage, width, height);
+        static int? GetUserInputForNumber(string pMessage, int pWidth, int pHeight)
+        {
+            GenerateInputBox(pMessage, pWidth, pHeight);
 
             int? t = null;
 
             try
             {
-                t = Utilities.ReadValue(width - 2);
+                t = Utilities.ReadValue(pWidth - 2);
             }
             catch
             {
 
             }
 
-            Console.ResetColor();
+            if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
+                ClearRange(pWidth, pHeight);
+            else
+                Console.ResetColor();
 
             return t;
         }
@@ -766,7 +771,10 @@ namespace _0xdd
 
             string t = Utilities.ReadLine(pWidth - 2);
 
-            Console.ResetColor();
+            if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
+                ClearRange(pWidth, pHeight);
+            else
+                Console.ResetColor();
 
             return t;
         }
@@ -810,6 +818,18 @@ namespace _0xdd
             Console.Write(new string(' ', pWidth - 2));
             Console.SetCursorPosition(startx + 1, starty + 2);
             // -- End prepare text box --
+        }
+
+        static void ClearRange(int pWidth, int pHeight)
+        {
+            Console.ResetColor();
+            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
+            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
+            for (int i = 0; i < pHeight; i++)
+            {
+                Console.SetCursorPosition(startx, starty + i);
+                Console.Write(new string(' ', pWidth));
+            }
         }
 
         static void Dump()
