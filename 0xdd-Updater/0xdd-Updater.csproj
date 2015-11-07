@@ -37,6 +37,9 @@
   <PropertyGroup>
     <StartupObject>_0xdd_Updater.Program</StartupObject>
   </PropertyGroup>
+  <PropertyGroup>
+    <NoWin32Manifest>true</NoWin32Manifest>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
   </ItemGroup>

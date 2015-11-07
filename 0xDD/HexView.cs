@@ -449,21 +449,55 @@ namespace _0xdd
                                 if (p < 0)
                                 {
                                     Message("Data could not be found.");
-                                    break;
                                 }
-
-                                Goto(p - 1);
-                                Message($"Found {t} at position {p - 1}");
-                                break;
+                                else
+                                {
+                                    Goto(p - 1);
+                                    Message($"Found {t} at position {p - 1}");
+                                }
                             }
                         }
-
                     }
                     break;
 
                 // Find data
                 case ConsoleKey.J:
-                    // im lazy
+                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    {
+                        bool gotNumber = false;
+                        while (!gotNumber)
+                        {
+                            string t = GetUserInput("Find data:");
+
+                            if (t == null || t.Length == 0)
+                            {
+                                MainPanel.Update();
+                                break;
+                            }
+
+                            if (CurrentFilePosition >= CurrentFile.Length)
+                            {
+                                Message("Already at the end of the file.");
+                                break;
+                            }
+
+                            MainPanel.Update();
+                            Message("Searching...");
+                            long p = Find(t, CurrentFilePosition + 1, Utilities.GetEncoding(CurrentFile.Name));
+
+                            if (p < 0)
+                            {
+                                Message("Data could not be found.");
+                                gotNumber = true;
+                            }
+                            else
+                            {
+                                Goto(p - 1);
+                                Message($"Found {t} at position {p - 1}");
+                                gotNumber = true;
+                            }
+                         }
+                    }
                     break;
 
                 // Goto
@@ -1002,29 +1036,30 @@ namespace _0xdd
             {
                 fs.Position = pPosition;
 
-                bool Continue = false;
+                bool Continue = true;
                 byte[] buffer = new byte[pData.Length];
                 int length = pData.Length;
                 while (Continue)
                 {
-                    // Example:
-                    // File Length = 5
-                    // String Length = 2
-                    // Position = 3
-                    // 3 + 2 > 5 --> False --> Continue
-                    // 4 + 2 > 5 --> True --> Finish
                     if (fs.Position + length > fs.Length)
                         Continue = false;
-                    else
-                        fs.Read(buffer, 0, length);
 
-                    if (pData == pEncoding.GetString(buffer))
-                        return fs.Position;
+                    if (pData[0] == (char)fs.ReadByte())
+                    {
+                        fs.Position--;
 
-                    // -- OR --
-                    // Go in a loop with a single character
-                    // If found, check the entire string
-                    // If not found, continue
+                        if (length == 1)
+                            return fs.Position;
+                        else
+                        { // Let's not waste a re-read for a byte character.
+                            fs.Read(buffer, 0, length);
+                            if (pData == pEncoding.GetString(buffer))
+                            {
+                                fs.Position -= length - 1;
+                                return fs.Position;
+                            }
+                        }
+                    }
                 }
             }
 

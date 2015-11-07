@@ -59,6 +59,10 @@ Adding an 0x or 0 at the beginning will respectively read the value as hexadecim
 
 Find an exact byte of data in either decimal, octal, or hexadecimal.
 
+^J Find data
+
+Find a string of data in the current file.
+
 ^D Dump
 
 Dump the readable data under a text file encoded in UTF-8 under the datdmp extension.
