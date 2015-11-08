@@ -5,10 +5,14 @@ using System.IO;
 //TODO: Edit mode
 //TODO: Resize on Window resize
 //TODO: Menu on Dump Action, showing menu:
+// from..
 // - Dump file
 // - Dump file from position
 // - Dump file from position + length
 // - Dump view
+// to..
+// - File
+// - Clipboard
 
 /*
     Box of ideas (Lazy TODO/idea list)
@@ -349,7 +353,8 @@ namespace _0xdd
             MainPanel.Update();
 
             // Someone was unhappy with the do {} while(); loop.
-            while (ReadUserKey()) { }
+            while (ReadUserKey())
+            { }
         }
 
         /// <summary>
@@ -417,44 +422,39 @@ namespace _0xdd
                 case ConsoleKey.W:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        bool gotNumber = false;
-                        while (!gotNumber)
-                        {
-                            int? t = GetUserInputForNumber("Find byte:");
+                        int? t = GetUserInputForNumber("Find byte:");
 
-                            if (t == null)
+                        if (t == null)
+                        {
+                            MainPanel.Update();
+                            return true;
+                        }
+
+                        if (t < 0 || t > 0xFF)
+                        {
+                            MainPanel.Update();
+                            Message("A byte is a value between 0 and 255.");
+                        }
+                        else
+                        {
+                            if (CurrentFilePosition >= CurrentFile.Length)
                             {
-                                MainPanel.Update();
-                                break;
+                                Message("Already at the end of the file.");
+                                return true;
                             }
 
-                            if (t < 0 || t > 0xFF)
+                            MainPanel.Update();
+                            Message("Searching...");
+                            long p = Find((byte)t, CurrentFilePosition + 1);
+
+                            if (p < 0)
                             {
-                                MainPanel.Update();
-                                Message("A byte is a value between 0 and 255.");
-                                break;
+                                Message("Data could not be found.");
                             }
                             else
                             {
-                                if (CurrentFilePosition >= CurrentFile.Length)
-                                {
-                                    Message("Already at the end of the file.");
-                                    break;
-                                }
-
-                                MainPanel.Update();
-                                Message("Searching...");
-                                long p = Find((byte)t, CurrentFilePosition + 1);
-
-                                if (p < 0)
-                                {
-                                    Message("Data could not be found.");
-                                }
-                                else
-                                {
-                                    Goto(p - 1);
-                                    Message($"Found {t} at position {p - 1}");
-                                }
+                                Goto(p - 1);
+                                Message($"Found {t} at position {p - 1}");
                             }
                         }
                     }
@@ -464,39 +464,35 @@ namespace _0xdd
                 case ConsoleKey.J:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        bool gotNumber = false;
-                        while (!gotNumber)
+                        string t = GetUserInput("Find data:");
+
+                        if (t == null || t.Length == 0)
                         {
-                            string t = GetUserInput("Find data:");
-
-                            if (t == null || t.Length == 0)
-                            {
-                                MainPanel.Update();
-                                break;
-                            }
-
-                            if (CurrentFilePosition >= CurrentFile.Length)
-                            {
-                                Message("Already at the end of the file.");
-                                break;
-                            }
-
                             MainPanel.Update();
-                            Message("Searching...");
-                            long p = Find(t, CurrentFilePosition + 1, Utilities.GetEncoding(CurrentFile.Name));
+                            return true;
+                        }
 
-                            if (p < 0)
-                            {
-                                Message("Data could not be found.");
-                                gotNumber = true;
-                            }
-                            else
-                            {
-                                Goto(p - 1);
-                                Message($"Found {t} at position {p - 1}");
-                                gotNumber = true;
-                            }
-                         }
+                        if (CurrentFilePosition >= CurrentFile.Length)
+                        {
+                            Message("Already at the end of the file.");
+                            return true;
+                        }
+
+                        Message("Searching...");
+                        long p = Find(t, CurrentFilePosition + 1, Utilities.GetEncoding(CurrentFile.Name));
+
+                        if (p < 0)
+                        {
+                            Message("Data could not be found.");
+                            MainPanel.Update();
+                        }
+                        else
+                        {
+                            Goto(p - 1);
+                            Message($"Found {t} at position {p - 1}");
+                        }
+
+                        return true;
                     }
                     break;
 
@@ -504,24 +500,20 @@ namespace _0xdd
                 case ConsoleKey.G:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        bool gotNumber = false;
-                        while (!gotNumber)
+                        int? t = GetUserInputForNumber("Find byte:");
+
+                        if (t == null)
                         {
-                            int? t = GetUserInputForNumber("Find byte:");
+                            MainPanel.Update();
+                            return true;
+                        }
 
-                            if (t == null)
-                            {
-                                MainPanel.Update();
-                                break;
-                            }
-
-                            if (t >= 0 && t <= CurrentFile.Length - MainPanel.ScreenMaxBytes)
-                            {
-                                Goto((long)t);
-                                gotNumber = true;
-                            }
-                            else
-                                Message("Position out of bound!");
+                        if (t >= 0 && t <= CurrentFile.Length - MainPanel.ScreenMaxBytes)
+                            Goto((long)t);
+                        else
+                        {
+                            Message("Position out of bound!");
+                            MainPanel.Update();
                         }
                     }
                     break;
@@ -536,7 +528,7 @@ namespace _0xdd
                         {
                             MainPanel.Update();
                             Message("Field was empty!");
-                            break;
+                            return true;
                         }
 
                         switch (c[0])
@@ -546,7 +538,6 @@ namespace _0xdd
                                 CurrentOffsetBaseView = OffsetBaseView.Hexadecimal;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
-                                // In case of remaining message.
                                 InfoPanel.Update();
                                 break;
 
@@ -887,7 +878,10 @@ namespace _0xdd
 
                 sw.Write("Size: ");
                 sw.Write(Utilities.GetFormattedSize(filelen));
-                sw.WriteLine($" ({filelen} B)");
+                if (CurrentFile.Length < 1024)
+                    sw.WriteLine($" ({filelen} B)");
+                else
+                    sw.WriteLine();
 
                 sw.WriteLine();
                 sw.WriteLine($"Attributes: {file.Attributes.ToString()}");
