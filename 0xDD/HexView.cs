@@ -937,12 +937,10 @@ namespace _0xdd
                             if (BufferPositionData < filelen)
                                 sw.Write($"{Buffer[pos].ToSafeChar()}");
                             else
-                                finished = true;
+                                return 0;
 
                             BufferPositionData++;
                         }
-
-                        sw.WriteLine();
                     }
                 }
             }
@@ -1207,7 +1205,7 @@ namespace _0xdd
         static char ToSafeChar(this byte pIn)
         {
             // If out of bound.
-            if (pIn < 0x20 || pIn > 0x7F)
+            if (pIn < 0x20 || pIn > 0x7E)
                 return '.';
             else
                 return (char)pIn;

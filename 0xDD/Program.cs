@@ -23,19 +23,6 @@ namespace _0xdd
         }
 
         /// <summary>
-        /// Gets the current version of the project as a <see cref="Version"/> object.
-        /// </summary>
-        static Version ProjectVersion
-        {
-            get
-            {
-                return
-                    Assembly
-                    .GetExecutingAssembly().GetName().Version;
-            }
-        }
-
-        /// <summary>
         /// Get the project's name.
         /// </summary>
         static string ProjectName
@@ -260,6 +247,7 @@ namespace _0xdd
             Console.BackgroundColor = ConsoleColor.Red;
 
             Console.WriteLine(" !! Fatal error !! ");
+
             Console.ResetColor();
 
             Console.WriteLine($"Exception: {e.GetType()}");
@@ -278,13 +266,13 @@ namespace _0xdd
             Console.WriteLine(" Usage:");
             Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>");
             Console.WriteLine();
-            Console.WriteLine("  /v       Start with an offset view: Hex, Dec, Oct.        Default: Hex");
-            Console.WriteLine("  /w       Start with a number of bytes to show in a row.   Default: 16");
-            Console.WriteLine("  /U       Updates if necessary.");
-            Console.WriteLine("  /dump    Dumps a data file as plain text.");
+            Console.WriteLine("  /v      Start with an offset view: Hex, Dec, Oct.        Default: Hex");
+            Console.WriteLine("  /w      Start with a number of bytes to show in a row.   Default: 16");
+            Console.WriteLine("  /U      Updates if necessary.");
+            Console.WriteLine("  /dump   Dumps the data file as plain text.");
             Console.WriteLine();
-            Console.WriteLine("  /help, /?   Shows this screen and exits.");
-            Console.WriteLine("  /version    Shows version and exits.");
+            Console.WriteLine("  /?         Shows this screen and exits.");
+            Console.WriteLine("  /version   Shows version and exits.");
         }
 
         static void ShowVersion()
@@ -292,7 +280,7 @@ namespace _0xdd
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine();
-            Console.WriteLine($"0xdd - {ProjectVersion}");
+            Console.WriteLine($"0xdd - {ProjectVersionString}");
             Console.WriteLine("Copyright (c) 2015 DD~!/guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
             Console.WriteLine("Project page: <https://github.com/guitarxhero/0xDD>");
