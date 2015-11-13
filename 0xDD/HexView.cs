@@ -3,6 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 
 //TODO: Edit mode
+// 0E 0F
+// D2 DD ..
+// ^^    ^
+// highlighted (gray on black) while navigating
+
 //TODO: Resize on Window resize
 //TODO: Menu on Dump Action, showing menu:
 // from..
@@ -51,16 +56,32 @@ namespace _0xdd
         /// </summary>
         /// <remarks>
         /// This doesn't use a lot of memory.
-        /// Say the main panel size is 16x19 (16 bytes on 19 lines,
-        /// default with 80x24), the buffer will only use 309 bytes
-        /// (0.3 KB) of memory.
+        /// If the main panel size is 16x19 (16 bytes on 19 lines,
+        /// default with 80x24 terminal), the buffer will only use
+        /// 309 bytes (0.3 KB) of additional memory.
         /// </remarks>
         static byte[] Buffer = new byte[0];
 
         /// <summary>
-        /// Fullscreen mode, false by default.
+        /// If the user is in fullscreen mode, false by default.
         /// </summary>
         static bool Fullscreen;
+        #endregion
+
+        #region TitlePanel
+        struct TitlePanel
+        {
+            static internal void Update()
+            {
+                ToggleColors();
+
+                Console.SetCursorPosition(0, 0);
+                Console.Write(CurrentFile.Name);
+                Console.Write(new string(' ', Console.WindowWidth - CurrentFile.Name.Length));
+
+                Console.ResetColor();
+            }
+        }
         #endregion
 
         #region MainPanel
@@ -287,6 +308,32 @@ namespace _0xdd
         }
         #endregion
 
+        #region EditingMode
+        struct Edit
+        {
+            static internal void MoveLeft()
+            {
+
+            }
+            static internal void MoveRight()
+            {
+
+            }
+            static internal void MoveUp()
+            {
+
+            }
+            static internal void MoveDown()
+            {
+
+            }
+            static void Render()
+            {
+
+            }
+        }
+        #endregion
+
         #region Enumerations
         /// <summary>
         /// Enumeration of the different offset base views.
@@ -308,14 +355,24 @@ namespace _0xdd
         /// </summary>
         enum WritingMode : byte
         {
+            /// <summary>
+            /// Normal mode. READ
+            /// </summary>
+            Read,
+            /// <summary>
+            /// Overwrite value. OVRW
+            /// </summary>
             Overwrite,
+            /// <summary>
+            /// Insert before value. INSR
+            /// </summary>
             Insert
         }
 
         /// <summary>
-        /// Current <see cref="WritingMode"/>.
+        /// Current <see cref="WritingMode"/>. Read by default.
         /// </summary>
-        static WritingMode CurrentWritingMode;
+        static WritingMode CurrentWritingMode = WritingMode.Read;
         #endregion
 
         #region Methods
@@ -362,7 +419,7 @@ namespace _0xdd
         /// </summary>
         static void PrepareScreen()
         {
-            UpdateTitlePanel();
+            TitlePanel.Update();
             OffsetPanel.Update();
             InfoPanel.Update();
             ControlPanel.Place();
@@ -397,7 +454,7 @@ namespace _0xdd
         static bool ReadUserKey()
         {
             ConsoleKeyInfo cki = Console.ReadKey(true);
-
+            
             switch (cki.Key)
             {
                 // -- Hidden shortcuts --
@@ -576,7 +633,8 @@ namespace _0xdd
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
                         decimal ratioStart = Math.Round((decimal)CurrentFilePosition / CurrentFile.Length * 100);
-                        decimal ratioEnd = Math.Round((((decimal)CurrentFilePosition + MainPanel.ScreenMaxBytes) / CurrentFile.Length) * 100);
+                        decimal max = CurrentFile.Length < MainPanel.ScreenMaxBytes ? CurrentFile.Length : MainPanel.ScreenMaxBytes;
+                        decimal ratioEnd = Math.Round(((CurrentFilePosition + max) / CurrentFile.Length) * 100);
                         Message($"Size: {Utilities.GetFormattedSize(CurrentFile.Length)} | Position: {ratioStart}~{ratioEnd}%");
                     }
                     break;
@@ -599,65 +657,118 @@ namespace _0xdd
                     
                 // -- Data nagivation --
                 case ConsoleKey.LeftArrow:
-                    if (CurrentFilePosition - 1 >= 0)
+                    if (CurrentWritingMode == WritingMode.Read)
                     {
-                        ReadAndUpdate(--CurrentFilePosition);
+                        if (CurrentFilePosition - 1 >= 0)
+                        {
+                            ReadAndUpdate(--CurrentFilePosition);
+                        }
+                    }
+                    else
+                    {
+
                     }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (CurrentFilePosition + MainPanel.ScreenMaxBytes + 1 <= CurrentFile.Length)
+                    if (CurrentWritingMode == WritingMode.Read)
                     {
-                        ReadAndUpdate(++CurrentFilePosition);
+                        if (CurrentFilePosition + MainPanel.ScreenMaxBytes + 1 <= CurrentFile.Length)
+                        {
+                            ReadAndUpdate(++CurrentFilePosition);
+                        }
+                    }
+                    else
+                    {
+
                     }
                     break;
 
                 case ConsoleKey.UpArrow:
-                    if (CurrentFilePosition - MainPanel.BytesInRow >= 0)
+                    if (CurrentWritingMode == WritingMode.Read)
                     {
-                        ReadAndUpdate(CurrentFilePosition -= MainPanel.BytesInRow);
+                        if (CurrentFilePosition - MainPanel.BytesInRow >= 0)
+                        {
+                            ReadAndUpdate(CurrentFilePosition -= MainPanel.BytesInRow);
+                        }
+                        else
+                        {
+                            ReadAndUpdate(CurrentFilePosition = 0);
+                        }
                     }
                     else
                     {
-                        ReadAndUpdate(CurrentFilePosition = 0);
+
                     }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentFilePosition + MainPanel.ScreenMaxBytes + MainPanel.BytesInRow <= CurrentFile.Length)
+                    if (CurrentWritingMode == WritingMode.Read)
                     {
-                        ReadAndUpdate(CurrentFilePosition += MainPanel.BytesInRow);
+                        if (CurrentFilePosition + MainPanel.ScreenMaxBytes + MainPanel.BytesInRow <= CurrentFile.Length)
+                        {
+                            ReadAndUpdate(CurrentFilePosition += MainPanel.BytesInRow);
+                        }
+                        else
+                        {
+                            ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                        }
                     }
                     else
                     {
-                        ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+
                     }
                     break;
 
                 case ConsoleKey.PageUp:
-                    if (CurrentFilePosition - MainPanel.ScreenMaxBytes >= 0)
+                    if (CurrentWritingMode == WritingMode.Read)
                     {
-                        ReadAndUpdate(CurrentFilePosition -= MainPanel.ScreenMaxBytes);
+                        if (CurrentFilePosition - MainPanel.ScreenMaxBytes >= 0)
+                        {
+                            ReadAndUpdate(CurrentFilePosition -= MainPanel.ScreenMaxBytes);
+                        }
+                        else
+                        {
+                            ReadAndUpdate(CurrentFilePosition = 0);
+                        }
                     }
                     else
                     {
-                        ReadAndUpdate(CurrentFilePosition = 0);
+
                     }
+
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentFilePosition + (MainPanel.ScreenMaxBytes * 2) <= CurrentFile.Length)
+                    if (CurrentWritingMode == WritingMode.Read)
                     {
-                        ReadAndUpdate(CurrentFilePosition += MainPanel.ScreenMaxBytes);
+                        if (CurrentFilePosition + (MainPanel.ScreenMaxBytes * 2) <= CurrentFile.Length)
+                        {
+                            ReadAndUpdate(CurrentFilePosition += MainPanel.ScreenMaxBytes);
+                        }
+                        else
+                        {
+                            ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                        }
                     }
                     else
                     {
-                        ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                        
                     }
                     break;
 
                 case ConsoleKey.Home:
-                    ReadAndUpdate(CurrentFilePosition = 0);
+                    if (CurrentWritingMode == WritingMode.Read)
+                        ReadAndUpdate(CurrentFilePosition = 0);
+                    else
+                    {
+
+                    }
                     break;
                 case ConsoleKey.End:
-                    ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                    if (CurrentWritingMode == WritingMode.Read)
+                        ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                    else
+                    {
+
+                    }
                     break;
             }
 
@@ -669,20 +780,6 @@ namespace _0xdd
             ReadCurrentFile(pPosition);
             MainPanel.Update();
             InfoPanel.Update();
-        }
-
-        /// <summary>
-        /// Update the upper bar.
-        /// </summary>
-        static void UpdateTitlePanel()
-        {
-            ToggleColors();
-
-            Console.SetCursorPosition(0, 0);
-            Console.Write(CurrentFile.Name);
-            Console.Write(new string(' ', Console.WindowWidth - CurrentFile.Name.Length));
-
-            Console.ResetColor();
         }
 
         /// <summary>
@@ -728,7 +825,7 @@ namespace _0xdd
                 Console.Clear();
                 ControlPanel.Place();
                 OffsetPanel.Update();
-                UpdateTitlePanel();
+                TitlePanel.Update();
                 MainPanel.Refresh();
             }
             else
@@ -738,7 +835,7 @@ namespace _0xdd
                 InfoPanel.StartingTopPosition = Console.WindowHeight - 1;
                 Fullscreen = true;
                 Console.Clear();
-                UpdateTitlePanel();
+                TitlePanel.Update();
                 MainPanel.Refresh();
             }
         }
