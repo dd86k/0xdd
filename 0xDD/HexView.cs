@@ -141,11 +141,11 @@ namespace _0xdd
                             break;
 
                         case OffsetBaseView.Decimal:
-                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("00000000")}  ");
+                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("D8")}  ");
                             break;
 
                         case OffsetBaseView.Octal:
-                            Console.Write($"{Convert.ToString((line * BytesInRow) + CurrentFilePosition, 8), 8}  ");
+                            Console.Write($"{Convert.ToString((line * BytesInRow) + CurrentFilePosition, 8).FillZeros(8), 8}  ");
                             break;
                     }
 
@@ -213,7 +213,7 @@ namespace _0xdd
             static internal void Update()
             {
                 Console.SetCursorPosition(0, StartingTopPosition);
-                string s = $"DEC: {CurrentFilePosition.ToString("D8")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8), 8}";
+                string s = $"DEC: {CurrentFilePosition.ToString("D8")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8).FillZeros(8), 8}";
                 // Force clean last message.
                 Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
             }
@@ -311,6 +311,7 @@ namespace _0xdd
         #region EditingMode
         struct Edit
         {
+            static long EditPosition;
             static internal void MoveLeft()
             {
 
@@ -353,10 +354,10 @@ namespace _0xdd
         /// <summary>
         /// Writing mode enumeration.
         /// </summary>
-        enum WritingMode : byte
+        enum OperatingMode : byte
         {
             /// <summary>
-            /// Normal mode. READ
+            /// Read-only/Normal mode. READ
             /// </summary>
             Read,
             /// <summary>
@@ -370,9 +371,9 @@ namespace _0xdd
         }
 
         /// <summary>
-        /// Current <see cref="WritingMode"/>. Read by default.
+        /// Current <see cref="OperatingMode"/>. Read by default.
         /// </summary>
-        static WritingMode CurrentWritingMode = WritingMode.Read;
+        static OperatingMode CurrentWritingMode = OperatingMode.Read;
         #endregion
 
         #region Methods
@@ -436,10 +437,10 @@ namespace _0xdd
             {
                 sr.BaseStream.Position = pBasePosition;
 
-                if (sr.BaseStream.Length < MainPanel.ScreenMaxBytes)
-                    len = (int)sr.BaseStream.Length;
-                else
-                    len = MainPanel.ScreenMaxBytes;
+                len =
+                    sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
+                    (int)sr.BaseStream.Length :
+                    MainPanel.ScreenMaxBytes;
 
                 Buffer = new byte[len];
 
@@ -548,8 +549,6 @@ namespace _0xdd
                             Goto(p - 1);
                             Message($"Found {t} at position {p - 1}");
                         }
-
-                        return true;
                     }
                     break;
 
@@ -657,7 +656,7 @@ namespace _0xdd
                     
                 // -- Data nagivation --
                 case ConsoleKey.LeftArrow:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                     {
                         if (CurrentFilePosition - 1 >= 0)
                         {
@@ -670,7 +669,7 @@ namespace _0xdd
                     }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                     {
                         if (CurrentFilePosition + MainPanel.ScreenMaxBytes + 1 <= CurrentFile.Length)
                         {
@@ -684,7 +683,7 @@ namespace _0xdd
                     break;
 
                 case ConsoleKey.UpArrow:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                     {
                         if (CurrentFilePosition - MainPanel.BytesInRow >= 0)
                         {
@@ -701,7 +700,7 @@ namespace _0xdd
                     }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                     {
                         if (CurrentFilePosition + MainPanel.ScreenMaxBytes + MainPanel.BytesInRow <= CurrentFile.Length)
                         {
@@ -719,7 +718,7 @@ namespace _0xdd
                     break;
 
                 case ConsoleKey.PageUp:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                     {
                         if (CurrentFilePosition - MainPanel.ScreenMaxBytes >= 0)
                         {
@@ -737,7 +736,7 @@ namespace _0xdd
 
                     break;
                 case ConsoleKey.PageDown:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                     {
                         if (CurrentFilePosition + (MainPanel.ScreenMaxBytes * 2) <= CurrentFile.Length)
                         {
@@ -755,7 +754,7 @@ namespace _0xdd
                     break;
 
                 case ConsoleKey.Home:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                         ReadAndUpdate(CurrentFilePosition = 0);
                     else
                     {
@@ -763,7 +762,7 @@ namespace _0xdd
                     }
                     break;
                 case ConsoleKey.End:
-                    if (CurrentWritingMode == WritingMode.Read)
+                    if (CurrentWritingMode == OperatingMode.Read)
                         ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                     else
                     {
@@ -802,7 +801,8 @@ namespace _0xdd
             Console.Write(new string(' ', Console.WindowWidth - 1));
 
             string msg = $"[ {pMessage} ]";
-            Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2), InfoPanel.StartingTopPosition);
+            Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2),
+                InfoPanel.StartingTopPosition);
 
             ToggleColors();
 
@@ -881,7 +881,7 @@ namespace _0xdd
 
         static string GetUserInput(string pMessage, int pWidth, int pHeight)
         {
-            int width = 25;
+            int width = 27;
             int height = 4;
 
             GenerateInputBox(pMessage, width, height);
@@ -1005,11 +1005,11 @@ namespace _0xdd
                                 break;
 
                             case OffsetBaseView.Decimal:
-                                sw.Write($"{line.ToString("00000000")}  ");
+                                sw.Write($"{line.ToString("D8")}  ");
                                 break;
 
                             case OffsetBaseView.Octal:
-                                sw.Write($"{Convert.ToString(line, 8), 8}  ");
+                                sw.Write($"{Convert.ToString(line, 8).FillZeros(8), 8}  ");
                                 break;
                         }
 
@@ -1127,25 +1127,22 @@ namespace _0xdd
 
                 bool Continue = true;
                 byte[] buffer = new byte[pData.Length];
-                int length = pData.Length;
+                int stringlength = pData.Length;
                 while (Continue)
                 {
-                    if (fs.Position + length > fs.Length)
+                    if (fs.Position + stringlength > fs.Length)
                         Continue = false;
 
                     if (pData[0] == (char)fs.ReadByte())
                     {
-                        fs.Position--;
-
-                        if (length == 1)
-                            return fs.Position;
+                        if (stringlength == 1)
+                            return fs.Position - 1;
                         else
                         { // Let's not waste a re-read for a byte character.
-                            fs.Read(buffer, 0, length);
+                            fs.Read(buffer, 0, stringlength);
                             if (pData == pEncoding.GetString(buffer))
                             {
-                                fs.Position -= length - 1;
-                                return fs.Position;
+                                return fs.Position - stringlength - 1;
                             }
                         }
                     }
@@ -1327,6 +1324,14 @@ namespace _0xdd
                 default:
                     return '?'; // ??????????
             }
+        }
+
+        static string FillZeros(this string pString, int pLength)
+        {
+            if (pLength < pString.Length)
+                throw new FormatException();
+
+            return new string('0', pLength - pString.Length) + pString;
         }
         #endregion
     }

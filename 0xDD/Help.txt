@@ -77,5 +77,5 @@ Change the offset base (left view) to either hexadecimal, decimal, or octal.
 These shortcuts or keys are not shown at the bottom:
 
 F1 : Show Help.
-F5 : Refresh. Planned
+F5 : Refresh.
 F10 : Fullscreen-mode.
