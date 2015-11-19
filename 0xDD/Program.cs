@@ -141,7 +141,7 @@ namespace _0xdd
                     case "-Update":
                     case "/Update":
                         Update();
-                        break;
+                        return 0;
 
                     case "-dump":
                     case "/dump":
@@ -219,24 +219,45 @@ namespace _0xdd
         {
             if (File.Exists(UPDATER_NAME))
             {
-                //TODO: Fix updater output
                 ProcessStartInfo updater = new ProcessStartInfo(UPDATER_NAME);
+
+                Process updaterProcess = new Process();
+                updaterProcess.EnableRaisingEvents = true;
+                updaterProcess.StartInfo = updater;
+                updaterProcess.Exited += new EventHandler(currentProcess_Exited);
+
+                //  Set the options.
+                updater.UseShellExecute = false;
+                updater.ErrorDialog = false;
+                updater.CreateNoWindow = true;
+
+                //  Specify redirection.
                 updater.RedirectStandardError = true;
                 updater.RedirectStandardInput = true;
                 updater.RedirectStandardOutput = true;
-                updater.CreateNoWindow = true;
-                updater.UseShellExecute = false;
-                updater.ErrorDialog = false;
+
+                //updater.ErrorDialog = false;
                 Process.Start(updater);
-                //return 0;
+                try
+                {
+                    updaterProcess.Start();
+                }
+                catch
+                {
+                    Console.WriteLine("Error starting the process.");
+                }
             }
             else
             {
                 Console.WriteLine($"ABORTED: Updater not found. ({UPDATER_NAME})");
-                //return 1;
             }
         }
-        
+
+        private static void currentProcess_Exited(object sender, EventArgs e)
+        {
+            Console.WriteLine("Done.");
+        }
+
         static void Abort(Exception e)
         {
             Console.SetCursorPosition(0, Console.WindowHeight - 1);

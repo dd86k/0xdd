@@ -137,11 +137,11 @@ namespace _0xdd
                     switch (CurrentOffsetBaseView)
                     {
                         case OffsetBaseView.Hexadecimal:
-                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("X8")}  ");
+                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition):X8}  ");
                             break;
 
                         case OffsetBaseView.Decimal:
-                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition).ToString("D8")}  ");
+                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition):D8}  ");
                             break;
 
                         case OffsetBaseView.Octal:
@@ -152,7 +152,7 @@ namespace _0xdd
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (CurrentFilePosition + BufferOffsetData < filelen)
-                            Console.Write($"{Buffer[BufferOffsetData].ToString("X2")} ");
+                            Console.Write($"{Buffer[BufferOffsetData]:X2} ");
                         else
                             Console.Write("   ");
 
@@ -213,7 +213,7 @@ namespace _0xdd
             static internal void Update()
             {
                 Console.SetCursorPosition(0, StartingTopPosition);
-                string s = $"DEC: {CurrentFilePosition.ToString("D8")} | HEX: {CurrentFilePosition.ToString("X8")} | OCT: {Convert.ToString(CurrentFilePosition, 8).FillZeros(8), 8}";
+                string s = $"DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {Convert.ToString(CurrentFilePosition, 8).FillZeros(8), 8}";
                 // Force clean last message.
                 Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
             }
@@ -236,7 +236,7 @@ namespace _0xdd
                 Console.Write($"Offset {CurrentOffsetBaseView.GetChar()}  ");
                 for (int i = 0; i < MainPanel.BytesInRow; i++)
                 {
-                    Console.Write($"{i.ToString("X2")} ");
+                    Console.Write($"{i:X2} ");
                 }
             }
         }
@@ -981,14 +981,14 @@ namespace _0xdd
                     sw.WriteLine();
 
                 sw.WriteLine();
-                sw.WriteLine($"Attributes: {file.Attributes.ToString()}");
+                sw.WriteLine($"Attributes: {file.Attributes}");
                 sw.WriteLine($"Creation time: {file.CreationTime}");
                 sw.WriteLine();
 
                 sw.Write($"Offset {pViewMode.GetChar()}  ");
                 for (int i = 0; i < pBytesInRow; i++)
                 {
-                    sw.Write($"{i.ToString("X2")} ");
+                    sw.Write($"{i:X2} ");
                 }
                 sw.WriteLine();
 
@@ -1001,11 +1001,11 @@ namespace _0xdd
                         switch (pViewMode)
                         {
                             case OffsetBaseView.Hexadecimal:
-                                sw.Write($"{line.ToString("X8")}  ");
+                                sw.Write($"{line:X8}  ");
                                 break;
 
                             case OffsetBaseView.Decimal:
-                                sw.Write($"{line.ToString("D8")}  ");
+                                sw.Write($"{line:D8}  ");
                                 break;
 
                             case OffsetBaseView.Octal:
@@ -1020,7 +1020,7 @@ namespace _0xdd
                         for (int pos = 0; pos < pBytesInRow; pos++)
                         {
                             if (BufferPositionHex < filelen)
-                                sw.Write($"{Buffer[pos].ToString("X2")} ");
+                                sw.Write($"{Buffer[pos]:X2} ");
                             else
                                 sw.Write("   ");
 
