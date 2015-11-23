@@ -58,7 +58,7 @@ namespace _0xdd
         static int Main(string[] args)
         {
 #if DEBUG
-            /* ~~ Used for debugging within Visual Studio ~~ */
+            /* ~~ Used for debugging within Visual Studio (vshost) ~~ */
             //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
@@ -66,6 +66,8 @@ namespace _0xdd
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
+            args = new string[] { "0xdd.vshost.exe.config" };
+           
 #endif
 
             if (args.Length == 0)

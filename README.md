@@ -5,7 +5,7 @@
 
 Inspired by nano, 0xdd is a straightforward, simple, interactive, hexadecimal file viewer for Windows.
 
-Written in C# 6.0 for .NET 4.5 with Visual Studio 2015.
+Written in C# 6.0 for .NET 4.5.2 with Visual Studio 2015.
 
 Compatible with Mono, I do not guarantee Mono compability.
 

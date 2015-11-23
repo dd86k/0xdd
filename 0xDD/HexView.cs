@@ -197,6 +197,8 @@ namespace _0xdd
         #endregion
 
         #region InfoPanel
+        static bool MessageOnScreen;
+
         /// <summary>
         /// Info panel: Offsets and current offsets (positions) are shown.
         /// </summary>
@@ -214,8 +216,13 @@ namespace _0xdd
             {
                 Console.SetCursorPosition(0, StartingTopPosition);
                 string s = $"DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {Convert.ToString(CurrentFilePosition, 8).FillZeros(8), 8}";
-                // Force clean last message.
-                Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
+                if (MessageOnScreen)
+                    // Force clean last message.
+                    Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
+                else
+                    Console.Write(s);
+
+                MessageOnScreen = false;
             }
         }
         #endregion
@@ -394,10 +401,8 @@ namespace _0xdd
         internal static void Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
         {
             if (!File.Exists(pFilePath))
-                throw new FileNotFoundException
-                {
-                    Source = pFilePath
-                };
+                throw new FileNotFoundException("File not found!",
+                    pFilePath);
 
             CurrentFile = new FileInfo(pFilePath);
             
@@ -407,12 +412,9 @@ namespace _0xdd
 
             PrepareScreen();
 
-            MainPanel.Refresh();
-            MainPanel.Update();
-
-            // Someone was unhappy with the do {} while(); loop.
-            while (ReadUserKey())
-            { }
+            Console.CursorVisible = false;
+            
+            while (ReadUserKey()) { }
         }
 
         /// <summary>
@@ -422,6 +424,8 @@ namespace _0xdd
         {
             TitlePanel.Update();
             OffsetPanel.Update();
+            ReadCurrentFile(0);
+            MainPanel.Update();
             InfoPanel.Update();
             ControlPanel.Place();
         }
@@ -432,12 +436,11 @@ namespace _0xdd
         /// <param name="pBasePosition">Position.</param>
         static void ReadCurrentFile(long pBasePosition)
         {
-            int len;
             using (StreamReader sr = new StreamReader(CurrentFile.FullName))
             {
                 sr.BaseStream.Position = pBasePosition;
 
-                len =
+                int len =
                     sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
                     (int)sr.BaseStream.Length :
                     MainPanel.ScreenMaxBytes;
@@ -451,7 +454,7 @@ namespace _0xdd
         /// <summary>
         /// Read the user's key.
         /// </summary>
-        /// <returns>True if still using 0xdd.</returns>
+        /// <returns><c>true</c> if still using 0xdd.</returns>
         static bool ReadUserKey()
         {
             ConsoleKeyInfo cki = Console.ReadKey(true);
@@ -461,11 +464,11 @@ namespace _0xdd
                 // -- Hidden shortcuts --
                 case ConsoleKey.F5:
                     MainPanel.Update();
-                    break;
+                    return true;
 
                 case ConsoleKey.F10:
                     ToggleFullscreenMode();
-                    break;
+                    return true;
 
                 // -- Shown shortcuts --
                 // Help
@@ -474,13 +477,13 @@ namespace _0xdd
                     if (cki.Modifiers == ConsoleModifiers.Control ||
                         cki.Key == ConsoleKey.F1)
                         return ShowHelp();
-                    break;
+                    return true;
 
                 // Find byte
                 case ConsoleKey.W:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        int? t = GetUserInputForNumber("Find byte:");
+                        int? t = GetNumberFromUser("Find byte:");
 
                         if (t == null)
                         {
@@ -516,7 +519,7 @@ namespace _0xdd
                             }
                         }
                     }
-                    break;
+                    return true;
 
                 // Find data
                 case ConsoleKey.J:
@@ -550,13 +553,13 @@ namespace _0xdd
                             Message($"Found {t} at position {p - 1}");
                         }
                     }
-                    break;
+                    return true;
 
                 // Goto
                 case ConsoleKey.G:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        int? t = GetUserInputForNumber("Find byte:");
+                        int? t = GetNumberFromUser("Find byte:");
 
                         if (t == null)
                         {
@@ -572,7 +575,7 @@ namespace _0xdd
                             MainPanel.Update();
                         }
                     }
-                    break;
+                    return true;
 
                 // Offset base
                 case ConsoleKey.O:
@@ -595,7 +598,7 @@ namespace _0xdd
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                break;
+                                return true;
 
                             case 'O':
                             case 'o':
@@ -603,7 +606,7 @@ namespace _0xdd
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                break;
+                                return true;
 
                             case 'D':
                             case 'd':
@@ -611,21 +614,21 @@ namespace _0xdd
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                break;
+                                return true;
 
                             default:
                                 Message("Invalid view mode!");
                                 MainPanel.Update();
-                                break;
+                                return true;
                         }
                     }
-                    break;
+                    return true;
 
                 // Replace
                 case ConsoleKey.H:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                         throw new NotImplementedException();
-                    break;
+                    return true;
 
                 // Info
                 case ConsoleKey.I:
@@ -636,13 +639,13 @@ namespace _0xdd
                         decimal ratioEnd = Math.Round(((CurrentFilePosition + max) / CurrentFile.Length) * 100);
                         Message($"Size: {Utilities.GetFormattedSize(CurrentFile.Length)} | Position: {ratioStart}~{ratioEnd}%");
                     }
-                    break;
+                    return true;
 
                 // Exit
                 case ConsoleKey.X:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                         return Exit();
-                    break;
+                    return true;
 
                 // Dump
                 case ConsoleKey.D:
@@ -652,8 +655,8 @@ namespace _0xdd
                         Dump();
                         Message("Dumping done!");
                     }
-                    break;
-                    
+                    return true;
+
                 // -- Data nagivation --
                 case ConsoleKey.LeftArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -667,7 +670,7 @@ namespace _0xdd
                     {
 
                     }
-                    break;
+                    return true;
                 case ConsoleKey.RightArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
@@ -680,7 +683,7 @@ namespace _0xdd
                     {
 
                     }
-                    break;
+                    return true;
 
                 case ConsoleKey.UpArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -698,7 +701,7 @@ namespace _0xdd
                     {
 
                     }
-                    break;
+                    return true;
                 case ConsoleKey.DownArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
@@ -715,7 +718,7 @@ namespace _0xdd
                     {
 
                     }
-                    break;
+                    return true;
 
                 case ConsoleKey.PageUp:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -733,8 +736,7 @@ namespace _0xdd
                     {
 
                     }
-
-                    break;
+                    return true;
                 case ConsoleKey.PageDown:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
@@ -749,9 +751,9 @@ namespace _0xdd
                     }
                     else
                     {
-                        
+
                     }
-                    break;
+                    return true;
 
                 case ConsoleKey.Home:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -760,7 +762,7 @@ namespace _0xdd
                     {
 
                     }
-                    break;
+                    return true;
                 case ConsoleKey.End:
                     if (CurrentWritingMode == OperatingMode.Read)
                         ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
@@ -768,7 +770,7 @@ namespace _0xdd
                     {
 
                     }
-                    break;
+                    return true;
             }
 
             return true;
@@ -809,6 +811,8 @@ namespace _0xdd
             Console.Write(msg);
 
             Console.ResetColor();
+
+            MessageOnScreen = true;
         }
 
         /// <summary>
@@ -842,8 +846,7 @@ namespace _0xdd
 
         static void Goto(long pPosition)
         {
-            CurrentFilePosition = pPosition;
-            ReadAndUpdate(CurrentFilePosition);
+            ReadAndUpdate(CurrentFilePosition = pPosition);
         }
 
         static string GetUserInput(string pMessage)
@@ -851,12 +854,12 @@ namespace _0xdd
             return GetUserInput(pMessage, 27, 4);
         }
 
-        static int? GetUserInputForNumber(string pMessage)
+        static int? GetNumberFromUser(string pMessage)
         {
-            return GetUserInputForNumber(pMessage, 27, 4);
+            return GetNumberFromUser(pMessage, 27, 4);
         }
 
-        static int? GetUserInputForNumber(string pMessage, int pWidth, int pHeight)
+        static int? GetNumberFromUser(string pMessage, int pWidth, int pHeight)
         {
             GenerateInputBox(pMessage, pWidth, pHeight);
 
@@ -1047,10 +1050,6 @@ namespace _0xdd
 
         /// <summary>
         /// Find a byte starting at the CurrentFilePosition and
-        /// return its found position.
-        /// -1 means the data couldn't be found.
-        /// -2 means that the file doesn't exist.
-        /// -3 means that the given position is out of bound.
         /// </summary>
         /// <param name="pData">Data as a byte.</param>
         /// <returns>Positon. -1 being not found.</returns>
@@ -1108,6 +1107,9 @@ namespace _0xdd
 
         /// <summary>
         /// Find a string of data with a given position.
+        /// -1 means the data couldn't be found.
+        /// -2 means that the file doesn't exist.
+        /// -3 means that the given position is out of bound.
         /// </summary>
         /// <param name="pData">Data as a string.</param>
         /// <param name="pPosition">Starting position.</param>
@@ -1162,6 +1164,8 @@ namespace _0xdd
         static bool Exit()
         {
             Console.Clear();
+
+            Console.CursorVisible = true;
 
             return false;
         }
