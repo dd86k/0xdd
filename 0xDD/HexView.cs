@@ -9,15 +9,6 @@ using System.IO;
 // highlighted (gray on black) while navigating
 
 //TODO: Resize on Window resize
-//TODO: Menu on Dump Action, showing menu:
-// from..
-// - Dump file
-// - Dump file from position
-// - Dump file from position + length
-// - Dump view
-// to..
-// - File
-// - Clipboard
 
 /*
     Box of ideas (Lazy TODO/idea list)
@@ -69,7 +60,7 @@ namespace _0xdd
         #endregion
 
         #region TitlePanel
-        struct TitlePanel
+        static class TitlePanel
         {
             static internal void Update()
             {
@@ -89,7 +80,7 @@ namespace _0xdd
         /// Main panel which represents the offset, data as bytes,
         /// and data as ASCII characters.
         /// </summary>
-        struct MainPanel
+        static class MainPanel
         {
             /// <summary>
             /// Position to start rendering on the console (Y axis).
@@ -132,50 +123,53 @@ namespace _0xdd
 
                 Console.SetCursorPosition(0, StartingTopPosition);
 
+                string t = string.Empty;
+
                 for (int line = 0; line < FrameHeight; line++)
                 {
                     switch (CurrentOffsetBaseView)
                     {
                         case OffsetBaseView.Hexadecimal:
-                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition):X8}  ");
+                            t = $"{((line * BytesInRow) + CurrentFilePosition):X8}  ";
                             break;
 
                         case OffsetBaseView.Decimal:
-                            Console.Write($"{((line * BytesInRow) + CurrentFilePosition):D8}  ");
+                            t = $"{((line * BytesInRow) + CurrentFilePosition):D8}  ";
                             break;
 
                         case OffsetBaseView.Octal:
-                            Console.Write($"{Convert.ToString((line * BytesInRow) + CurrentFilePosition, 8).FillZeros(8), 8}  ");
+                            t = $"{Convert.ToString((line * BytesInRow) + CurrentFilePosition, 8).FillZeros(8), 8}  ";
                             break;
                     }
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (CurrentFilePosition + BufferOffsetData < filelen)
-                            Console.Write($"{Buffer[BufferOffsetData]:X2} ");
+                            t += $"{Buffer[BufferOffsetData]:X2} ";
                         else
-                            Console.Write("   ");
+                            t += "   ";
 
                         BufferOffsetData++;
                     }
 
-                    Console.Write(" ");
+                    t += " ";
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (CurrentFilePosition + BufferOffsetHex < filelen)
-                            Console.Write($"{Buffer[BufferOffsetHex].ToSafeChar()}");
+                            t += $"{Buffer[BufferOffsetHex].ToSafeChar()}";
                         else
                         {
                             // End rendering completely
-                            x += BytesInRow;
-                            line += FrameHeight;
+                            return;
+                            //x += BytesInRow;
+                            //line += FrameHeight;
                         }
 
                         BufferOffsetHex++;
                     }
 
-                    Console.WriteLine();
+                    Console.WriteLine(t);
                 }
             }
             
@@ -232,7 +226,7 @@ namespace _0xdd
         /// Shows offset base view and the offset on each byte.
         /// e.g. Offset h  00 01 ...
         /// </summary>
-        struct OffsetPanel
+        static class OffsetPanel
         {
             /// <summary>
             /// Update the offset map
@@ -250,7 +244,7 @@ namespace _0xdd
         #endregion
 
         #region ControlPanel
-        struct ControlPanel
+        static class ControlPanel
         {
             /// <summary>
             /// Places the control map on screen (e.g. ^T Try jumping )
@@ -316,7 +310,7 @@ namespace _0xdd
         #endregion
 
         #region EditingMode
-        struct Edit
+        static class Edit
         {
             static long EditPosition;
             static internal void MoveLeft()
@@ -401,8 +395,7 @@ namespace _0xdd
         internal static void Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
         {
             if (!File.Exists(pFilePath))
-                throw new FileNotFoundException("File not found!",
-                    pFilePath);
+                throw new FileNotFoundException("File not found!", pFilePath);
 
             CurrentFile = new FileInfo(pFilePath);
             
@@ -442,8 +435,7 @@ namespace _0xdd
 
                 int len =
                     sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
-                    (int)sr.BaseStream.Length :
-                    MainPanel.ScreenMaxBytes;
+                    (int)sr.BaseStream.Length : MainPanel.ScreenMaxBytes;
 
                 Buffer = new byte[len];
 
@@ -454,7 +446,7 @@ namespace _0xdd
         /// <summary>
         /// Read the user's key.
         /// </summary>
-        /// <returns><c>true</c> if still using 0xdd.</returns>
+        /// <returns>Returns true if still using 0xdd.</returns>
         static bool ReadUserKey()
         {
             ConsoleKeyInfo cki = Console.ReadKey(true);

@@ -1,5 +1,5 @@
-## 0xdd
-### Hexadecimal Console File Viewer
+# 0xdd
+## Hexadecimal Console File Viewer
 
 ![0xdd](http://didi.wcantin.ca/p/0xdd3.png)
 
@@ -13,4 +13,4 @@ The Wiki is available [here](https://github.com/guitarxhero/0xDD/wiki).
 
 # Requirements
 
-- .NET 4.5 (Windows) or Mono (OS X and GNU/Linux).
+- .NET 4.5 (Windows) or the Mono Runtime (OS X and GNU/Linux).

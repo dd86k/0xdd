@@ -106,19 +106,16 @@ namespace _0xdd
         internal static int ReadValue(int pLimit)
         {
             string t = ReadLine(pLimit);
-
-            // Hex
-            if (t.StartsWith("0x"))
+            
+            if (t.StartsWith("0x")) // Hexadecimal
             {
                 return Convert.ToInt32(t, 16);
             }
-            // Oct
-            else if (t[0] == '0')
+            else if (t[0] == '0') // Octal
             {
                 return Convert.ToInt32(t, 8);
             }
-            // Dec
-            else
+            else // Decimal
             {
                 return int.Parse(t);
             }

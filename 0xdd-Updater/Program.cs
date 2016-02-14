@@ -107,7 +107,6 @@ namespace _0xdd_Updater
                     }
                     catch (Exception)
                     {
-                        //TODO: Ask for user if they want to cancel instead.
                         Write(".");
                         System.Threading.Thread.Sleep(1000);
                     }

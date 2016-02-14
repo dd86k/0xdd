@@ -12,7 +12,7 @@ namespace _0xdd
         /// <summary>
         /// Get the current version of the project as a string object.
         /// </summary>
-        static string ProjectVersionString
+        static string Version
         {
             get
             {
@@ -66,7 +66,7 @@ namespace _0xdd
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
-            args = new string[] { "0xdd.vshost.exe.config" };
+            //args = new string[] { "0xdd.vshost.exe" };
            
 #endif
 
@@ -149,8 +149,6 @@ namespace _0xdd
                     case "/dump":
                         dump = true;
                         break;
-
-                        //TODO: Interactive mode
 
                     case "/?":
                     case "/help":
@@ -303,7 +301,7 @@ namespace _0xdd
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine();
-            Console.WriteLine($"0xdd - {ProjectVersionString}");
+            Console.WriteLine($"0xdd - {Version}");
             Console.WriteLine("Copyright (c) 2015 DD~!/guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
             Console.WriteLine("Project page: <https://github.com/guitarxhero/0xDD>");
