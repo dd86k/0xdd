@@ -196,7 +196,7 @@ namespace _0xdd
         /// <summary>
         /// Info panel: Offsets and current offsets (positions) are shown.
         /// </summary>
-        struct InfoPanel
+        static class InfoPanel
         {
             /// <summary>
             /// Position to start rendering on the console (Y axis).
@@ -209,7 +209,7 @@ namespace _0xdd
             static internal void Update()
             {
                 Console.SetCursorPosition(0, StartingTopPosition);
-                string s = $"DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {Convert.ToString(CurrentFilePosition, 8).FillZeros(8), 8}";
+                string s = $"[POSITION] DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {Convert.ToString(CurrentFilePosition, 8).FillZeros(8), 8}";
                 if (MessageOnScreen)
                     // Force clean last message.
                     Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
@@ -1288,7 +1288,7 @@ namespace _0xdd
 
         #region Type extensions
         /// <summary>
-        /// Returns a readable character if found.
+        /// Returns a printable character if found.
         /// </summary>
         /// <param name="pIn">Byte to transform.</param>
         /// <returns>Readable character.</returns>
