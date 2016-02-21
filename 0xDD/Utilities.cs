@@ -37,7 +37,7 @@ namespace _0xdd
         /// <returns>User's input</returns>
         internal static string ReadLine(int pLimit, bool pPassword)
         {
-            System.Text.StringBuilder _out = new System.Text.StringBuilder();
+            StringBuilder _out = new StringBuilder();
             int Index = 0;
             bool gotString = false;
             int OrigninalLeftPosition = Console.CursorLeft;
@@ -70,7 +70,7 @@ namespace _0xdd
                             // Erase whole
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
-                                _out = new System.Text.StringBuilder();
+                                _out = new StringBuilder();
                                 Index = 0;
                                 Console.SetCursorPosition(OrigninalLeftPosition, Console.CursorTop);
                                 Console.Write(new string(' ', pLimit));

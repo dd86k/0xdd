@@ -13,8 +13,8 @@ using System.IO;
 /*
     Box of ideas (Lazy TODO/idea list)
     - Top right (under title): Insert(INS)/Overwrite(OVR) (bool)
-    - Search: /regex/ (Begins with && ends with)
-    - Edit: List<int, byte>(FilePosition, Byte)
+    - Search: /regex/ (Begins with && ends with '/')
+    - Edit: Dictionary<long, byte> (FilePosition, NewByte)
       - Rendering: If byte at position, write that byte to display instead
       - Saving: Remove duplicates, loop through List and write
       - Editing: If new data on same position, replace
@@ -22,13 +22,46 @@ using System.IO;
 
 namespace _0xdd
 {
+    enum ErrorCode : byte
+    {
+        Success = 0,
+
+        FileNotFound = 0x4,
+        FileUnreadable = 0x5,
+
+        FindNoResult = 0x8,
+
+        PositionOutOfBound = 0x16,
+
+        UnknownError = 0xFF
+    }
+
+    struct FindResult
+    {
+        public FindResult(long pPosition)
+        {
+            Position = pPosition;
+            Error = ErrorCode.Success;
+        }
+
+        public FindResult(ErrorCode pError)
+        {
+            Error = pError;
+            Position = -1;
+        }
+
+        public long Position;
+
+        public ErrorCode Error;
+    }
+
     static class _0xdd
     {
         #region Constants
         /// <summary>
         /// Extension of data dump files.
         /// </summary>
-        const string NAME_EXTENSION = "datdmp";
+        const string NAME_EXTENSION = "hexdmp";
         #endregion
 
         #region General properties
@@ -43,13 +76,14 @@ namespace _0xdd
         static FileInfo CurrentFile;
 
         /// <summary>
-        /// Temporary buffer used for on-screen display.
+        /// Buffer used for on-screen display.
         /// </summary>
         /// <remarks>
         /// This doesn't use a lot of memory.
         /// If the main panel size is 16x19 (16 bytes on 19 lines,
         /// default with 80x24 terminal), the buffer will only use
-        /// 309 bytes (0.3 KB) of additional memory.
+        /// 309 bytes (0.3 KB) of additional memory plus the memory for
+        /// a tiny array, which is a very few more bytes.
         /// </remarks>
         static byte[] Buffer = new byte[0];
 
@@ -247,65 +281,52 @@ namespace _0xdd
         static class ControlPanel
         {
             /// <summary>
-            /// Places the control map on screen (e.g. ^T Try jumping )
+            /// Places the control map on screen (e.g. ^T Try jumping)
             /// </summary>
             static internal void Place()
             {
                 Console.SetCursorPosition(0, Console.WindowHeight - 2);
 
-                ToggleColors();
-                Console.Write("^K");
-                Console.ResetColor();
+                WriteWhite("^W");
                 Console.Write(" Help         ");
 
-                ToggleColors();
-                Console.Write("^W");
-                Console.ResetColor();
+                WriteWhite("^W");
                 Console.Write(" Find byte    ");
 
-                ToggleColors();
-                Console.Write("^J");
-                Console.ResetColor();
+                WriteWhite("^J");
                 Console.Write(" Find data    ");
 
-                ToggleColors();
-                Console.Write("^G");
-                Console.ResetColor();
+                WriteWhite("^G");
                 Console.Write(" Goto         ");
 
-                ToggleColors();
-                Console.Write("^H");
-                Console.ResetColor();
+                WriteWhite("^H");
                 Console.Write(" Replace");
 
                 // CHANGING LINE BOYS
                 Console.WriteLine();
 
-                ToggleColors();
-                Console.Write("^X");
-                Console.ResetColor();
+                WriteWhite("^X");
                 Console.Write(" Exit         ");
 
-                ToggleColors();
-                Console.Write("^I");
-                Console.ResetColor();
+                WriteWhite("^I");
                 Console.Write(" Info         ");
 
-                ToggleColors();
-                Console.Write("^D");
-                Console.ResetColor();
+                WriteWhite("^D");
                 Console.Write(" Dump         ");
 
-                ToggleColors();
-                Console.Write("^O");
-                Console.ResetColor();
+                WriteWhite("^O");
                 Console.Write(" Offset base  ");
-                
-                ToggleColors();
-                Console.Write("^E");
-                Console.ResetColor();
+
+                WriteWhite("^E");
                 Console.Write(" Edit mode");
             }
+        }
+
+        static void WriteWhite(string pText)
+        {
+            ToggleColors();
+            Console.Write(pText);
+            Console.ResetColor();
         }
         #endregion
 
@@ -500,7 +521,7 @@ namespace _0xdd
                             Message("Searching...");
                             long p = Find((byte)t, CurrentFilePosition + 1);
 
-                            if (p < 0)
+                            if (p > 1)
                             {
                                 Message("Data could not be found.");
                             }
@@ -532,17 +553,31 @@ namespace _0xdd
                         }
 
                         Message("Searching...");
-                        long p = Find(t, CurrentFilePosition + 1, Utilities.GetEncoding(CurrentFile.Name));
+                        FindResult p = Find(t, CurrentFilePosition + 1, Utilities.GetEncoding(CurrentFile.Name));
+                        
+                        switch (p.Error)
+                        {
+                            case ErrorCode.FileNotFound:
+                                Message("Data could not be found.");
+                                MainPanel.Update();
+                                break;
+                            case ErrorCode.FileUnreadable:
+                                Message("Data could not be found.");
+                                MainPanel.Update();
+                                break;
+                            case ErrorCode.FindNoResult:
+                                Message("Data could not be found.");
+                                MainPanel.Update();
+                                break;
+                            case ErrorCode.PositionOutOfBound:
+                                Message("Data could not be found.");
+                                MainPanel.Update();
+                                break;
 
-                        if (p < 0)
-                        {
-                            Message("Data could not be found.");
-                            MainPanel.Update();
-                        }
-                        else
-                        {
-                            Goto(p - 1);
-                            Message($"Found {t} at position {p - 1}");
+                            default:
+                                Goto(p.Position - 1);
+                                Message($"Found {t} at position {p.Position - 1}");
+                                break;
                         }
                     }
                     return true;
@@ -946,38 +981,34 @@ namespace _0xdd
 
         static void Dump()
         {
-            Dump(CurrentFile.Name, MainPanel.BytesInRow, CurrentOffsetBaseView);
+            Dump(CurrentFile.Name, MainPanel.BytesInRow, CurrentOffsetBaseView, true);
         }
 
-        static internal int Dump(string pFileToDump, int pBytesInRow, OffsetBaseView pViewMode)
+        static public int Dump(string pFileToDump, int pBytesInRow, OffsetBaseView pViewMode, bool pInApp)
         {
             if (!File.Exists(pFileToDump))
                 return 1;
             
+            // These variables are independant because I do
+            // not want to mess with the global ones and it
+            // may happen the user /d directly.
             FileInfo file = new FileInfo(pFileToDump);
-            int filelen = (int)file.Length;
-            int line = 0;
+            long filelen = file.Length;
+            long line = 0;
             int BufferPositionHex = 0;
             int BufferPositionData = 0;
-            // To not change the current buffer, we use a new one.
-            // Or if we come from the /dump CLI parameter.
             Buffer = new byte[pBytesInRow];
 
             using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{NAME_EXTENSION}"))
             {
+                sw.AutoFlush = true;
+
                 sw.WriteLine(file.Name);
                 sw.WriteLine();
-
-                sw.Write("Size: ");
-                sw.Write(Utilities.GetFormattedSize(filelen));
-                if (CurrentFile.Length < 1024)
-                    sw.WriteLine($" ({filelen} B)");
-                else
-                    sw.WriteLine();
-
-                sw.WriteLine();
+                sw.WriteLine($"Size: {Utilities.GetFormattedSize(filelen)}");
                 sw.WriteLine($"Attributes: {file.Attributes}");
-                sw.WriteLine($"Creation time: {file.CreationTime}");
+                sw.WriteLine($"File date: {file.CreationTime}");
+                sw.WriteLine($"Dump date: {DateTime.Now}");
                 sw.WriteLine();
 
                 sw.Write($"Offset {pViewMode.GetChar()}  ");
@@ -987,24 +1018,34 @@ namespace _0xdd
                 }
                 sw.WriteLine();
 
+                string t = string.Empty;
                 using (FileStream fs = file.OpenRead())
                 {
                     bool finished = false;
 
                     while (!finished)
                     {
+                        if (line / filelen % 10 == 0)
+                        {
+                            //TODO: Progress
+                            if (pInApp)
+                                Message("");
+                            else
+                                Console.Write("");
+                        }
+
                         switch (pViewMode)
                         {
                             case OffsetBaseView.Hexadecimal:
-                                sw.Write($"{line:X8}  ");
+                                t = $"{line:X8}  ";
                                 break;
 
                             case OffsetBaseView.Decimal:
-                                sw.Write($"{line:D8}  ");
+                                t = $"{line:D8}  ";
                                 break;
 
                             case OffsetBaseView.Octal:
-                                sw.Write($"{Convert.ToString(line, 8).FillZeros(8), 8}  ");
+                                t = $"{Convert.ToString(line, 8).FillZeros(8), 8}  ";
                                 break;
                         }
 
@@ -1015,24 +1056,26 @@ namespace _0xdd
                         for (int pos = 0; pos < pBytesInRow; pos++)
                         {
                             if (BufferPositionHex < filelen)
-                                sw.Write($"{Buffer[pos]:X2} ");
+                                t += $"{Buffer[pos]:X2} ";
                             else
-                                sw.Write("   ");
+                                t += "   ";
 
                             BufferPositionHex++;
                         }
 
-                        sw.Write(" ");
+                        t += " ";
 
                         for (int pos = 0; pos < pBytesInRow; pos++)
                         {
                             if (BufferPositionData < filelen)
-                                sw.Write($"{Buffer[pos].ToSafeChar()}");
+                                t += $"{Buffer[pos].ToSafeChar()}";
                             else
-                                return 0;
+                                return 0; // Done!
 
                             BufferPositionData++;
                         }
+
+                        sw.WriteLine(t);
                     }
                 }
             }
@@ -1044,7 +1087,7 @@ namespace _0xdd
         /// Find a byte starting at the CurrentFilePosition and
         /// </summary>
         /// <param name="pData">Data as a byte.</param>
-        /// <returns>Positon. -1 being not found.</returns>
+        /// <returns>Positon.</returns>
         static long Find(byte pData)
         {
            return Find(pData, CurrentFilePosition);
@@ -1053,9 +1096,6 @@ namespace _0xdd
         /// <summary>
         /// Find a byte in the current file and
         /// return its found position.
-        /// -1 means the data couldn't be found.
-        /// -2 means that the file doesn't exist.
-        /// -3 means that the given position is out of bound.
         /// </summary>
         /// <param name="pData">Data as a byte.</param>
         /// <param name="pPosition">Positon to start searching from.</param>
@@ -1063,10 +1103,10 @@ namespace _0xdd
         static long Find(byte pData, long pPosition)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
-                return -3;
+                return (int)ErrorCode.PositionOutOfBound;
 
             if (!CurrentFile.Exists)
-                return -2;
+                return (int)ErrorCode.FileNotFound;
 
             using (FileStream fs = CurrentFile.OpenRead())
             {
@@ -1083,7 +1123,7 @@ namespace _0xdd
                 }
             }
 
-            return -1;
+            return (int)ErrorCode.FindNoResult;
         }
 
         /// <summary>
@@ -1092,28 +1132,30 @@ namespace _0xdd
         /// <param name="pData">Data as a string.</param>
         /// <param name="pEncoding">Encoding.</param>
         /// <returns>Position.</returns>
-        static long Find(string pData, System.Text.Encoding pEncoding)
+        static FindResult Find(string pData, System.Text.Encoding pEncoding)
         {
             return Find(pData, CurrentFilePosition, pEncoding);
         }
 
         /// <summary>
         /// Find a string of data with a given position.
-        /// -1 means the data couldn't be found.
-        /// -2 means that the file doesn't exist.
-        /// -3 means that the given position is out of bound.
         /// </summary>
         /// <param name="pData">Data as a string.</param>
         /// <param name="pPosition">Starting position.</param>
         /// <param name="pEncoding">Encoding.</param>
         /// <returns>Found position.</returns>
-        static long Find(string pData, long pPosition, System.Text.Encoding pEncoding)
+        /// <remarks>
+        /// How does this work?
+        /// Search every character, if one seems to be right.
+        /// Read the data and compare it.
+        /// </remarks>
+        static FindResult Find(string pData, long pPosition, System.Text.Encoding pEncoding)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
-                return -3;
+                return new FindResult(ErrorCode.PositionOutOfBound);
 
             if (!CurrentFile.Exists)
-                return -2;
+                return new FindResult(ErrorCode.FileNotFound);
 
             using (FileStream fs = CurrentFile.OpenRead())
             {
@@ -1130,20 +1172,20 @@ namespace _0xdd
                     if (pData[0] == (char)fs.ReadByte())
                     {
                         if (stringlength == 1)
-                            return fs.Position - 1;
+                            return new FindResult(fs.Position - 1);
                         else
-                        { // Let's not waste a re-read for a byte character.
+                        {
                             fs.Read(buffer, 0, stringlength);
                             if (pData == pEncoding.GetString(buffer))
                             {
-                                return fs.Position - stringlength - 1;
+                                return new FindResult(fs.Position - stringlength - 1);
                             }
                         }
                     }
                 }
             }
 
-            return -1;
+            return new FindResult(ErrorCode.FindNoResult);
         }
 
         /// <summary>
@@ -1277,8 +1319,7 @@ namespace _0xdd
             {
                 if (pPosition < helplines.Count)
                 {
-                    Console.WriteLine(helplines[pPosition]);
-                    pPosition++;
+                    Console.WriteLine(helplines[++pPosition]);
                 }
                 else
                     return;

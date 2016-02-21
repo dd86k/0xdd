@@ -138,13 +138,6 @@ namespace _0xdd
                         }
                         break;
 
-                    case "-U":
-                    case "/U":
-                    case "-Update":
-                    case "/Update":
-                        Update();
-                        return 0;
-
                     case "-dump":
                     case "/dump":
                         dump = true;
@@ -174,7 +167,7 @@ namespace _0xdd
                 if (dump)
                 {
                     Console.WriteLine("Dumping file...");
-                    int err = _0xdd.Dump(file, bytesInRow, ovm);
+                    int err = _0xdd.Dump(file, bytesInRow, ovm, false);
                     switch (err)
                     {
                         case 1:
@@ -215,49 +208,6 @@ namespace _0xdd
             return 0;
         }
 
-        static void Update()
-        {
-            if (File.Exists(UPDATER_NAME))
-            {
-                ProcessStartInfo updater = new ProcessStartInfo(UPDATER_NAME);
-
-                Process updaterProcess = new Process();
-                updaterProcess.EnableRaisingEvents = true;
-                updaterProcess.StartInfo = updater;
-                updaterProcess.Exited += new EventHandler(currentProcess_Exited);
-
-                //  Set the options.
-                updater.UseShellExecute = false;
-                updater.ErrorDialog = false;
-                updater.CreateNoWindow = true;
-
-                //  Specify redirection.
-                updater.RedirectStandardError = true;
-                updater.RedirectStandardInput = true;
-                updater.RedirectStandardOutput = true;
-
-                //updater.ErrorDialog = false;
-                Process.Start(updater);
-                try
-                {
-                    updaterProcess.Start();
-                }
-                catch
-                {
-                    Console.WriteLine("Error starting the process.");
-                }
-            }
-            else
-            {
-                Console.WriteLine($"ABORTED: Updater not found. ({UPDATER_NAME})");
-            }
-        }
-
-        private static void currentProcess_Exited(object sender, EventArgs e)
-        {
-            Console.WriteLine("Done.");
-        }
-
         static void Abort(Exception e)
         {
             Console.SetCursorPosition(0, Console.WindowHeight - 1);
@@ -285,11 +235,10 @@ namespace _0xdd
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine(" Usage:");
-            Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/U] [/dump] <file>");
+            Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/dump] <file>");
             Console.WriteLine();
             Console.WriteLine("  /v      Start with an offset view: Hex, Dec, Oct.        Default: Hex");
             Console.WriteLine("  /w      Start with a number of bytes to show in a row.   Default: 16");
-            Console.WriteLine("  /U      Updates if necessary.");
             Console.WriteLine("  /dump   Dumps the data file as plain text.");
             Console.WriteLine();
             Console.WriteLine("  /?         Shows this screen and exits.");
