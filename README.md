@@ -1,7 +1,7 @@
 # 0xdd
 ## Hexadecimal Console File Viewer
 
-![0xdd](http://didi.wcantin.ca/p/0xdd3.png)
+![0xdd](http://didi.wcantin.ca/p/0xdd4.png)
 
 Inspired by nano, 0xdd is a straightforward, simple, interactive, hexadecimal file viewer for Windows.
 

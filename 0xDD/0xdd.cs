@@ -1,14 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 
 //TODO: Edit mode
 // 0E 0F
 // D2 DD ..
 // ^^    ^
 // highlighted (gray on black) while navigating
-
-//TODO: Resize on Window resize
 
 /*
     Box of ideas (Lazy TODO/idea list)
@@ -51,7 +50,6 @@ namespace _0xdd
         }
 
         public long Position;
-
         public ErrorCode Error;
     }
 
@@ -61,7 +59,7 @@ namespace _0xdd
         /// <summary>
         /// Extension of data dump files.
         /// </summary>
-        const string NAME_EXTENSION = "hexdmp";
+        const string EXTENSION = "hexdmp";
         #endregion
 
         #region General properties
@@ -91,6 +89,10 @@ namespace _0xdd
         /// If the user is in fullscreen mode, false by default.
         /// </summary>
         static bool Fullscreen;
+
+        // Last window sizes.
+        static int LastWindowHeight;
+        static int LastWindowWidth;
         #endregion
 
         #region TitlePanel
@@ -124,7 +126,13 @@ namespace _0xdd
             /// <summary>
             /// Gets or sets the heigth of the main panel.
             /// </summary>
-            static internal int FrameHeight = Console.WindowHeight - 5;
+            static internal int FrameHeight
+            {
+                get
+                {
+                    return Console.WindowHeight - 5;
+                }
+            }
 
             /// <summary>
             /// Gets or sets the number of bytes showed in a row.
@@ -157,41 +165,41 @@ namespace _0xdd
 
                 Console.SetCursorPosition(0, StartingTopPosition);
 
-                string t = string.Empty;
+                StringBuilder t = new StringBuilder();
 
                 for (int line = 0; line < FrameHeight; line++)
                 {
                     switch (CurrentOffsetBaseView)
                     {
                         case OffsetBaseView.Hexadecimal:
-                            t = $"{((line * BytesInRow) + CurrentFilePosition):X8}  ";
+                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFilePosition):X8}  ");
                             break;
 
                         case OffsetBaseView.Decimal:
-                            t = $"{((line * BytesInRow) + CurrentFilePosition):D8}  ";
+                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFilePosition):D8}  ");
                             break;
 
                         case OffsetBaseView.Octal:
-                            t = $"{Convert.ToString((line * BytesInRow) + CurrentFilePosition, 8).FillZeros(8), 8}  ";
+                            t = new StringBuilder($"{ToOct((line * BytesInRow) + CurrentFilePosition)}  ");
                             break;
                     }
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (CurrentFilePosition + BufferOffsetData < filelen)
-                            t += $"{Buffer[BufferOffsetData]:X2} ";
+                            t.Append($"{Buffer[BufferOffsetData]:X2} ");
                         else
-                            t += "   ";
+                            t.Append("   ");
 
                         BufferOffsetData++;
                     }
 
-                    t += " ";
+                    t.Append(" ");
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (CurrentFilePosition + BufferOffsetHex < filelen)
-                            t += $"{Buffer[BufferOffsetHex].ToSafeChar()}";
+                            t.Append($"{Buffer[BufferOffsetHex].ToSafeChar()}");
                         else
                         {
                             // End rendering completely
@@ -206,7 +214,7 @@ namespace _0xdd
                     Console.WriteLine(t);
                 }
             }
-            
+
             static internal void Refresh()
             {
                 Clear();
@@ -235,15 +243,21 @@ namespace _0xdd
             /// <summary>
             /// Position to start rendering on the console (Y axis).
             /// </summary>
-            static internal int StartingTopPosition = Console.WindowHeight - 3;
+            static internal int TopPosition
+            {
+                get
+                {
+                    return Console.WindowHeight - 3;
+                }
+            }
 
             /// <summary>
             /// Update the offset information
             /// </summary>
             static internal void Update()
             {
-                Console.SetCursorPosition(0, StartingTopPosition);
-                string s = $"[POSITION] DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {Convert.ToString(CurrentFilePosition, 8).FillZeros(8), 8}";
+                Console.SetCursorPosition(0, TopPosition);
+                string s = $"  DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {ToOct(CurrentFilePosition)}";
                 if (MessageOnScreen)
                     // Force clean last message.
                     Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
@@ -269,9 +283,9 @@ namespace _0xdd
             {
                 Console.SetCursorPosition(0, 1);
                 Console.Write($"Offset {CurrentOffsetBaseView.GetChar()}  ");
-                for (int i = 0; i < MainPanel.BytesInRow; i++)
+                for (int i = 0; i < MainPanel.BytesInRow;)
                 {
-                    Console.Write($"{i:X2} ");
+                    Console.Write($"{i++:X2} ");
                 }
             }
         }
@@ -287,8 +301,8 @@ namespace _0xdd
             {
                 Console.SetCursorPosition(0, Console.WindowHeight - 2);
 
-                WriteWhite("^W");
-                Console.Write(" Help         ");
+                WriteWhite("^ ");
+                Console.Write("              ");
 
                 WriteWhite("^W");
                 Console.Write(" Find byte    ");
@@ -427,6 +441,9 @@ namespace _0xdd
             PrepareScreen();
 
             Console.CursorVisible = false;
+
+            LastWindowHeight = Console.WindowHeight;
+            LastWindowWidth = Console.WindowWidth;
             
             while (ReadUserKey()) { }
         }
@@ -454,6 +471,7 @@ namespace _0xdd
             {
                 sr.BaseStream.Position = pBasePosition;
 
+                // Length to read
                 int len =
                     sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
                     (int)sr.BaseStream.Length : MainPanel.ScreenMaxBytes;
@@ -471,6 +489,16 @@ namespace _0xdd
         static bool ReadUserKey()
         {
             ConsoleKeyInfo cki = Console.ReadKey(true);
+
+            if (LastWindowHeight != Console.WindowHeight ||
+                LastWindowWidth != Console.WindowWidth)
+            {
+                Console.Clear();
+                PrepareScreen();
+
+                LastWindowHeight = Console.WindowHeight;
+                LastWindowWidth = Console.WindowWidth;
+            }
             
             switch (cki.Key)
             {
@@ -484,13 +512,6 @@ namespace _0xdd
                     return true;
 
                 // -- Shown shortcuts --
-                // Help
-                case ConsoleKey.F1:
-                case ConsoleKey.K:
-                    if (cki.Modifiers == ConsoleModifiers.Control ||
-                        cki.Key == ConsoleKey.F1)
-                        return ShowHelp();
-                    return true;
 
                 // Find byte
                 case ConsoleKey.W:
@@ -738,7 +759,8 @@ namespace _0xdd
                         }
                         else
                         {
-                            ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                            if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
+                                ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                         }
                     }
                     else
@@ -826,12 +848,12 @@ namespace _0xdd
         /// <param name="pMessage">Message to show.</param>
         static void Message(string pMessage)
         {
-            Console.SetCursorPosition(0, InfoPanel.StartingTopPosition);
+            Console.SetCursorPosition(0, InfoPanel.TopPosition);
             Console.Write(new string(' ', Console.WindowWidth - 1));
 
             string msg = $"[ {pMessage} ]";
             Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2),
-                InfoPanel.StartingTopPosition);
+                InfoPanel.TopPosition);
 
             ToggleColors();
 
@@ -850,8 +872,8 @@ namespace _0xdd
             if (Fullscreen)
             { // Turning off
                 MainPanel.StartingTopPosition = 2;
-                MainPanel.FrameHeight = Console.WindowHeight - 5;
-                InfoPanel.StartingTopPosition = Console.WindowHeight - 3;
+                //MainPanel.FrameHeight = Console.WindowHeight - 5;
+                //InfoPanel.TopPosition = Console.WindowHeight - 3;
                 Fullscreen = false;
                 Console.Clear();
                 ControlPanel.Place();
@@ -862,8 +884,8 @@ namespace _0xdd
             else
             { // Turning on
                 MainPanel.StartingTopPosition = 1;
-                MainPanel.FrameHeight = Console.WindowHeight - 2;
-                InfoPanel.StartingTopPosition = Console.WindowHeight - 1;
+                //MainPanel.FrameHeight = Console.WindowHeight - 2;
+                //InfoPanel.TopPosition = Console.WindowHeight - 1;
                 Fullscreen = true;
                 Console.Clear();
                 TitlePanel.Update();
@@ -999,7 +1021,7 @@ namespace _0xdd
             int BufferPositionData = 0;
             Buffer = new byte[pBytesInRow];
 
-            using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{NAME_EXTENSION}"))
+            using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{EXTENSION}"))
             {
                 sw.AutoFlush = true;
 
@@ -1045,7 +1067,7 @@ namespace _0xdd
                                 break;
 
                             case OffsetBaseView.Octal:
-                                t = $"{Convert.ToString(line, 8).FillZeros(8), 8}  ";
+                                t = $"{ToOct(line)}  ";
                                 break;
                         }
 
@@ -1205,126 +1227,9 @@ namespace _0xdd
         }
         #endregion
 
-        #region Help
-        static bool ShowHelp()
-        {
-            MainPanel.StartingTopPosition = 1;
-            MainPanel.FrameHeight = Console.WindowHeight - 3;
-
-            int pos = 0;
-            bool inmenu = true;
-            List<string> helplines = new List<string>();
-
-            Stream s = System.Reflection.Assembly.GetExecutingAssembly().GetManifestResourceStream("_0xdd.Help.txt");
-            using (StreamReader sr = new StreamReader(s))
-            {
-                int WinWidth = Console.WindowWidth - 1;
-
-                while (!sr.EndOfStream)
-                {
-                    string tmp = sr.ReadLine();
-
-                    if (tmp.Length > WinWidth)
-                    {
-                        int tmppos = 0;
-                        bool finished = false;
-                        while (!finished)
-                        {
-                            if (tmppos + WinWidth > tmp.Length)
-                            {
-                                helplines.Add(tmp.Substring(tmppos));
-                                finished = true;
-                            }
-                            else
-                            {
-                                helplines.Add(tmp.Substring(tmppos, WinWidth));
-                                tmppos += WinWidth;
-                            }
-                        }
-                    }
-                    else
-                        helplines.Add(tmp);
-                }
-
-            }
-
-            MainPanel.Clear();
-            RenderHelp(ref helplines, pos);
-            while (inmenu)
-            {
-                ConsoleKeyInfo cki = Console.ReadKey(true);
-
-                switch (cki.Key)
-                {
-                    case ConsoleKey.X:
-                        if (cki.Modifiers == ConsoleModifiers.Control)
-                        {
-                            // Exit completely
-                            return Exit();
-                        }
-                        break;
-
-                    case ConsoleKey.Escape:
-                        // Exit help, not 0xdd.
-                        inmenu = false;
-                        break;
-
-                    case ConsoleKey.UpArrow:
-                        if (pos - 1 >= 0)
-                        {
-                            MainPanel.Clear();
-                            RenderHelp(ref helplines, --pos);
-                        }
-                        break;
-                    case ConsoleKey.DownArrow:
-                        if (pos + MainPanel.FrameHeight + 1 < helplines.Count)
-                        {
-                            MainPanel.Clear();
-                            RenderHelp(ref helplines, ++pos);
-                        }
-                        break;
-
-                    case ConsoleKey.PageUp:
-                        if (pos - MainPanel.FrameHeight >= 0)
-                        {
-                            pos -= MainPanel.FrameHeight;
-                            MainPanel.Clear();
-                            RenderHelp(ref helplines, pos);
-                        }
-                        break;
-                    case ConsoleKey.PageDown:
-                        if (pos + (MainPanel.FrameHeight * 2) < helplines.Count)
-                        {
-                            pos += MainPanel.FrameHeight;
-                            MainPanel.Clear();
-                            RenderHelp(ref helplines, pos);
-                        }
-                        break;
-                }
-            }
-
-            MainPanel.StartingTopPosition = 2;
-            MainPanel.FrameHeight = Console.WindowHeight - 5;
-            OffsetPanel.Update();
-            InfoPanel.Update();
-            MainPanel.Refresh();
-
-            return true;
-        }
-
-        static void RenderHelp(ref List<string> helplines, int pPosition)
-        {
-            Console.SetCursorPosition(0, MainPanel.StartingTopPosition);
-            for (int i = 0; i < MainPanel.FrameHeight; i++)
-            {
-                if (pPosition < helplines.Count)
-                {
-                    Console.WriteLine(helplines[++pPosition]);
-                }
-                else
-                    return;
-            }
-        }
+        #region lambdas
+        static string ToOct(long c) =>
+            $"{Convert.ToString(CurrentFilePosition, 8).FillZeros(8),8}";
         #endregion
 
         #region Type extensions
