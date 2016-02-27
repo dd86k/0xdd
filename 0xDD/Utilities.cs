@@ -105,21 +105,21 @@ namespace _0xdd
             return string.Empty;
         }
 
-        internal static int ReadValue(int pLimit)
+        internal static long ReadValue(int pLimit)
         {
             string t = ReadLine(pLimit);
             
             if (t.StartsWith("0x")) // Hexadecimal
             {
-                return Convert.ToInt32(t, 16);
+                return Convert.ToInt64(t, 16);
             }
             else if (t[0] == '0') // Octal
             {
-                return Convert.ToInt32(t, 8);
+                return Convert.ToInt64(t, 8);
             }
             else // Decimal
             {
-                return int.Parse(t);
+                return long.Parse(t);
             }
         }
 
@@ -128,16 +128,16 @@ namespace _0xdd
             return GetUserInput(pMessage, 27, 4, pMaxBytes, pCurrentFileLength);
         }
 
-        internal static int? GetNumberFromUser(string pMessage, int pMaxBytes, long pCurrentFileLength)
+        internal static long? GetNumberFromUser(string pMessage, int pMaxBytes, long pCurrentFileLength)
         {
             return GetNumberFromUser(pMessage, 27, 4, pMaxBytes, pCurrentFileLength);
         }
 
-        internal static int? GetNumberFromUser(string pMessage, int pWidth, int pHeight, int pMaxBytes, long pCurrentFileLength)
+        internal static long? GetNumberFromUser(string pMessage, int pWidth, int pHeight, int pMaxBytes, long pCurrentFileLength)
         {
             GenerateInputBox(pMessage, pWidth, pHeight);
 
-            int? t = null;
+            long? t = null;
 
             try
             {

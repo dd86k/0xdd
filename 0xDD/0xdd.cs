@@ -211,6 +211,8 @@ namespace _0xdd
                         t += $"{Buffer[BufferOffsetHex++].ToSafeChar()}";
                     }
 
+                    t += " ";
+
                     Console.WriteLine(t);
                 }
             }
@@ -233,8 +235,6 @@ namespace _0xdd
         #endregion
 
         #region InfoPanel
-        static bool MessageOnScreen;
-
         /// <summary>
         /// Info panel: Offsets and current offsets (positions) are shown.
         /// </summary>
@@ -258,13 +258,8 @@ namespace _0xdd
             {
                 Console.SetCursorPosition(0, Position);
                 string s = $"  DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {ToOct(CurrentFilePosition)}";
-                if (MessageOnScreen)
-                    // Force clean last message.
-                    Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
-                else
-                    Console.Write(s);
 
-                MessageOnScreen = false;
+                Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
             }
         }
         #endregion
@@ -283,7 +278,7 @@ namespace _0xdd
             {
                 string t = $"Offset {CurrentOffsetBaseView.GetChar()}  ";
 
-                if (CurrentFilePosition > int.MaxValue)
+                if (CurrentFilePosition > uint.MaxValue)
                     t += " ";
 
                 for (int i = 0; i < MainPanel.BytesInRow;)
@@ -471,7 +466,7 @@ namespace _0xdd
                 case ConsoleKey.W:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        int? t = Utils.GetNumberFromUser("Find byte:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
+                        long? t = Utils.GetNumberFromUser("Find byte:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
                         if (t == null)
                         {
@@ -561,7 +556,7 @@ namespace _0xdd
                 case ConsoleKey.G:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        int? t = Utils.GetNumberFromUser("Goto:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
+                        long? t = Utils.GetNumberFromUser("Goto:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
                         if (t == null)
                         {
@@ -796,8 +791,6 @@ namespace _0xdd
             Console.Write(msg);
 
             Console.ResetColor();
-
-            MessageOnScreen = true;
         }
 
         /// <summary>
