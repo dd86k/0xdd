@@ -4,8 +4,9 @@ using System.Text;
 
 namespace _0xdd
 {
-    static class Utilities
+    static class Utils
     {
+        #region Formatting
         static internal string GetFormattedSize(long pSize)
         {
             if (pSize > Math.Pow(1024, 3)) // GB
@@ -17,8 +18,9 @@ namespace _0xdd
             else // B
                 return $"{pSize} B";
         }
+        #endregion
 
-        #region Read
+        #region User input
         /// <summary>
         /// Readline with a maximum length.
         /// </summary>
@@ -120,8 +122,129 @@ namespace _0xdd
                 return int.Parse(t);
             }
         }
+
+        internal static string GetUserInput(string pMessage, int pMaxBytes, long pCurrentFileLength)
+        {
+            return GetUserInput(pMessage, 27, 4, pMaxBytes, pCurrentFileLength);
+        }
+
+        internal static int? GetNumberFromUser(string pMessage, int pMaxBytes, long pCurrentFileLength)
+        {
+            return GetNumberFromUser(pMessage, 27, 4, pMaxBytes, pCurrentFileLength);
+        }
+
+        internal static int? GetNumberFromUser(string pMessage, int pWidth, int pHeight, int pMaxBytes, long pCurrentFileLength)
+        {
+            GenerateInputBox(pMessage, pWidth, pHeight);
+
+            int? t = null;
+
+            try
+            {
+                t = ReadValue(pWidth - 2);
+            }
+            catch
+            {
+
+            }
+
+            if (pMaxBytes < pCurrentFileLength)
+                ClearRange(pWidth, pHeight);
+            else
+                Console.ResetColor();
+
+            return t;
+        }
+
+        internal static string GetUserInput(string pMessage, int pWidth, int pHeight, int pMaxBytes, long pCurrentFileLength)
+        {
+            int width = 27;
+            int height = 4;
+
+            GenerateInputBox(pMessage, width, height);
+
+            string t = ReadLine(pWidth - 2);
+
+            if (pMaxBytes < pCurrentFileLength)
+                ClearRange(pWidth, pHeight);
+            else
+                Console.ResetColor();
+
+            return t;
+        }
         #endregion
 
+        #region Console
+        static void GenerateInputBox(string pMessage, int pWidth, int pHeight)
+        {
+            // -- Begin prepare box --
+            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
+            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
+
+            Console.SetCursorPosition(startx, starty);
+            Console.Write('┌');
+            Console.Write(new string('─', pWidth - 2));
+            Console.Write('┐');
+
+            for (int i = 0; i < pHeight - 2; i++)
+            {
+                Console.SetCursorPosition(startx, starty + i + 1);
+                Console.Write('│');
+            }
+            for (int i = 0; i < pHeight - 2; i++)
+            {
+                Console.SetCursorPosition(startx + pWidth - 1, starty + i + 1);
+                Console.Write('│');
+            }
+
+            Console.SetCursorPosition(startx, starty + pHeight - 1);
+            Console.Write('└');
+            Console.Write(new string('─', pWidth - 2));
+            Console.Write('┘');
+
+            Console.SetCursorPosition(startx + 1, starty + 1);
+            Console.Write(pMessage);
+            if (pMessage.Length < pWidth - 2)
+                Console.Write(new string(' ', pWidth - pMessage.Length - 2));
+            // -- End prepare box --
+
+            // -- Begin prepare text box --
+            ToggleColors();
+            Console.SetCursorPosition(startx + 1, starty + 2);
+            Console.Write(new string(' ', pWidth - 2));
+            Console.SetCursorPosition(startx + 1, starty + 2);
+            // -- End prepare text box --
+        }
+
+        internal static void ClearRange(int pWidth, int pHeight)
+        {
+            Console.ResetColor();
+            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
+            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
+            for (int i = 0; i < pHeight; i++)
+            {
+                Console.SetCursorPosition(startx, starty + i);
+                Console.Write(new string(' ', pWidth));
+            }
+        }
+
+        /// <summary>
+        /// Toggles current ForegroundColor to black
+        /// and BackgroundColor to gray.
+        /// </summary>
+        internal static void ToggleColors()
+        {
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.BackgroundColor = ConsoleColor.Gray;
+        }
+
+        internal static int GetBytesInRow()
+        {
+            return ((Console.WindowWidth - 10) / 4) - 1;
+        }
+        #endregion
+
+        #region Text
         // http://stackoverflow.com/a/19283954
         static internal Encoding GetEncoding(string filename)
         {
@@ -140,5 +263,6 @@ namespace _0xdd
             if (bom[0] == 0 && bom[1] == 0 && bom[2] == 0xfe && bom[3] == 0xff) return Encoding.UTF32;
             return Encoding.ASCII;
         }
+        #endregion
     }
 }

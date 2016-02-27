@@ -65,6 +65,7 @@ namespace _0xdd
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
             //args = new string[] { "tt" };
+            args = new string[] { "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
@@ -83,7 +84,7 @@ namespace _0xdd
             // Defaults
             string file = args[args.Length - 1];
             int bytesInRow = 16;
-            _0xdd.OffsetBaseView ovm = _0xdd.OffsetBaseView.Hexadecimal;
+            OffsetBaseView ovm = OffsetBaseView.Hexadecimal;
             bool dump = false;
 
             for (int i = 0; i < args.Length; i++)
@@ -102,11 +103,11 @@ namespace _0xdd
                                 break;
                             case 'd':
                             case 'D':
-                                ovm = _0xdd.OffsetBaseView.Decimal;
+                                ovm = OffsetBaseView.Decimal;
                                 break;
                             case 'o':
                             case 'O':
-                                ovm = _0xdd.OffsetBaseView.Octal;
+                                ovm = OffsetBaseView.Octal;
                                 break;
                             default:
                                 Console.WriteLine($"Invalid parameter for /v: {args[i + 1]}");
@@ -121,7 +122,7 @@ namespace _0xdd
                         // Automatic
                         if (args[i + 1][0] == 'a' || args[i + 1][0] == 'A')
                         {
-                            bytesInRow = ((Console.WindowWidth - 10) / 4) - 1;
+                            bytesInRow = Utils.GetBytesInRow();
                         }
                         // User-defined
                         else if (int.TryParse(args[i + 1], out bytesInRow))
@@ -155,7 +156,6 @@ namespace _0xdd
                     case "/ver":
                     case "-ver":
                     case "/version":
-                    case "-version":
                     case "--version":
                         ShowVersion();
                         return 0;
@@ -219,15 +219,15 @@ namespace _0xdd
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Red;
 
-            Console.WriteLine(" !! Fatal error !! ");
+            Console.WriteLine("  !! Fatal error !!  ");
 
             Console.ResetColor();
 
             Console.WriteLine($"Exception: {e.GetType()}");
             Console.WriteLine($"Message: {e.Message}");
-            Console.WriteLine("  -- BEGIN TRACE --");
+            Console.WriteLine("    -- BEGIN TRACE --");
             Console.WriteLine(e.StackTrace);
-            Console.WriteLine("  -- END TRACE --");
+            Console.WriteLine("    -- END TRACE --");
 
             Console.WriteLine();
         }
@@ -240,8 +240,8 @@ namespace _0xdd
             Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/dump] <file>");
             Console.WriteLine();
             Console.WriteLine("  /v      Start with an offset view: Hex, Dec, Oct.        Default: Hex");
-            Console.WriteLine("  /w      Start with a number of bytes to show in a row.   Default: 16");
-            Console.WriteLine("  /dump   Dumps the data file as plain text.");
+            Console.WriteLine("  /w      Start with a number of bytes to show in a row.   Default: Auto");
+            Console.WriteLine("  /dump   Dumps the data as <File>.hexdmp as plain text.");
             Console.WriteLine();
             Console.WriteLine("  /?         Shows this screen and exits.");
             Console.WriteLine("  /version   Shows version and exits.");

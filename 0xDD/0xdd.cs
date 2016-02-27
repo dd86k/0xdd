@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -33,6 +32,20 @@ namespace _0xdd
         PositionOutOfBound = 0x16,
 
         UnknownError = 0xFF
+    }
+    
+    internal enum OffsetBaseView : byte
+    {
+        Hexadecimal,
+        Decimal,
+        Octal
+    }
+    
+    enum OperatingMode : byte
+    {
+        Read, // READ
+        Overwrite, // OVRW
+        Insert // INSR
     }
 
     struct FindResult
@@ -100,7 +113,7 @@ namespace _0xdd
         {
             static internal void Update()
             {
-                ToggleColors();
+                Utils.ToggleColors();
 
                 Console.SetCursorPosition(0, 0);
                 Console.Write(CurrentFile.Name);
@@ -116,7 +129,7 @@ namespace _0xdd
         /// Main panel which represents the offset, data as bytes,
         /// and data as ASCII characters.
         /// </summary>
-        static class MainPanel
+        internal static class MainPanel
         {
             /// <summary>
             /// Position to start rendering on the console (Y axis).
@@ -158,57 +171,44 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                long filelen = CurrentFile.Length;
+                long l = CurrentFile.Length;
 
                 int BufferOffsetHex = 0;
                 int BufferOffsetData = 0;
 
+                string t = string.Empty;
+                
+                OffsetPanel.Update();
+                
                 Console.SetCursorPosition(0, StartingTopPosition);
-
-                StringBuilder t = new StringBuilder();
 
                 for (int line = 0; line < FrameHeight; line++)
                 {
                     switch (CurrentOffsetBaseView)
                     {
                         case OffsetBaseView.Hexadecimal:
-                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFilePosition):X8}  ");
+                            t = $"{((line * BytesInRow) + CurrentFilePosition):X8}  ";
                             break;
 
                         case OffsetBaseView.Decimal:
-                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFilePosition):D8}  ");
+                            t = $"{((line * BytesInRow) + CurrentFilePosition):D8}  ";
                             break;
 
                         case OffsetBaseView.Octal:
-                            t = new StringBuilder($"{ToOct((line * BytesInRow) + CurrentFilePosition)}  ");
+                            t = $"{ToOct((line * BytesInRow) + CurrentFilePosition)}  ";
                             break;
                     }
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (CurrentFilePosition + BufferOffsetData < filelen)
-                            t.Append($"{Buffer[BufferOffsetData]:X2} ");
-                        else
-                            t.Append("   ");
-
-                        BufferOffsetData++;
+                        t += $"{Buffer[BufferOffsetData++]:X2} ";
                     }
 
-                    t.Append(" ");
+                    t += " ";
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (CurrentFilePosition + BufferOffsetHex < filelen)
-                            t.Append($"{Buffer[BufferOffsetHex].ToSafeChar()}");
-                        else
-                        {
-                            // End rendering completely
-                            return;
-                            //x += BytesInRow;
-                            //line += FrameHeight;
-                        }
-
-                        BufferOffsetHex++;
+                        t += $"{Buffer[BufferOffsetHex++].ToSafeChar()}";
                     }
 
                     Console.WriteLine(t);
@@ -218,7 +218,7 @@ namespace _0xdd
             static internal void Refresh()
             {
                 Clear();
-                ReadAndUpdate(CurrentFilePosition);
+                ReadFileAndUpdate(CurrentFilePosition);
             }
 
             static internal void Clear()
@@ -243,7 +243,7 @@ namespace _0xdd
             /// <summary>
             /// Position to start rendering on the console (Y axis).
             /// </summary>
-            static internal int TopPosition
+            static internal int Position
             {
                 get
                 {
@@ -256,7 +256,7 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                Console.SetCursorPosition(0, TopPosition);
+                Console.SetCursorPosition(0, Position);
                 string s = $"  DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {ToOct(CurrentFilePosition)}";
                 if (MessageOnScreen)
                     // Force clean last message.
@@ -281,12 +281,18 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                Console.SetCursorPosition(0, 1);
-                Console.Write($"Offset {CurrentOffsetBaseView.GetChar()}  ");
+                string t = $"Offset {CurrentOffsetBaseView.GetChar()}  ";
+
+                if (CurrentFilePosition > int.MaxValue)
+                    t += " ";
+
                 for (int i = 0; i < MainPanel.BytesInRow;)
                 {
-                    Console.Write($"{i++:X2} ");
+                    t += $"{i++:X2} ";
                 }
+
+                Console.SetCursorPosition(0, 1);
+                Console.Write(t);
             }
         }
         #endregion
@@ -338,73 +344,19 @@ namespace _0xdd
 
         static void WriteWhite(string pText)
         {
-            ToggleColors();
+            Utils.ToggleColors();
             Console.Write(pText);
             Console.ResetColor();
         }
         #endregion
 
-        #region EditingMode
-        static class Edit
-        {
-            static long EditPosition;
-            static internal void MoveLeft()
-            {
-
-            }
-            static internal void MoveRight()
-            {
-
-            }
-            static internal void MoveUp()
-            {
-
-            }
-            static internal void MoveDown()
-            {
-
-            }
-            static void Render()
-            {
-
-            }
-        }
-        #endregion
-
         #region Enumerations
-        /// <summary>
-        /// Enumeration of the different offset base views.
-        /// </summary>
-        internal enum OffsetBaseView : byte
-        {
-            Hexadecimal,
-            Decimal,
-            Octal
-        }
 
         /// <summary>
         /// Current <see cref="OffsetBaseView"/>.
         /// </summary>
         static OffsetBaseView CurrentOffsetBaseView;
 
-        /// <summary>
-        /// Writing mode enumeration.
-        /// </summary>
-        enum OperatingMode : byte
-        {
-            /// <summary>
-            /// Read-only/Normal mode. READ
-            /// </summary>
-            Read,
-            /// <summary>
-            /// Overwrite value. OVRW
-            /// </summary>
-            Overwrite,
-            /// <summary>
-            /// Insert before value. INSR
-            /// </summary>
-            Insert
-        }
 
         /// <summary>
         /// Current <see cref="OperatingMode"/>. Read by default.
@@ -419,7 +371,7 @@ namespace _0xdd
         /// <param name="pFilePath">Path to the file.</param>
         internal static void Open(string pFilePath)
         {
-            Open(pFilePath, OffsetBaseView.Hexadecimal, 16);
+            Open(pFilePath, OffsetBaseView.Hexadecimal, ((Console.WindowWidth - 10) / 4) - 1);
         }
 
         /// <summary>
@@ -453,8 +405,10 @@ namespace _0xdd
         /// </summary>
         static void PrepareScreen()
         {
+            MainPanel.BytesInRow = Utils.GetBytesInRow();
+
             TitlePanel.Update();
-            OffsetPanel.Update();
+            //OffsetPanel.Update();
             ReadCurrentFile(0);
             MainPanel.Update();
             InfoPanel.Update();
@@ -504,7 +458,7 @@ namespace _0xdd
             {
                 // -- Hidden shortcuts --
                 case ConsoleKey.F5:
-                    MainPanel.Update();
+                    MainPanel.Refresh();
                     return true;
 
                 case ConsoleKey.F10:
@@ -517,7 +471,7 @@ namespace _0xdd
                 case ConsoleKey.W:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        int? t = GetNumberFromUser("Find byte:");
+                        int? t = Utils.GetNumberFromUser("Find byte:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
                         if (t == null)
                         {
@@ -559,7 +513,7 @@ namespace _0xdd
                 case ConsoleKey.J:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        string t = GetUserInput("Find data:");
+                        string t = Utils.GetUserInput("Find data:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
                         if (t == null || t.Length == 0)
                         {
@@ -574,7 +528,7 @@ namespace _0xdd
                         }
 
                         Message("Searching...");
-                        FindResult p = Find(t, CurrentFilePosition + 1, Utilities.GetEncoding(CurrentFile.Name));
+                        FindResult p = Find(t, CurrentFilePosition + 1, Utils.GetEncoding(CurrentFile.Name));
                         
                         switch (p.Error)
                         {
@@ -607,7 +561,7 @@ namespace _0xdd
                 case ConsoleKey.G:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        int? t = GetNumberFromUser("Find byte:");
+                        int? t = Utils.GetNumberFromUser("Goto:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
                         if (t == null)
                         {
@@ -629,7 +583,7 @@ namespace _0xdd
                 case ConsoleKey.O:
                     if (cki.Modifiers == ConsoleModifiers.Control)
                     {
-                        string c = GetUserInput("Hex, Dec, or Oct?:");
+                        string c = Utils.GetUserInput("Hex|Dec|Oct?:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
                         if (c == null || c.Length < 1)
                         {
@@ -685,7 +639,7 @@ namespace _0xdd
                         decimal ratioStart = Math.Round((decimal)CurrentFilePosition / CurrentFile.Length * 100);
                         decimal max = CurrentFile.Length < MainPanel.ScreenMaxBytes ? CurrentFile.Length : MainPanel.ScreenMaxBytes;
                         decimal ratioEnd = Math.Round(((CurrentFilePosition + max) / CurrentFile.Length) * 100);
-                        Message($"Size: {Utilities.GetFormattedSize(CurrentFile.Length)} | Position: {ratioStart}~{ratioEnd}%");
+                        Message($"Size: {Utils.GetFormattedSize(CurrentFile.Length)} | Position: {ratioStart}~{ratioEnd}%");
                     }
                     return true;
 
@@ -711,7 +665,7 @@ namespace _0xdd
                     {
                         if (CurrentFilePosition - 1 >= 0)
                         {
-                            ReadAndUpdate(--CurrentFilePosition);
+                            ReadFileAndUpdate(--CurrentFilePosition);
                         }
                     }
                     else
@@ -724,7 +678,7 @@ namespace _0xdd
                     {
                         if (CurrentFilePosition + MainPanel.ScreenMaxBytes + 1 <= CurrentFile.Length)
                         {
-                            ReadAndUpdate(++CurrentFilePosition);
+                            ReadFileAndUpdate(++CurrentFilePosition);
                         }
                     }
                     else
@@ -738,11 +692,11 @@ namespace _0xdd
                     {
                         if (CurrentFilePosition - MainPanel.BytesInRow >= 0)
                         {
-                            ReadAndUpdate(CurrentFilePosition -= MainPanel.BytesInRow);
+                            ReadFileAndUpdate(CurrentFilePosition -= MainPanel.BytesInRow);
                         }
                         else
                         {
-                            ReadAndUpdate(CurrentFilePosition = 0);
+                            ReadFileAndUpdate(CurrentFilePosition = 0);
                         }
                     }
                     else
@@ -755,12 +709,12 @@ namespace _0xdd
                     {
                         if (CurrentFilePosition + MainPanel.ScreenMaxBytes + MainPanel.BytesInRow <= CurrentFile.Length)
                         {
-                            ReadAndUpdate(CurrentFilePosition += MainPanel.BytesInRow);
+                            ReadFileAndUpdate(CurrentFilePosition += MainPanel.BytesInRow);
                         }
                         else
                         {
                             if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
-                                ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                                ReadFileAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                         }
                     }
                     else
@@ -774,11 +728,11 @@ namespace _0xdd
                     {
                         if (CurrentFilePosition - MainPanel.ScreenMaxBytes >= 0)
                         {
-                            ReadAndUpdate(CurrentFilePosition -= MainPanel.ScreenMaxBytes);
+                            ReadFileAndUpdate(CurrentFilePosition -= MainPanel.ScreenMaxBytes);
                         }
                         else
                         {
-                            ReadAndUpdate(CurrentFilePosition = 0);
+                            ReadFileAndUpdate(CurrentFilePosition = 0);
                         }
                     }
                     else
@@ -791,11 +745,11 @@ namespace _0xdd
                     {
                         if (CurrentFilePosition + (MainPanel.ScreenMaxBytes * 2) <= CurrentFile.Length)
                         {
-                            ReadAndUpdate(CurrentFilePosition += MainPanel.ScreenMaxBytes);
+                            ReadFileAndUpdate(CurrentFilePosition += MainPanel.ScreenMaxBytes);
                         }
                         else
                         {
-                            ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                            ReadFileAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                         }
                     }
                     else
@@ -806,56 +760,38 @@ namespace _0xdd
 
                 case ConsoleKey.Home:
                     if (CurrentWritingMode == OperatingMode.Read)
-                        ReadAndUpdate(CurrentFilePosition = 0);
-                    else
-                    {
-
-                    }
+                        ReadFileAndUpdate(CurrentFilePosition = 0);
                     return true;
                 case ConsoleKey.End:
                     if (CurrentWritingMode == OperatingMode.Read)
-                        ReadAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
-                    else
-                    {
-
-                    }
+                        ReadFileAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                     return true;
             }
 
             return true;
         }
 
-        static void ReadAndUpdate(long pPosition)
+        static void ReadFileAndUpdate(long pPosition)
         {
             ReadCurrentFile(pPosition);
             MainPanel.Update();
             InfoPanel.Update();
         }
-
-        /// <summary>
-        /// Toggles current ForegroundColor to black
-        /// and BackgroundColor to gray.
-        /// </summary>
-        static void ToggleColors()
-        {
-            Console.ForegroundColor = ConsoleColor.Black;
-            Console.BackgroundColor = ConsoleColor.Gray;
-        }
-
+        
         /// <summary>
         /// Displays a message on screen to inform the user.
         /// </summary>
         /// <param name="pMessage">Message to show.</param>
         static void Message(string pMessage)
         {
-            Console.SetCursorPosition(0, InfoPanel.TopPosition);
+            Console.SetCursorPosition(0, InfoPanel.Position);
             Console.Write(new string(' ', Console.WindowWidth - 1));
 
             string msg = $"[ {pMessage} ]";
             Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2),
-                InfoPanel.TopPosition);
+                InfoPanel.Position);
 
-            ToggleColors();
+            Utils.ToggleColors();
 
             Console.Write(msg);
 
@@ -895,110 +831,7 @@ namespace _0xdd
 
         static void Goto(long pPosition)
         {
-            ReadAndUpdate(CurrentFilePosition = pPosition);
-        }
-
-        static string GetUserInput(string pMessage)
-        {
-            return GetUserInput(pMessage, 27, 4);
-        }
-
-        static int? GetNumberFromUser(string pMessage)
-        {
-            return GetNumberFromUser(pMessage, 27, 4);
-        }
-
-        static int? GetNumberFromUser(string pMessage, int pWidth, int pHeight)
-        {
-            GenerateInputBox(pMessage, pWidth, pHeight);
-
-            int? t = null;
-
-            try
-            {
-                t = Utilities.ReadValue(pWidth - 2);
-            }
-            catch
-            {
-
-            }
-
-            if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
-                ClearRange(pWidth, pHeight);
-            else
-                Console.ResetColor();
-
-            return t;
-        }
-
-        static string GetUserInput(string pMessage, int pWidth, int pHeight)
-        {
-            int width = 27;
-            int height = 4;
-
-            GenerateInputBox(pMessage, width, height);
-
-            string t = Utilities.ReadLine(pWidth - 2);
-
-            if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
-                ClearRange(pWidth, pHeight);
-            else
-                Console.ResetColor();
-
-            return t;
-        }
-
-        static void GenerateInputBox(string pMessage, int pWidth, int pHeight)
-        {
-            // -- Begin prepare box --
-            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
-            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
-
-            Console.SetCursorPosition(startx, starty);
-            Console.Write('┌');
-            Console.Write(new string('─', pWidth - 2));
-            Console.Write('┐');
-
-            for (int i = 0; i < pHeight - 2; i++)
-            {
-                Console.SetCursorPosition(startx, starty + i + 1);
-                Console.Write('│');
-            }
-            for (int i = 0; i < pHeight - 2; i++)
-            {
-                Console.SetCursorPosition(startx + pWidth - 1, starty + i + 1);
-                Console.Write('│');
-            }
-
-            Console.SetCursorPosition(startx, starty + pHeight - 1);
-            Console.Write('└');
-            Console.Write(new string('─', pWidth - 2));
-            Console.Write('┘');
-            
-            Console.SetCursorPosition(startx + 1, starty + 1);
-            Console.Write(pMessage);
-            if (pMessage.Length < pWidth - 2)
-                Console.Write(new string(' ', pWidth - pMessage.Length - 2));
-            // -- End prepare box --
-
-            // -- Begin prepare text box --
-            ToggleColors();
-            Console.SetCursorPosition(startx + 1, starty + 2);
-            Console.Write(new string(' ', pWidth - 2));
-            Console.SetCursorPosition(startx + 1, starty + 2);
-            // -- End prepare text box --
-        }
-
-        static void ClearRange(int pWidth, int pHeight)
-        {
-            Console.ResetColor();
-            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
-            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
-            for (int i = 0; i < pHeight; i++)
-            {
-                Console.SetCursorPosition(startx, starty + i);
-                Console.Write(new string(' ', pWidth));
-            }
+            ReadFileAndUpdate(CurrentFilePosition = pPosition);
         }
 
         static void Dump()
@@ -1027,7 +860,7 @@ namespace _0xdd
 
                 sw.WriteLine(file.Name);
                 sw.WriteLine();
-                sw.WriteLine($"Size: {Utilities.GetFormattedSize(filelen)}");
+                sw.WriteLine($"Size: {Utils.GetFormattedSize(filelen)}");
                 sw.WriteLine($"Attributes: {file.Attributes}");
                 sw.WriteLine($"File date: {file.CreationTime}");
                 sw.WriteLine($"Dump date: {DateTime.Now}");
@@ -1154,7 +987,7 @@ namespace _0xdd
         /// <param name="pData">Data as a string.</param>
         /// <param name="pEncoding">Encoding.</param>
         /// <returns>Position.</returns>
-        static FindResult Find(string pData, System.Text.Encoding pEncoding)
+        static FindResult Find(string pData, Encoding pEncoding)
         {
             return Find(pData, CurrentFilePosition, pEncoding);
         }
@@ -1171,7 +1004,7 @@ namespace _0xdd
         /// Search every character, if one seems to be right.
         /// Read the data and compare it.
         /// </remarks>
-        static FindResult Find(string pData, long pPosition, System.Text.Encoding pEncoding)
+        static FindResult Find(string pData, long pPosition, Encoding pEncoding)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
                 return new FindResult(ErrorCode.PositionOutOfBound);
@@ -1227,9 +1060,14 @@ namespace _0xdd
         }
         #endregion
 
-        #region lambdas
-        static string ToOct(long c) =>
-            $"{Convert.ToString(CurrentFilePosition, 8).FillZeros(8),8}";
+        #region
+        static string ToOct(long c)
+        {
+            if (c > int.MaxValue)
+                return $"{Convert.ToString(c, 8).FillZeros(16),16}";
+            else
+                return $"{Convert.ToString(c, 8).FillZeros(8),8}";
+        }
         #endregion
 
         #region Type extensions
