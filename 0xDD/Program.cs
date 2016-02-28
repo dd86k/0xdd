@@ -65,7 +65,7 @@ namespace _0xdd
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
             //args = new string[] { "tt" };
-            args = new string[] { "hf.iso" };
+            //args = new string[] { "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
@@ -97,10 +97,6 @@ namespace _0xdd
                     case "/view":
                         switch (args[i + 1][0])
                         {
-                            case 'h':
-                            case 'H':
-                                // Don't change, h is default anyway.
-                                break;
                             case 'd':
                             case 'D':
                                 ovm = OffsetBaseView.Decimal;
@@ -109,8 +105,8 @@ namespace _0xdd
                             case 'O':
                                 ovm = OffsetBaseView.Octal;
                                 break;
-                            default:
-                                Console.WriteLine($"Invalid parameter for /v: {args[i + 1]}");
+                            default: // hex is default
+                                Console.WriteLine($"Invalid parameter for /v : {args[i + 1]}");
                                 return 1;
                         }
                         break;
@@ -129,14 +125,14 @@ namespace _0xdd
                         {
                             if (bytesInRow < 1)
                             {
-                                Console.WriteLine($"Invalid parameter for /w: {args[i + 1]} (Too low)");
+                                Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Too low)");
                                 return 1;
                             }
                         }
                         // If parsing failed
                         else
                         {
-                            Console.WriteLine($"Invalid parameter for /w: {args[i + 1]} (Invalid format)");
+                            Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Invalid format)");
                             return 1;
                         }
                         break;
@@ -188,11 +184,11 @@ namespace _0xdd
                 {
                     #if DEBUG
                     // I want Visual Studio to catch the exceptions!
-                    _0xdd.Open(file, ovm, bytesInRow);
+                    return _0xdd.Open(file, ovm, bytesInRow);
                     #else
                     try
                     {
-                        _0xdd.Open(file, ovm, bytesInRow);
+                        return _0xdd.Open(file, ovm, bytesInRow);
                     }
                     catch (Exception e)
                     {
@@ -203,7 +199,7 @@ namespace _0xdd
             }
             else
             {
-                Console.WriteLine("File not found.");
+                Console.WriteLine($"Error: File not found. (0x{ErrorCode.FileNotFound:X8})");
                 return 1;
             }
 

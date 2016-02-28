@@ -1,8 +1,8 @@
 # VS temp folder
 .vs
 
-*\obj
-*\bin
+obj
+bin
 
 # Windows image file caches
 Thumbs.db

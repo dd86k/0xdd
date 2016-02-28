@@ -173,8 +173,8 @@ namespace _0xdd
             {
                 long l = CurrentFile.Length;
 
-                int BufferOffsetHex = 0;
                 int BufferOffsetData = 0;
+                int BufferOffsetText = 0;
 
                 string t = string.Empty;
                 
@@ -201,14 +201,27 @@ namespace _0xdd
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        t += $"{Buffer[BufferOffsetData++]:X2} ";
+                        if (CurrentFilePosition + BufferOffsetData < l)
+                            t += $"{Buffer[BufferOffsetData]:X2} ";
+                        else
+                            t += "   ";
+
+                        BufferOffsetData++;
                     }
 
                     t += " ";
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        t += $"{Buffer[BufferOffsetHex++].ToSafeChar()}";
+                        if (CurrentFilePosition + BufferOffsetText < l)
+                            t += $"{Buffer[BufferOffsetText].ToSafeChar()}";
+                        else
+                        {
+                            Console.Write(t);
+                            return;
+                        }
+
+                        BufferOffsetText++;
                     }
 
                     t += " ";
@@ -366,7 +379,7 @@ namespace _0xdd
         /// <param name="pFilePath">Path to the file.</param>
         internal static void Open(string pFilePath)
         {
-            Open(pFilePath, OffsetBaseView.Hexadecimal, ((Console.WindowWidth - 10) / 4) - 1);
+            Open(pFilePath, OffsetBaseView.Hexadecimal, Utils.GetBytesInRow());
         }
 
         /// <summary>
@@ -374,10 +387,10 @@ namespace _0xdd
         /// </summary>
         /// <param name="pFilePath">Path to the file.</param>
         /// <param name="pOffsetViewMode">Offset base to start with.</param>
-        internal static void Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
+        internal static int Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
         {
             if (!File.Exists(pFilePath))
-                throw new FileNotFoundException("File not found!", pFilePath);
+                return (int)ErrorCode.FileNotFound;
 
             CurrentFile = new FileInfo(pFilePath);
             
@@ -393,6 +406,8 @@ namespace _0xdd
             LastWindowWidth = Console.WindowWidth;
             
             while (ReadUserKey()) { }
+
+            return 0;
         }
 
         /// <summary>
@@ -419,15 +434,11 @@ namespace _0xdd
             using (StreamReader sr = new StreamReader(CurrentFile.FullName))
             {
                 sr.BaseStream.Position = pBasePosition;
+                
+                Buffer = new byte[sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
+                    (int)sr.BaseStream.Length : MainPanel.ScreenMaxBytes];
 
-                // Length to read
-                int len =
-                    sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
-                    (int)sr.BaseStream.Length : MainPanel.ScreenMaxBytes;
-
-                Buffer = new byte[len];
-
-                sr.BaseStream.Read(Buffer, 0, len);
+                sr.BaseStream.Read(Buffer, 0, Buffer.Length);
             }
         }
 
@@ -437,7 +448,7 @@ namespace _0xdd
         /// <returns>Returns true if still using 0xdd.</returns>
         static bool ReadUserKey()
         {
-            ConsoleKeyInfo cki = Console.ReadKey(true);
+            ConsoleKeyInfo input = Console.ReadKey(true);
 
             if (LastWindowHeight != Console.WindowHeight ||
                 LastWindowWidth != Console.WindowWidth)
@@ -449,7 +460,7 @@ namespace _0xdd
                 LastWindowWidth = Console.WindowWidth;
             }
             
-            switch (cki.Key)
+            switch (input.Key)
             {
                 // -- Hidden shortcuts --
                 case ConsoleKey.F5:
@@ -464,7 +475,7 @@ namespace _0xdd
 
                 // Find byte
                 case ConsoleKey.W:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                     {
                         long? t = Utils.GetNumberFromUser("Find byte:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
@@ -474,7 +485,7 @@ namespace _0xdd
                             return true;
                         }
 
-                        if (t < 0 || t > 0xFF)
+                        if (t < 0 || t > byte.MaxValue)
                         {
                             MainPanel.Update();
                             Message("A byte is a value between 0 and 255.");
@@ -506,7 +517,7 @@ namespace _0xdd
 
                 // Find data
                 case ConsoleKey.J:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                     {
                         string t = Utils.GetUserInput("Find data:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
@@ -554,7 +565,7 @@ namespace _0xdd
 
                 // Goto
                 case ConsoleKey.G:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                     {
                         long? t = Utils.GetNumberFromUser("Goto:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
@@ -576,7 +587,7 @@ namespace _0xdd
 
                 // Offset base
                 case ConsoleKey.O:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                     {
                         string c = Utils.GetUserInput("Hex|Dec|Oct?:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
 
@@ -623,13 +634,13 @@ namespace _0xdd
 
                 // Replace
                 case ConsoleKey.H:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                         throw new NotImplementedException();
                     return true;
 
                 // Info
                 case ConsoleKey.I:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                     {
                         decimal ratioStart = Math.Round((decimal)CurrentFilePosition / CurrentFile.Length * 100);
                         decimal max = CurrentFile.Length < MainPanel.ScreenMaxBytes ? CurrentFile.Length : MainPanel.ScreenMaxBytes;
@@ -640,13 +651,13 @@ namespace _0xdd
 
                 // Exit
                 case ConsoleKey.X:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                         return Exit();
                     return true;
 
                 // Dump
                 case ConsoleKey.D:
-                    if (cki.Modifiers == ConsoleModifiers.Control)
+                    if (input.Modifiers == ConsoleModifiers.Control)
                     {
                         Message("Dumping...");
                         Dump();
@@ -663,10 +674,6 @@ namespace _0xdd
                             ReadFileAndUpdate(--CurrentFilePosition);
                         }
                     }
-                    else
-                    {
-
-                    }
                     return true;
                 case ConsoleKey.RightArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -675,10 +682,6 @@ namespace _0xdd
                         {
                             ReadFileAndUpdate(++CurrentFilePosition);
                         }
-                    }
-                    else
-                    {
-
                     }
                     return true;
 
@@ -694,10 +697,6 @@ namespace _0xdd
                             ReadFileAndUpdate(CurrentFilePosition = 0);
                         }
                     }
-                    else
-                    {
-
-                    }
                     return true;
                 case ConsoleKey.DownArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -711,10 +710,6 @@ namespace _0xdd
                             if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
                                 ReadFileAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                         }
-                    }
-                    else
-                    {
-
                     }
                     return true;
 
@@ -730,10 +725,6 @@ namespace _0xdd
                             ReadFileAndUpdate(CurrentFilePosition = 0);
                         }
                     }
-                    else
-                    {
-
-                    }
                     return true;
                 case ConsoleKey.PageDown:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -746,10 +737,6 @@ namespace _0xdd
                         {
                             ReadFileAndUpdate(CurrentFilePosition = CurrentFile.Length - MainPanel.ScreenMaxBytes);
                         }
-                    }
-                    else
-                    {
-
                     }
                     return true;
 
