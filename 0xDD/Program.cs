@@ -3,12 +3,12 @@ using System.IO;
 using System.Diagnostics;
 using System.Reflection;
 
+//TODO: If size set manully, no auto adjust
+
 namespace _0xdd
 {
     class Program
     {
-        const string UPDATER_NAME = "0xdd_updater.exe";
-
         /// <summary>
         /// Get the current version of the project as a string object.
         /// </summary>
@@ -194,16 +194,16 @@ namespace _0xdd
                     {
                         Abort(e);
                     }
-                    #endif
+#endif
+
+                    return 0;
                 }
             }
             else
             {
-                Console.WriteLine($"Error: File not found. (0x{ErrorCode.FileNotFound:X8})");
-                return 1;
+                Console.WriteLine($"Error: File not found. (0x{(int)ErrorCode.FileNotFound:X8})");
+                return (int)ErrorCode.FileNotFound;
             }
-
-            return 0;
         }
 
         static void Abort(Exception e)
