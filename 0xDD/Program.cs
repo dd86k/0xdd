@@ -30,8 +30,7 @@ namespace _0xdd
             get
             {
                 return
-                    Assembly
-                    .GetExecutingAssembly().GetName().Name;
+                    Assembly.GetExecutingAssembly().GetName().Name;
             }
         }
         
@@ -49,12 +48,7 @@ namespace _0xdd
                     );
             }
         }
-
-        /// <summary>
-        /// Entry point (.ctor)
-        /// </summary>
-        /// <param name="args">CLI arguments.</param>
-        /// <returns>Error.</returns>
+        
         static int Main(string[] args)
         {
 #if DEBUG
@@ -63,7 +57,7 @@ namespace _0xdd
             //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
-            //args = new string[] { "b" };
+            args = new string[] { "b" };
             //args = new string[] { "tt" };
             //args = new string[] { "hf.iso" };
             //args = new string[] { "-dump", "tt" };

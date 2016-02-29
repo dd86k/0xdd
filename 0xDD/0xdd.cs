@@ -8,6 +8,9 @@ using System.Text;
 // ^^    ^
 // highlighted (gray on black) while navigating
 
+//TODO: Consider if we want to keep the file open in a SteamReader in memory
+// for faster access (instead of re-opening the open over and over)
+
 /*
     Box of ideas (Lazy TODO/idea list)
     - Top right (under title): Insert(INS)/Overwrite(OVR) (bool)
@@ -134,7 +137,7 @@ namespace _0xdd
             /// <summary>
             /// Position to start rendering on the console (Y axis).
             /// </summary>
-            static internal int StartingTopPosition = 2;
+            static internal int TopPosition = 2;
 
             /// <summary>
             /// Gets or sets the heigth of the main panel.
@@ -167,7 +170,7 @@ namespace _0xdd
             }
 
             /// <summary>
-            /// Update the section of the screen with the data.
+            /// Update the section of the screen from the buffer.
             /// </summary>
             static internal void Update()
             {
@@ -180,7 +183,7 @@ namespace _0xdd
                 
                 OffsetPanel.Update();
                 
-                Console.SetCursorPosition(0, StartingTopPosition);
+                Console.SetCursorPosition(0, TopPosition);
 
                 for (int line = 0; line < FrameHeight; line++)
                 {
@@ -238,7 +241,7 @@ namespace _0xdd
 
             static internal void Clear()
             {
-                Console.SetCursorPosition(0, StartingTopPosition);
+                Console.SetCursorPosition(0, TopPosition);
                 for (int i = 0; i < FrameHeight; i++)
                 {
                     Console.Write(new string(' ', Console.WindowWidth));
@@ -373,20 +376,11 @@ namespace _0xdd
         #endregion
 
         #region Methods
-        /// <summary>
-        /// Open a file and starts the program with defaults.
-        /// </summary>
-        /// <param name="pFilePath">Path to the file.</param>
-        internal static void Open(string pFilePath)
+        internal static int Open(string pFilePath)
         {
-            Open(pFilePath, OffsetBaseView.Hexadecimal, Utils.GetBytesInRow());
+            return Open(pFilePath, OffsetBaseView.Hexadecimal, Utils.GetBytesInRow());
         }
-
-        /// <summary>
-        /// Open a file and starts the program.
-        /// </summary>
-        /// <param name="pFilePath">Path to the file.</param>
-        /// <param name="pOffsetViewMode">Offset base to start with.</param>
+        
         internal static int Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
         {
             if (!File.Exists(pFilePath))
@@ -396,15 +390,17 @@ namespace _0xdd
             
             MainPanel.BytesInRow = pBytesRow;
 
+            Console.CursorVisible = false;
+
             CurrentOffsetBaseView = pOffsetViewMode;
+            LastWindowHeight = Console.WindowHeight;
+            LastWindowWidth = Console.WindowWidth;
+
+            Buffer = new byte[CurrentFile.Length < MainPanel.ScreenMaxBytes ?
+                     (int)CurrentFile.Length : MainPanel.ScreenMaxBytes];
 
             PrepareScreen();
 
-            Console.CursorVisible = false;
-
-            LastWindowHeight = Console.WindowHeight;
-            LastWindowWidth = Console.WindowWidth;
-            
             while (ReadUserKey()) { }
 
             return 0;
@@ -434,10 +430,6 @@ namespace _0xdd
             using (StreamReader sr = new StreamReader(CurrentFile.FullName))
             {
                 sr.BaseStream.Position = pBasePosition;
-                
-                Buffer = new byte[sr.BaseStream.Length < MainPanel.ScreenMaxBytes ?
-                    (int)sr.BaseStream.Length : MainPanel.ScreenMaxBytes];
-
                 sr.BaseStream.Read(Buffer, 0, Buffer.Length);
             }
         }
@@ -787,7 +779,7 @@ namespace _0xdd
         {
             if (Fullscreen)
             { // Turning off
-                MainPanel.StartingTopPosition = 2;
+                MainPanel.TopPosition = 2;
                 //MainPanel.FrameHeight = Console.WindowHeight - 5;
                 //InfoPanel.TopPosition = Console.WindowHeight - 3;
                 Fullscreen = false;
@@ -799,7 +791,7 @@ namespace _0xdd
             }
             else
             { // Turning on
-                MainPanel.StartingTopPosition = 1;
+                MainPanel.TopPosition = 1;
                 //MainPanel.FrameHeight = Console.WindowHeight - 2;
                 //InfoPanel.TopPosition = Console.WindowHeight - 1;
                 Fullscreen = true;
