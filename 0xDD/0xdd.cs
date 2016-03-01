@@ -109,6 +109,8 @@ namespace _0xdd
         // Last window sizes.
         static int LastWindowHeight;
         static int LastWindowWidth;
+
+        static FileStream CurrentFileStream;
         #endregion
 
         #region TitlePanel
@@ -242,9 +244,12 @@ namespace _0xdd
             static internal void Clear()
             {
                 Console.SetCursorPosition(0, TopPosition);
-                for (int i = 0; i < FrameHeight; i++)
+                int i = 0;
+                for (int line = TopPosition; i < FrameHeight; line++)
                 {
+                    Console.SetCursorPosition(0, line);
                     Console.Write(new string(' ', Console.WindowWidth));
+                    i++;
                 }
             }
         }
@@ -385,8 +390,6 @@ namespace _0xdd
         {
             if (!File.Exists(pFilePath))
                 return (int)ErrorCode.FileNotFound;
-
-            CurrentFile = new FileInfo(pFilePath);
             
             MainPanel.BytesInRow = pBytesRow;
 
@@ -396,10 +399,16 @@ namespace _0xdd
             LastWindowHeight = Console.WindowHeight;
             LastWindowWidth = Console.WindowWidth;
 
+            CurrentFile = new FileInfo(pFilePath);
+
+            CurrentFileStream = CurrentFile.Open(FileMode.Open); // Open, for now
+
             Buffer = new byte[CurrentFile.Length < MainPanel.ScreenMaxBytes ?
                      (int)CurrentFile.Length : MainPanel.ScreenMaxBytes];
 
             PrepareScreen();
+
+            ///TODO: Find a way to return any <see cref="ErrorCode"/> through that loop
 
             while (ReadUserKey()) { }
 
@@ -414,7 +423,6 @@ namespace _0xdd
             MainPanel.BytesInRow = Utils.GetBytesInRow();
 
             TitlePanel.Update();
-            //OffsetPanel.Update();
             ReadCurrentFile(0);
             MainPanel.Update();
             InfoPanel.Update();
@@ -427,11 +435,8 @@ namespace _0xdd
         /// <param name="pBasePosition">Position.</param>
         static void ReadCurrentFile(long pBasePosition)
         {
-            using (StreamReader sr = new StreamReader(CurrentFile.FullName))
-            {
-                sr.BaseStream.Position = pBasePosition;
-                sr.BaseStream.Read(Buffer, 0, Buffer.Length);
-            }
+            CurrentFileStream.Position = pBasePosition;
+            CurrentFileStream.Read(Buffer, 0, Buffer.Length);
         }
 
         /// <summary>
