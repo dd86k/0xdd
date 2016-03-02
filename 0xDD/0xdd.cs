@@ -121,8 +121,14 @@ namespace _0xdd
                 Utils.ToggleColors();
 
                 Console.SetCursorPosition(0, 0);
-                Console.Write(CurrentFile.Name);
-                Console.Write(new string(' ', Console.WindowWidth - CurrentFile.Name.Length));
+
+                if (CurrentFile.Name.Length <= Console.WindowWidth)
+                {
+                    Console.Write(CurrentFile.Name);
+                    Console.Write(new string(' ', Console.WindowWidth - CurrentFile.Name.Length));
+                }
+                else
+                    Console.Write(CurrentFile.Name.Substring(0, Console.WindowWidth));
 
                 Console.ResetColor();
             }
@@ -277,10 +283,13 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                Console.SetCursorPosition(0, Position);
-                string s = $"  DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {ToOct(CurrentFilePosition)}";
+                decimal r =
+                    Math.Round(((CurrentFilePosition + (decimal)(CurrentFile.Length < MainPanel.ScreenMaxBytes ? CurrentFile.Length : MainPanel.ScreenMaxBytes)) / CurrentFile.Length) * 100);
 
-                Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1));
+                string s = $"  DEC: {CurrentFilePosition:D8} | HEX: {CurrentFilePosition:X8} | OCT: {ToOct(CurrentFilePosition)} | {r}%";
+
+                Console.SetCursorPosition(0, Position);
+                Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1)); // Force-clear any messages
             }
         }
         #endregion
@@ -470,6 +479,10 @@ namespace _0xdd
 
                 // -- Shown shortcuts --
 
+                //TODO: Show version 
+
+
+
                 // Find byte
                 case ConsoleKey.W:
                     if (input.Modifiers == ConsoleModifiers.Control)
@@ -639,10 +652,8 @@ namespace _0xdd
                 case ConsoleKey.I:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        decimal ratioStart = Math.Round((decimal)CurrentFilePosition / CurrentFile.Length * 100);
-                        decimal max = CurrentFile.Length < MainPanel.ScreenMaxBytes ? CurrentFile.Length : MainPanel.ScreenMaxBytes;
-                        decimal ratioEnd = Math.Round(((CurrentFilePosition + max) / CurrentFile.Length) * 100);
-                        Message($"Size: {Utils.GetFormattedSize(CurrentFile.Length)} | Position: {ratioStart}~{ratioEnd}%");
+                        
+                        Message($"Size: {Utils.GetFormattedSize(CurrentFile.Length)}");
                     }
                     return true;
 

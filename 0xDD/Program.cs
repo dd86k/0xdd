@@ -59,7 +59,7 @@ namespace _0xdd
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
             //args = new string[] { "tt" };
-            //args = new string[] { "hf.iso" };
+            args = new string[] { "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
