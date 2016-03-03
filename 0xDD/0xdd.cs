@@ -60,6 +60,9 @@ namespace _0xdd
     #endregion
 
     #region Structs
+    /// <summary>
+    /// Result struch of a search.
+    /// </summary>
     struct FindResult
     {
         public FindResult(long pPosition)
@@ -67,7 +70,7 @@ namespace _0xdd
             Position = pPosition;
             Error = ErrorCode.Success;
         }
-
+        
         public FindResult(ErrorCode pError)
         {
             Error = pError;
@@ -78,7 +81,7 @@ namespace _0xdd
         public ErrorCode Error;
     }
     #endregion
-
+    
     static class _0xdd
     {
         #region Constants
@@ -89,9 +92,6 @@ namespace _0xdd
         #endregion
 
         #region General properties
-        /// <summary>
-        /// Information about the current file.
-        /// </summary>
         static FileInfo CurrentFile;
         static FileStream CurrentFileStream;
 
@@ -100,10 +100,6 @@ namespace _0xdd
         /// </summary>
         /// <remarks>
         /// This doesn't use a lot of memory.
-        /// If the main panel size is 16x19 (16 bytes on 19 lines,
-        /// default with 80x24 terminal), the buffer will only use
-        /// 309 bytes (0.3 KB) of additional memory plus the memory for
-        /// a tiny array, which is a very few more bytes.
         /// </remarks>
         static byte[] Buffer;
         
@@ -169,6 +165,9 @@ namespace _0xdd
         /// <summary>
         /// Prepares the screen with the information needed.
         /// </summary>
+        /// <remarks>
+        /// Also used when resizing.
+        /// </remarks>
         static void PrepareScreen()
         {
             if (AutoSize)
@@ -198,7 +197,7 @@ namespace _0xdd
         }
 
         /// <summary>
-        /// Read the user's input.
+        /// Read user input.
         /// </summary>
         /// <returns>Returns true if still using 0xdd.</returns>
         static bool ReadUserKey()
@@ -530,6 +529,10 @@ namespace _0xdd
             return true;
         }
 
+        /// <summary>
+        /// 1. Read file. 2. Update MainPanel. 3. Update InfoPanel
+        /// </summary>
+        /// <param name="pPosition"></param>
         static void ReadFileAndUpdate(long pPosition)
         {
             ReadCurrentFile(pPosition);
@@ -558,7 +561,7 @@ namespace _0xdd
         }
 
         /// <summary>
-        /// Toggle the fullscreen mode.
+        /// Toggle fullscreen mode.
         /// </summary>
         static void ToggleFullscreenMode()
         {
@@ -585,11 +588,23 @@ namespace _0xdd
             ReadFileAndUpdate(pPosition);
         }
 
+        /// <summary>
+        /// File to dump as text data with the app's <see cref="MainPanel.BytesInRow"/>
+        /// and <see cref="CurrentOffsetBaseView"/>.
+        /// </summary>
+        /// <returns><see cref="ErrorCode"/></returns>
         static ErrorCode Dump()
         {
             return Dump(CurrentFile.Name, MainPanel.BytesInRow, CurrentOffsetBaseView);
         }
 
+        /// <summary>
+        /// File to dump as text data.
+        /// </summary>
+        /// <param name="pFileToDump">Output filename.</param>
+        /// <param name="pBytesInRow">Number of bytes in a row.</param>
+        /// <param name="pViewMode"><see cref="OffsetBaseView"/> to use.</param>
+        /// <returns><see cref="ErrorCode"/></returns>
         static public ErrorCode Dump(string pFileToDump, int pBytesInRow, OffsetBaseView pViewMode)
         {
             if (!File.Exists(pFileToDump))
@@ -632,7 +647,10 @@ namespace _0xdd
                
             }
         }
-
+        
+        /// <remarks>
+        /// Only to be used with <see cref="Dump()"/>!
+        /// </remarks>
         static ErrorCode DumpFile(FileStream pIn, StreamWriter pOut, OffsetBaseView pViewMode, int pBytesInRow)
         {
             long line = 0;
@@ -705,22 +723,21 @@ namespace _0xdd
         }
 
         /// <summary>
-        /// Find a byte starting at the CurrentFilePosition and
+        /// Find a byte starting at the current position.
         /// </summary>
-        /// <param name="pData">Data as a byte.</param>
-        /// <returns>Positon.</returns>
+        /// <param name="pData">Data.</param>
+        /// <returns>Positon, if found.</returns>
         static long Find(byte pData)
         {
            return Find(pData, CurrentFileStream.Position);
         }
 
         /// <summary>
-        /// Find a byte in the current file and
-        /// return its found position.
+        /// Find a byte at a specific position.
         /// </summary>
-        /// <param name="pData">Data as a byte.</param>
+        /// <param name="pData">Data.</param>
         /// <param name="pPosition">Positon to start searching from.</param>
-        /// <returns>Found positon.</returns>
+        /// <returns>Positon, if found.</returns>
         static long Find(byte pData, long pPosition)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
@@ -744,6 +761,8 @@ namespace _0xdd
             // If not found, place the position back it was before
             CurrentFileStream.Position = pPosition;
 
+            ///TODO: long to <see cref="FindResult"/>
+
             return (int)ErrorCode.FindNoResult;
         }
 
@@ -751,8 +770,7 @@ namespace _0xdd
         /// Find a string of data.
         /// </summary>
         /// <param name="pData">Data as a string.</param>
-        /// <param name="pEncoding">Encoding.</param>
-        /// <returns>Position.</returns>
+        /// <returns><see cref="FindResult"/></returns>
         static FindResult FindData(string pData)
         {
             return Find(pData, CurrentFileStream.Position);
@@ -763,8 +781,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="pData">Data as a string.</param>
         /// <param name="pPosition">Starting position.</param>
-        /// <param name="pEncoding">Encoding.</param>
-        /// <returns>Found position.</returns>
+        /// <returns><see cref="FindResult"/></returns>
         /// <remarks>
         /// How does this work?
         /// Search every character, if one seems to be right.
@@ -829,6 +846,9 @@ namespace _0xdd
 
         #region Panels
         #region TitlePanel
+        /// <summary>
+        /// Filename
+        /// </summary>
         static class TitlePanel
         {
             static internal void Update()
@@ -990,7 +1010,7 @@ namespace _0xdd
 
         #region InfoPanel
         /// <summary>
-        /// Info panel: Offsets and current offsets (positions) are shown.
+        /// Current offset and position.
         /// </summary>
         static class InfoPanel
         {
@@ -1029,7 +1049,7 @@ namespace _0xdd
         #region OffsetPanel
         /// <summary>
         /// Shows offset base view and the offset on each byte.
-        /// e.g. Offset h  00 01 ...
+        /// e.g. Offset h  00 01 02 .. ..
         /// </summary>
         static class OffsetPanel
         {
@@ -1057,6 +1077,9 @@ namespace _0xdd
         #endregion
 
         #region ControlPanel
+        /// <summary>
+        /// Panel that shows keyboard shortcuts.
+        /// </summary>
         static class ControlPanel
         {
             /// <summary>
@@ -1111,6 +1134,11 @@ namespace _0xdd
         #endregion
 
         #region Type extensions
+        /// <summary>
+        /// Converts into an octal number.
+        /// </summary>
+        /// <param name="c">Number.</param>
+        /// <returns>String.</returns>
         static string ToOct(this long c)
         {
             if (c > int.MaxValue)
@@ -1123,7 +1151,7 @@ namespace _0xdd
         /// Returns a printable character if found.
         /// </summary>
         /// <param name="pIn">Byte to transform.</param>
-        /// <returns>Readable character.</returns>
+        /// <returns>Console readable character.</returns>
         static char ToSafeChar(this byte pIn)
         {
             if (pIn < 0x20 || pIn > 0x7E)
@@ -1153,13 +1181,14 @@ namespace _0xdd
             }
         }
 
-        static string FillZeros(this string pString, int pLength)
-        {
-            if (pLength < pString.Length)
-                throw new FormatException("FillZeros(this string, int) - Length");
-
-            return new string('0', pLength - pString.Length) + pString;
-        }
+        /// <summary>
+        /// Fill zeros with a string.
+        /// </summary>
+        /// <param name="pString">Input.</param>
+        /// <param name="pLength">Desired length.</param>
+        /// <returns>String-zero-filed.</returns>
+        static string FillZeros(this string pString, int pLength) =>
+            new string('0', pLength - pString.Length) + pString;
         #endregion
     }
 }
