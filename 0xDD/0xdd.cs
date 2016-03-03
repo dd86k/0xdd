@@ -2,6 +2,8 @@
 using System.IO;
 using System.Text;
 
+//TODO: !! FIX FIND !! (position is fcuekd??T$F )
+
 //TODO: Edit mode
 // 0E 0F
 // D2 DD ..
