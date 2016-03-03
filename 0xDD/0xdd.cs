@@ -728,21 +728,21 @@ namespace _0xdd
 
             if (!CurrentFile.Exists)
                 return (int)ErrorCode.FileNotFound;
+            
+            CurrentFileStream.Position = pPosition;
 
-            using (FileStream fs = CurrentFile.OpenRead())
+            bool Continue = true;
+            while (Continue)
             {
-                fs.Position = pPosition;
+                if (pData == (byte)CurrentFileStream.ReadByte())
+                    return CurrentFileStream.Position;
 
-                bool Continue = true;
-                while (Continue)
-                {
-                    if (pData == (byte)fs.ReadByte())
-                        return fs.Position;
-
-                    if (fs.Position >= fs.Length)
-                        Continue = false;
-                }
+                if (CurrentFileStream.Position >= CurrentFileStream.Length)
+                    Continue = false;
             }
+
+            // If not found, place the position back it was before
+            CurrentFileStream.Position = pPosition;
 
             return (int)ErrorCode.FindNoResult;
         }
