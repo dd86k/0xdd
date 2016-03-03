@@ -1,9 +1,12 @@
 ﻿using System;
 using System.IO;
-using System.Diagnostics;
-using System.Reflection;
+using static System.Diagnostics.Process;
+using static System.Reflection.Assembly;
 
-//TODO: If size set manully, no auto adjust
+//TODO: /dump [{pure|data|hex}]
+// pure - Offset, hex and data only, no file information
+// data - Data only (e.g. #-> ..)
+// hex  - Hex only (e.g. 23 2D 3E ..)
 
 namespace _0xdd
 {
@@ -16,9 +19,7 @@ namespace _0xdd
         {
             get
             {
-                return
-                    Assembly
-                    .GetExecutingAssembly().GetName().Version.ToString();
+                return $"{GetExecutingAssembly().GetName().Version}";
             }
         }
 
@@ -29,8 +30,7 @@ namespace _0xdd
         {
             get
             {
-                return
-                    Assembly.GetExecutingAssembly().GetName().Name;
+                return GetExecutingAssembly().GetName().Name;
             }
         }
         
@@ -43,8 +43,7 @@ namespace _0xdd
             {
                 return
                     Path.GetFileName(
-                        Process
-                        .GetCurrentProcess().MainModule.FileName
+                        GetCurrentProcess().MainModule.FileName
                     );
             }
         }
@@ -54,17 +53,17 @@ namespace _0xdd
 #if DEBUG
 #warning Reminder: Re-comment
             /* ~~ Used for debugging within Visual Studio (vshost) ~~ */
-            //args = new string[] { ExecutableFilename };
+            //args = new string[] { ExecutableFilename }; // Error - It's normal!
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
             //args = new string[] { "tt" };
-            args = new string[] { "hf.iso" };
+            //args = new string[] { "/dump", "tt" };
+            //args = new string[] { "hf.iso" };
+            //args = new string[] { "/w", "16", "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
-            //args = new string[] { "0xdd.vshost.exe" };
-
 #endif
 
             if (args.Length == 0)
@@ -77,7 +76,7 @@ namespace _0xdd
             
             // Defaults
             string file = args[args.Length - 1];
-            int bytesInRow = 16;
+            int bytesInRow = 0; // 0 - Auto, past default: 16
             OffsetBaseView ovm = OffsetBaseView.Hexadecimal;
             bool dump = false;
 
@@ -101,6 +100,9 @@ namespace _0xdd
                                 break;
                             default: // hex is default
                                 Console.WriteLine($"Invalid parameter for /v : {args[i + 1]}");
+#if DEBUG
+                                Console.ReadLine();
+#endif
                                 return 1;
                         }
                         break;
@@ -120,6 +122,9 @@ namespace _0xdd
                             if (bytesInRow < 1)
                             {
                                 Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Too low)");
+#if DEBUG
+                                Console.ReadLine();
+#endif
                                 return 1;
                             }
                         }
@@ -127,6 +132,9 @@ namespace _0xdd
                         else
                         {
                             Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Invalid format)");
+#if DEBUG
+                            Console.ReadLine();
+#endif
                             return 1;
                         }
                         break;
@@ -158,31 +166,35 @@ namespace _0xdd
 
                 if (dump)
                 {
-                    Console.WriteLine("Dumping file...");
-                    int err = _0xdd.Dump(file, bytesInRow, ovm, false);
+                    Console.Write("Dumping file... ");
+                    ErrorCode err = _0xdd.Dump(file, bytesInRow, ovm);
                     switch (err)
                     {
-                        case 1:
+                        case ErrorCode.FileNotFound:
                             Console.WriteLine("File not found, aborted.");
                             break;
-                        case 0:
-                            Console.WriteLine("Dumping done!");
+                        case ErrorCode.Success:
+                            Console.WriteLine("OK!");
                             break;
                         default:
                             Console.WriteLine("Unknown error, aborted.");
                             return byte.MaxValue;
                     }
-                    return err;
+                    return (int)err;
                 }
                 else
                 {
-                    #if DEBUG
+#if DEBUG
                     // I want Visual Studio to catch the exceptions!
-                    return _0xdd.Open(file, ovm, bytesInRow);
-                    #else
+                    ErrorCode r = _0xdd.Open(file, ovm, bytesInRow);
+                    Console.Clear();
+                    Console.WriteLine($"ERRORCODE: {r} 0x{(int)r:X8}");
+                    Console.ReadLine();
+                    return (int)r;
+#else
                     try
                     {
-                        return _0xdd.Open(file, ovm, bytesInRow);
+                        return (int)_0xdd.Open(file, ovm, bytesInRow);
                     }
                     catch (Exception e)
                     {
@@ -190,13 +202,21 @@ namespace _0xdd
                     }
 #endif
 
+#if !DEBUG // Supresses error
                     return 0;
+#endif
                 }
             }
             else
             {
                 Console.WriteLine($"Error: File not found. (0x{(int)ErrorCode.FileNotFound:X8})");
+
+#if DEBUG
+                Console.ReadLine();
+                return 0;
+#else
                 return (int)ErrorCode.FileNotFound;
+#endif
             }
         }
 
@@ -215,9 +235,9 @@ namespace _0xdd
 
             Console.WriteLine($"Exception: {e.GetType()}");
             Console.WriteLine($"Message: {e.Message}");
-            Console.WriteLine("    -- BEGIN TRACE --");
+            Console.WriteLine("    -- BEGIN STACK --");
             Console.WriteLine(e.StackTrace);
-            Console.WriteLine("    -- END TRACE --");
+            Console.WriteLine("    --  END  STACK --");
 
             Console.WriteLine();
         }
@@ -227,7 +247,7 @@ namespace _0xdd
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine(" Usage:");
-            Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/dump] <file>");
+            Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/dump] <File>");
             Console.WriteLine();
             Console.WriteLine("  /v      Start with an offset view: Hex, Dec, Oct.        Default: Hex");
             Console.WriteLine("  /w      Start with a number of bytes to show in a row.   Default: Auto");
@@ -243,7 +263,7 @@ namespace _0xdd
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine();
             Console.WriteLine($"0xdd - {Version}");
-            Console.WriteLine("Copyright (c) 2015 DD~!/guitarxhero");
+            Console.WriteLine("Copyright (c) 2015-2016 DD~!/guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
             Console.WriteLine("Project page: <https://github.com/guitarxhero/0xDD>");
             Console.WriteLine();
