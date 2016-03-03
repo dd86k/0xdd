@@ -151,9 +151,9 @@ namespace _0xdd
             {
                 CurrentFileStream = CurrentFile.Open(FileMode.Open); // Open, for now
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine($"Error: File unreadable. 0x{(int)ErrorCode.FileUnreadable:X8}");
+                Console.WriteLine($"Error: File unreadable. ({ex.GetType()} - 0x{ex.HResult:X8})");
                 return ErrorCode.FileUnreadable;
             }
 
@@ -641,7 +641,9 @@ namespace _0xdd
             string t = string.Empty;
 
             Buffer = new byte[pBytesInRow];
-            
+
+            long lastpos = CurrentFileStream.Position;
+
             if (!pIn.CanRead)
                 return ErrorCode.DumbCannotRead;
 
@@ -687,6 +689,9 @@ namespace _0xdd
                     else
                     {
                         pOut.WriteLine(t);
+
+                        CurrentFileStream.Position = lastpos;
+
                         return 0; // Done!
                     }
 
