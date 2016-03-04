@@ -3,10 +3,8 @@ using System.IO;
 using static System.Diagnostics.Process;
 using static System.Reflection.Assembly;
 
-//TODO: /dump [{pure|data|hex}]
-// pure - Offset, hex and data only, no file information
-// data - Data only (e.g. #-> ..)
-// hex  - Hex only (e.g. 23 2D 3E ..)
+//TODO: /dump [<DisplayFormat>]
+// See details in 0xdd.cs
 
 namespace _0xdd
 {
@@ -56,7 +54,7 @@ namespace _0xdd
             //args = new string[] { ExecutableFilename }; // Error - It's normal!
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
-            args = new string[] { "b" };
+            //args = new string[] { "b" };
             //args = new string[] { "tt" };
             //args = new string[] { "/dump", "tt" };
             //args = new string[] { "hf.iso" };

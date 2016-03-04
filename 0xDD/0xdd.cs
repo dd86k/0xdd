@@ -2,8 +2,6 @@
 using System.IO;
 using System.Text;
 
-//TODO: !! FIX FIND !! (position is fcuekd??T$F )
-
 //TODO: Implement different display formats
 /*
 - ASCII
@@ -69,8 +67,22 @@ namespace _0xdd
         
         UnknownError = 0xFE
     }
+
+    enum DisplayFormat : byte
+    {
+        ASCII,
+        Bit,
+        Bytes, // Default
+        Long,
+        LongHex,
+        LongUnsigned,
+        Short,
+        ShortHex,
+        ShortUnsigned,
+        Unicode
+    }
     
-    internal enum OffsetBaseView : byte
+    enum OffsetBaseView : byte
     {
         Hexadecimal,
         Decimal,
@@ -290,19 +302,31 @@ namespace _0xdd
                         {
                             MainPanel.Update();
                             Message("Searching...");
-                            long p = Find((byte)t, CurrentFileStream.Position + 1);
+                            FindResult p = Find((byte)t, CurrentFileStream.Position + 1);
 
-                            if (p < 0)
+                            switch (p.Error)
                             {
-                                Message($"Byte 0x{t:X2} could not be found.");
-                            }
-                            else
-                            {
-                                Goto(--p);
-                                if (p > uint.MaxValue)
-                                    Message($"Found 0x{t:X2} at {p:X16}");
-                                else
-                                    Message($"Found 0x{t:X2} at {p:X8}");
+                                case ErrorCode.Success:
+                                    {
+                                        Goto(--p.Position);
+                                        if (p.Position > uint.MaxValue)
+                                            Message($"Found 0x{t:X2} at {p.Position:X16}");
+                                        else
+                                            Message($"Found 0x{t:X2} at {p.Position:X8}");
+                                    }
+                                    break;
+                                case ErrorCode.FileNotFound:
+                                    Message($"File not found!");
+                                    break;
+                                case ErrorCode.PositionOutOfBound:
+                                    Message($"Position out of bound.");
+                                    break;
+                                case ErrorCode.FindNoResult:
+                                    Message($"No results. Input: 0x{t:X2}");
+                                    break;
+                                default:
+                                    Message($"Byte 0x{t:X2} could not be found. (Unknown error)");
+                                    break;
                             }
                         }
                     }
@@ -774,7 +798,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="pData">Data.</param>
         /// <returns>Positon, if found.</returns>
-        static long Find(byte pData)
+        static FindResult Find(byte pData)
         {
            return Find(pData, CurrentFileStream.Position);
         }
@@ -785,13 +809,13 @@ namespace _0xdd
         /// <param name="pData">Data.</param>
         /// <param name="pPosition">Positon to start searching from.</param>
         /// <returns>Positon, if found.</returns>
-        static long Find(byte pData, long pPosition)
+        static FindResult Find(byte pData, long pPosition)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
-                return (int)ErrorCode.PositionOutOfBound;
+                return new FindResult(ErrorCode.PositionOutOfBound);
 
             if (!CurrentFile.Exists)
-                return (int)ErrorCode.FileNotFound;
+                return new FindResult(ErrorCode.FileNotFound);
             
             CurrentFileStream.Position = pPosition;
 
@@ -799,7 +823,7 @@ namespace _0xdd
             while (Continue)
             {
                 if (pData == (byte)CurrentFileStream.ReadByte())
-                    return CurrentFileStream.Position;
+                    return new FindResult(CurrentFileStream.Position);
 
                 if (CurrentFileStream.Position >= CurrentFileStream.Length)
                     Continue = false;
@@ -808,9 +832,7 @@ namespace _0xdd
             // If not found, place the position back it was before
             CurrentFileStream.Position = pPosition;
 
-            ///TODO: long to <see cref="FindResult"/>
-
-            return -1;
+            return new FindResult(ErrorCode.FindNoResult);
         }
 
         /// <summary>
@@ -1134,10 +1156,12 @@ namespace _0xdd
             /// </summary>
             static internal void Place()
             {
+                //TODO: Adjust Place() depending on screen width
+                // Place the most important actions first
                 Console.SetCursorPosition(0, Console.WindowHeight - 2);
 
-                WriteWhite("^ ");
-                Console.Write("              ");
+                WriteWhite("^U");
+                Console.Write(" Display type ");
 
                 WriteWhite("^W");
                 Console.Write(" Find byte    ");
@@ -1154,6 +1178,9 @@ namespace _0xdd
                 // CHANGING LINE BOYS
                 Console.WriteLine();
 
+                WriteWhite("^O");
+                Console.Write(" Offset base  ");
+
                 WriteWhite("^X");
                 Console.Write(" Exit         ");
 
@@ -1162,10 +1189,7 @@ namespace _0xdd
 
                 WriteWhite("^D");
                 Console.Write(" Dump         ");
-
-                WriteWhite("^O");
-                Console.Write(" Offset base  ");
-
+                
                 WriteWhite("^E");
                 Console.Write(" Edit mode");
             }
