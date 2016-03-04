@@ -146,11 +146,8 @@ namespace _0xdd
             {
 
             }
-
-            if (pMaxBytes < pCurrentFileLength)
-                ClearRange(pWidth, pHeight);
-            else
-                Console.ResetColor();
+            
+            Console.ResetColor();
 
             return t;
         }
@@ -163,11 +160,8 @@ namespace _0xdd
             GenerateInputBox(pMessage, width, height);
 
             string t = ReadLine(pWidth - 2);
-
-            if (pMaxBytes < pCurrentFileLength)
-                ClearRange(pWidth, pHeight);
-            else
-                Console.ResetColor();
+            
+            Console.ResetColor();
 
             return t;
         }
@@ -213,18 +207,6 @@ namespace _0xdd
             Console.Write(new string(' ', pWidth - 2));
             Console.SetCursorPosition(startx + 1, starty + 2);
             // -- End prepare text box --
-        }
-
-        internal static void ClearRange(int pWidth, int pHeight)
-        {
-            Console.ResetColor();
-            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
-            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
-            for (int i = 0; i < pHeight; i++)
-            {
-                Console.SetCursorPosition(startx, starty + i);
-                Console.Write(new string(' ', pWidth));
-            }
         }
 
         /// <summary>

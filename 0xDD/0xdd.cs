@@ -4,6 +4,30 @@ using System.Text;
 
 //TODO: !! FIX FIND !! (position is fcuekd??T$F )
 
+//TODO: Implement different display formats
+/*
+- ASCII
+. . . H . . 8 . . . . . . . . . H . . H . X . H . p . H . x   U H
+- Bit
+11001100 11101011 00000000 01001000 10000011 11000100 00111000
+- Bytes (Default, already there)
+cc eb 00 48 83 c4 38 c3 cc cc cc cc cc cc cc cc  ...H..8.........
+- Long
+1208019916 -1019689853  -858993460  -858993460  1220840264
+- Long Hex
+4800ebcc c338c483 cccccccc cccccccc 48c48b48 48105889 48187089
+- Long Unsigned
+1208019916 3275277443 3435973836 3435973836 1220840264 1209030793
+- Short
+-5172  18432 -15229 -15560 -13108 -13108 -13108 -13108 -29880
+- Short Hex
+ebcc 4800 c483 c338 cccc cccc cccc cccc 8b48 48c4 5889 4810 7089
+- Short Unsigned
+60364 18432 50307 49976 52428 52428 52428 52428 35656 18628 22665
+- Unicode (DANGER)
+. 䠀 쒃 쌸 쳌 쳌 쳌 쳌 譈 䣄 墉 䠐 炉 䠘 碉 唠 赈 . . 䣿 . . . 譈 댅 . 䠀 쐳 襈 . . 䰀 .
+*/
+
 //TODO: Edit mode
 // 0E 0F
 // D2 DD ..
@@ -177,8 +201,8 @@ namespace _0xdd
                 MainPanel.BytesInRow = Utils.GetBytesInRow();
             }
 
-            Buffer = new byte[CurrentFile.Length < MainPanel.ScreenMaxBytes ?
-                (int)CurrentFile.Length : MainPanel.ScreenMaxBytes];
+            Buffer = new byte[CurrentFile.Length < MainPanel.MaxBytes ?
+                (int)CurrentFile.Length : MainPanel.MaxBytes];
 
             TitlePanel.Update();
             ReadCurrentFile(0);
@@ -237,13 +261,19 @@ namespace _0xdd
                 case ConsoleKey.W:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (CurrentFileStream.Position >= CurrentFile.Length)
+                        if (CurrentFileStream.Position >= CurrentFile.Length - MainPanel.MaxBytes)
                         {
                             Message("Already at the end of the file.");
                             return true;
                         }
 
-                        long? t = Utils.GetNumberFromUser("Find byte:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
+                        if (MainPanel.MaxBytes >= CurrentFile.Length)
+                        {
+                            Message("Not possible.");
+                            return true;
+                        }
+
+                        long? t = Utils.GetNumberFromUser("Find byte:", MainPanel.MaxBytes, CurrentFile.Length);
 
                         if (t == null)
                         {
@@ -262,14 +292,17 @@ namespace _0xdd
                             Message("Searching...");
                             long p = Find((byte)t, CurrentFileStream.Position + 1);
 
-                            if (p > 1)
+                            if (p < 0)
                             {
-                                Message($"Byte {t:X2} could not be found.");
+                                Message($"Byte 0x{t:X2} could not be found.");
                             }
                             else
                             {
-                                Goto(p - 1);
-                                Message($"Found {t:X2} at position {p - 1}");
+                                Goto(--p);
+                                if (p > uint.MaxValue)
+                                    Message($"Found 0x{t:X2} at {p:X16}");
+                                else
+                                    Message($"Found 0x{t:X2} at {p:X8}");
                             }
                         }
                     }
@@ -279,13 +312,19 @@ namespace _0xdd
                 case ConsoleKey.J:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (CurrentFileStream.Position >= CurrentFile.Length)
+                        if (CurrentFileStream.Position >= CurrentFile.Length - MainPanel.MaxBytes)
                         {
                             Message("Already at the end of the file.");
                             return true;
                         }
 
-                        string t = Utils.GetUserInput("Find data:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
+                        if (MainPanel.MaxBytes >= CurrentFile.Length)
+                        {
+                            Message("Not possible.");
+                            return true;
+                        }
+
+                        string t = Utils.GetUserInput("Find data:", MainPanel.MaxBytes, CurrentFile.Length);
 
                         if (t == null || t.Length == 0)
                         {
@@ -329,13 +368,19 @@ namespace _0xdd
                 case ConsoleKey.G:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
+                        if (MainPanel.MaxBytes >= CurrentFile.Length)
+                        {
+                            Message("Not possible.");
+                            return true;
+                        }
+
                         if (CurrentFileStream.Position >= CurrentFile.Length)
                         {
                             Message("Already at the end of the file.");
                             return true;
                         }
 
-                        long? t = Utils.GetNumberFromUser("Goto:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
+                        long? t = Utils.GetNumberFromUser("Goto:", MainPanel.MaxBytes, CurrentFile.Length);
 
                         if (t == null)
                         {
@@ -344,7 +389,7 @@ namespace _0xdd
                             return true;
                         }
 
-                        if (t >= 0 && t <= CurrentFile.Length - MainPanel.ScreenMaxBytes)
+                        if (t >= 0 && t <= CurrentFile.Length - MainPanel.MaxBytes)
                         {
                             Goto((long)t);
                         }
@@ -360,7 +405,7 @@ namespace _0xdd
                 case ConsoleKey.O:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        string c = Utils.GetUserInput("Hex|Dec|Oct?:", MainPanel.ScreenMaxBytes, CurrentFile.Length);
+                        string c = Utils.GetUserInput("Hex|Dec|Oct?:", MainPanel.MaxBytes, CurrentFile.Length);
 
                         if (c == null || c.Length < 1)
                         {
@@ -456,7 +501,7 @@ namespace _0xdd
                 case ConsoleKey.RightArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
-                        if (CurrentFileStream.Position + MainPanel.ScreenMaxBytes + 1 <= CurrentFile.Length)
+                        if (CurrentFileStream.Position + MainPanel.MaxBytes + 1 <= CurrentFile.Length)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position + 1);
                         }
@@ -479,14 +524,14 @@ namespace _0xdd
                 case ConsoleKey.DownArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
-                        if (CurrentFileStream.Position + MainPanel.ScreenMaxBytes + MainPanel.BytesInRow <= CurrentFile.Length)
+                        if (CurrentFileStream.Position + MainPanel.MaxBytes + MainPanel.BytesInRow <= CurrentFile.Length)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position + MainPanel.BytesInRow);
                         }
                         else
                         {
-                            if (MainPanel.ScreenMaxBytes < CurrentFile.Length)
-                                ReadFileAndUpdate(CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                            if (MainPanel.MaxBytes < CurrentFile.Length)
+                                ReadFileAndUpdate(CurrentFile.Length - MainPanel.MaxBytes);
                         }
                     }
                     return true;
@@ -494,9 +539,9 @@ namespace _0xdd
                 case ConsoleKey.PageUp:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
-                        if (CurrentFileStream.Position - MainPanel.ScreenMaxBytes >= 0)
+                        if (CurrentFileStream.Position - MainPanel.MaxBytes >= 0)
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.ScreenMaxBytes);
+                            ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.MaxBytes);
                         }
                         else
                         {
@@ -507,13 +552,13 @@ namespace _0xdd
                 case ConsoleKey.PageDown:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
-                        if (CurrentFileStream.Position + (MainPanel.ScreenMaxBytes * 2) <= CurrentFile.Length)
+                        if (CurrentFileStream.Position + (MainPanel.MaxBytes * 2) <= CurrentFile.Length)
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position += MainPanel.ScreenMaxBytes);
+                            ReadFileAndUpdate(CurrentFileStream.Position += MainPanel.MaxBytes);
                         }
                         else
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position = CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                            ReadFileAndUpdate(CurrentFileStream.Position = CurrentFile.Length - MainPanel.MaxBytes);
                         }
                     }
                     return true;
@@ -524,7 +569,7 @@ namespace _0xdd
                     return true;
                 case ConsoleKey.End:
                     if (CurrentWritingMode == OperatingMode.Read)
-                        ReadFileAndUpdate(CurrentFile.Length - MainPanel.ScreenMaxBytes);
+                        ReadFileAndUpdate(CurrentFile.Length - MainPanel.MaxBytes);
                     return true;
             }
 
@@ -765,7 +810,7 @@ namespace _0xdd
 
             ///TODO: long to <see cref="FindResult"/>
 
-            return (int)ErrorCode.FindNoResult;
+            return -1;
         }
 
         /// <summary>
@@ -918,7 +963,7 @@ namespace _0xdd
             /// <summary>
             /// Gets the number of elements which can be shown in the main panel.
             /// </summary>
-            static internal int ScreenMaxBytes
+            static internal int MaxBytes
             {
                 get
                 {
@@ -1037,7 +1082,7 @@ namespace _0xdd
             {
                 decimal r =
                     Math.Round(((CurrentFileStream.Position +
-                    (decimal)(CurrentFile.Length < MainPanel.ScreenMaxBytes ? CurrentFile.Length : MainPanel.ScreenMaxBytes))
+                    (decimal)(CurrentFile.Length < MainPanel.MaxBytes ? CurrentFile.Length : MainPanel.MaxBytes))
                     / CurrentFile.Length) * 100);
 
                 string s = $"  DEC: {CurrentFileStream.Position:D8} | HEX: {CurrentFileStream.Position:X8} | OCT: {ToOct(CurrentFileStream.Position)} | POS: {r}%";
