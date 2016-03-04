@@ -154,10 +154,7 @@ namespace _0xdd
 
         internal static string GetUserInput(string pMessage, int pWidth, int pHeight)
         {
-            int width = 27;
-            int height = 4;
-
-            GenerateInputBox(pMessage, width, height);
+            GenerateInputBox(pMessage, pWidth, pHeight);
 
             string t = ReadLine(pWidth - 2);
             
