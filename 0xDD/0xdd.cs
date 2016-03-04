@@ -285,7 +285,7 @@ namespace _0xdd
                             return true;
                         }
 
-                        long? t = Utils.GetNumberFromUser("Find byte:", MainPanel.MaxBytes, CurrentFile.Length);
+                        long? t = Utils.GetNumberFromUser("Find byte:");
 
                         if (t == null)
                         {
@@ -348,7 +348,7 @@ namespace _0xdd
                             return true;
                         }
 
-                        string t = Utils.GetUserInput("Find data:", MainPanel.MaxBytes, CurrentFile.Length);
+                        string t = Utils.GetUserInput("Find data:");
 
                         if (t == null || t.Length == 0)
                         {
@@ -404,7 +404,7 @@ namespace _0xdd
                             return true;
                         }
 
-                        long? t = Utils.GetNumberFromUser("Goto:", MainPanel.MaxBytes, CurrentFile.Length);
+                        long? t = Utils.GetNumberFromUser("Goto:");
 
                         if (t == null)
                         {
@@ -429,7 +429,7 @@ namespace _0xdd
                 case ConsoleKey.O:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        string c = Utils.GetUserInput("Hex|Dec|Oct?:", MainPanel.MaxBytes, CurrentFile.Length);
+                        string c = Utils.GetUserInput("Hex|Dec|Oct?:");
 
                         if (c == null || c.Length < 1)
                         {

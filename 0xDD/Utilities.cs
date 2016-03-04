@@ -122,17 +122,17 @@ namespace _0xdd
             }
         }
 
-        internal static string GetUserInput(string pMessage, int pMaxBytes, long pCurrentFileLength)
+        internal static string GetUserInput(string pMessage)
         {
-            return GetUserInput(pMessage, 27, 4, pMaxBytes, pCurrentFileLength);
+            return GetUserInput(pMessage, 27, 4);
         }
 
-        internal static long? GetNumberFromUser(string pMessage, int pMaxBytes, long pCurrentFileLength)
+        internal static long? GetNumberFromUser(string pMessage)
         {
-            return GetNumberFromUser(pMessage, 27, 4, pMaxBytes, pCurrentFileLength);
+            return GetNumberFromUser(pMessage, 27, 4);
         }
 
-        internal static long? GetNumberFromUser(string pMessage, int pWidth, int pHeight, int pMaxBytes, long pCurrentFileLength)
+        internal static long? GetNumberFromUser(string pMessage, int pWidth, int pHeight)
         {
             GenerateInputBox(pMessage, pWidth, pHeight);
 
@@ -152,7 +152,7 @@ namespace _0xdd
             return t;
         }
 
-        internal static string GetUserInput(string pMessage, int pWidth, int pHeight, int pMaxBytes, long pCurrentFileLength)
+        internal static string GetUserInput(string pMessage, int pWidth, int pHeight)
         {
             int width = 27;
             int height = 4;
