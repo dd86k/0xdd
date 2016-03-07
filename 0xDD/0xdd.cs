@@ -1003,7 +1003,7 @@ namespace _0xdd
                 int BufferOffsetData = 0;
                 int BufferOffsetText = 0;
 
-                string t = string.Empty;
+                StringBuilder t = new StringBuilder();
                 
                 OffsetPanel.Update();
                 
@@ -1014,46 +1014,46 @@ namespace _0xdd
                     switch (CurrentOffsetBaseView)
                     {
                         case OffsetBaseView.Hexadecimal:
-                            t = $"{((line * BytesInRow) + CurrentFileStream.Position):X8}  ";
+                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFileStream.Position):X8}  ");
                             break;
 
                         case OffsetBaseView.Decimal:
-                            t = $"{((line * BytesInRow) + CurrentFileStream.Position):D8}  ";
+                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFileStream.Position):D8}  ");
                             break;
 
                         case OffsetBaseView.Octal:
-                            t = $"{ToOct((line * BytesInRow) + CurrentFileStream.Position)}  ";
+                            t = new StringBuilder($"{ToOct((line * BytesInRow) + CurrentFileStream.Position)}  ");
                             break;
                     }
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (CurrentFileStream.Position + BufferOffsetData < l)
-                            t += $"{Buffer[BufferOffsetData]:X2} ";
+                            t.Append($"{Buffer[BufferOffsetData]:X2} ");
                         else
-                            t += "   ";
+                            t.Append("   ");
 
                         BufferOffsetData++;
                     }
 
-                    t += " ";
+                    t.Append(" ");
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (CurrentFileStream.Position + BufferOffsetText < l)
-                            t += $"{Buffer[BufferOffsetText].ToSafeChar()}";
+                            t.Append($"{Buffer[BufferOffsetText].ToSafeChar()}");
                         else
                         {
-                            Console.Write(t);
+                            Console.Write(t.ToString());
                             return;
                         }
 
                         BufferOffsetText++;
                     }
 
-                    t += " ";
+                    t.Append(" ");
 
-                    Console.WriteLine(t);
+                    Console.WriteLine(t.ToString());
                 }
             }
 
