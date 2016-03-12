@@ -649,7 +649,7 @@ namespace _0xdd
         static void Message(string pMessage)
         {
             Console.SetCursorPosition(0, InfoPanel.Position);
-            Console.Write(new string(' ', Console.WindowWidth - 1));
+            Console.Write(s(Console.WindowWidth - 1));
 
             string msg = $"[ {pMessage} ]";
             Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2),
@@ -965,7 +965,7 @@ namespace _0xdd
                 if (CurrentFile.Name.Length <= Console.WindowWidth)
                 {
                     Console.Write(CurrentFile.Name);
-                    Console.Write(new string(' ', Console.WindowWidth - CurrentFile.Name.Length));
+                    Console.Write(s(Console.WindowWidth - CurrentFile.Name.Length));
                 }
                 else
                     Console.Write(CurrentFile.Name.Substring(0, Console.WindowWidth));
@@ -1101,10 +1101,8 @@ namespace _0xdd
             {
                 get
                 {
-                    if (Fullscreen)
-                        return Console.WindowHeight - 1;
-                    else
-                        return Console.WindowHeight - 3;
+                    return Fullscreen ?
+                        Console.WindowHeight - 1 : Console.WindowHeight - 3;
                 }
             }
 
@@ -1113,6 +1111,8 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
+                //TODO: Make a property to "buffer" the number of rendered characters
+                // -> CurrentFile.Length < MainPanel.MaxBytes ? CurrentFile.Length : MainPanel.MaxBytes
                 decimal r =
                     Math.Round(((CurrentFileStream.Position +
                     (decimal)(CurrentFile.Length < MainPanel.MaxBytes ? CurrentFile.Length : MainPanel.MaxBytes))
@@ -1121,7 +1121,7 @@ namespace _0xdd
                 string s = $"  DEC: {CurrentFileStream.Position:D8} | HEX: {CurrentFileStream.Position:X8} | OCT: {ToOct(CurrentFileStream.Position)} | POS: {r}%";
 
                 Console.SetCursorPosition(0, Position);
-                Console.Write(s + new string(' ', Console.WindowWidth - s.Length - 1)); // Force-clear any messages
+                Console.Write(s + _0xdd.s(Console.WindowWidth - s.Length - 1)); // Force-clear any messages
             }
         }
         #endregion
@@ -1140,18 +1140,18 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                string t = $"Offset {CurrentOffsetBaseView.GetChar()}  ";
+                StringBuilder t = new StringBuilder($"Offset {CurrentOffsetBaseView.GetChar()}  ");
 
                 if (CurrentFileStream.Position > uint.MaxValue)
-                    t += " ";
+                    t.Append(" ");
 
                 for (int i = 0; i < MainPanel.BytesInRow;)
                 {
-                    t += $"{i++:X2} ";
+                    t.Append($"{i++:X2} ");
                 }
 
                 Console.SetCursorPosition(0, Position);
-                Console.Write(t);
+                Console.Write(t.ToString());
             }
         }
         #endregion
@@ -1214,6 +1214,16 @@ namespace _0xdd
             Console.ResetColor();
         }
         #endregion
+        #endregion
+
+        #region Small utils
+        /// <summary>
+        /// Generate a string with spaces with a desired length.
+        /// </summary>
+        /// <param name="l">Length</param>
+        /// <returns>String</returns>
+        static string s(int l) =>
+            new string(' ', l);
         #endregion
 
         #region Type extensions
