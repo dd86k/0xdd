@@ -913,8 +913,7 @@ namespace _0xdd
                 {
                     if (pData.Length == 1)
                     {
-                        CurrentFileStream.Position--;
-                        return new FindResult(CurrentFileStream.Position + 1);
+                        return new FindResult(CurrentFileStream.Position - 1);
                     }
                     else
                     {
