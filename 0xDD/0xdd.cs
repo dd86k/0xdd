@@ -899,7 +899,9 @@ namespace _0xdd
 
             if (string.IsNullOrWhiteSpace(pData))
                 return new FindResult(ErrorCode.FindEmptyString);
-            
+
+            CurrentFileStream.Position = pPosition;
+
             byte[] b = new byte[pData.Length];
             bool Continue = true;
             while (Continue)
