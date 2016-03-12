@@ -183,6 +183,20 @@ namespace _0xdd
         
         internal static ErrorCode Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
         {
+            if (!File.Exists(pFilePath))
+                return ErrorCode.FileNotFound;
+
+            CurrentFile = new FileInfo(pFilePath);
+            
+            try
+            {
+                CurrentFileStream = CurrentFile.Open(FileMode.Open); // Open, for now
+            }
+            catch
+            {
+                return ErrorCode.FileUnreadable;
+            }
+
             if (pBytesRow > 0)
             {
                 MainPanel.BytesInRow = pBytesRow;
@@ -193,8 +207,6 @@ namespace _0xdd
                 MainPanel.BytesInRow = Utils.GetBytesInRow();
             }
 
-            CurrentFile = new FileInfo(pFilePath);
-
             CurrentWritingMode = OperatingMode.Read;
 
             Console.CursorVisible = false;
@@ -202,16 +214,6 @@ namespace _0xdd
             CurrentOffsetBaseView = pOffsetViewMode;
             LastWindowHeight = Console.WindowHeight;
             LastWindowWidth = Console.WindowWidth;
-            
-            try
-            {
-                CurrentFileStream = CurrentFile.Open(FileMode.Open); // Open, for now
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error: File unreadable. ({ex.GetType()} - 0x{ex.HResult:X8})");
-                return ErrorCode.FileUnreadable;
-            }
 
             PrepareScreen();
 

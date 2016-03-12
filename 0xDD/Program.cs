@@ -57,7 +57,7 @@ namespace _0xdd
             //args = new string[] { "b" };
             //args = new string[] { "tt" };
             //args = new string[] { "/dump", "tt" };
-            args = new string[] { "hf.iso" };
+            //args = new string[] { "hf.iso" };
             //args = new string[] { "/w", "16", "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
@@ -74,7 +74,7 @@ namespace _0xdd
             
             // Defaults
             string file = args[args.Length - 1];
-            int bytesInRow = 0; // 0 - Auto, past default: 16
+            int row = 0; // 0 - Auto, past default: 16
             OffsetBaseView ovm = OffsetBaseView.Hexadecimal;
             bool dump = false;
 
@@ -112,12 +112,12 @@ namespace _0xdd
                         // Automatic
                         if (args[i + 1][0] == 'a' || args[i + 1][0] == 'A')
                         {
-                            bytesInRow = Utils.GetBytesInRow();
+                            row = Utils.GetBytesInRow();
                         }
                         // User-defined
-                        else if (int.TryParse(args[i + 1], out bytesInRow))
+                        else if (int.TryParse(args[i + 1], out row))
                         {
-                            if (bytesInRow < 1)
+                            if (row < 1)
                             {
                                 Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Too low)");
 #if DEBUG
@@ -157,63 +157,74 @@ namespace _0xdd
                         return 0;
                 }
             }
-
-            if (File.Exists(file))
+            
+            if (dump)
             {
-                Console.Clear();
+                Console.Write("Dumping file... ");
+                ErrorCode err = _0xdd.Dump(file, row, ovm);
 
-                if (dump)
+                switch (err)
                 {
-                    Console.Write("Dumping file... ");
-                    ErrorCode err = _0xdd.Dump(file, bytesInRow, ovm);
-                    switch (err)
-                    {
-                        case ErrorCode.FileNotFound:
-                            Console.WriteLine("File not found, aborted.");
-                            break;
-                        case ErrorCode.Success:
-                            Console.WriteLine("OK!");
-                            break;
-                        default:
-                            Console.WriteLine("Unknown error, aborted.");
-                            return byte.MaxValue;
-                    }
-                    return (int)err;
+                    case ErrorCode.Success:
+                        Console.WriteLine("OK!");
+                        break;
+                    case ErrorCode.FileNotFound:
+                        Console.WriteLine("File not found, aborted.");
+                        break;
+                    case ErrorCode.DumbCannotRead:
+                        Console.WriteLine("Not possible to read input file, aborted.");
+                        break;
+                    case ErrorCode.DumbCannotWrite:
+                        Console.WriteLine("Not possible to write to output file, aborted.");
+                        break;
+                    default:
+                        Console.WriteLine("Unknown error, aborted.");
+                        return byte.MaxValue;
                 }
-                else
-                {
-#if DEBUG
-                    // I want Visual Studio to catch the exceptions!
-                    ErrorCode r = _0xdd.Open(file, ovm, bytesInRow);
-                    Console.Clear();
-                    Console.WriteLine($"ERRORCODE: {r} 0x{(int)r:X8}");
-                    Console.ReadLine();
-                    return (int)r;
-#else
-                    try
-                    {
-                        return (int)_0xdd.Open(file, ovm, bytesInRow);
-                    }
-                    catch (Exception e)
-                    {
-                        Abort(e);
-                    }
-#endif
 
-#if !DEBUG // Supresses error
-                    return 0;
-#endif
-                }
+                return (int)err;
             }
             else
             {
-                Console.WriteLine($"Error: File not found. (0x{(int)ErrorCode.FileNotFound:X8})");
-
 #if DEBUG
+                // I want Visual Studio to catch the exceptions!
+                ErrorCode r = _0xdd.Open(file, ovm, bytesInRow);
+                Console.Clear();
+                Console.WriteLine($"ERRORCODE: {r} 0x{(int)r:X8}");
                 Console.ReadLine();
-                return 0;
+                return (int)r;
 #else
-                return (int)ErrorCode.FileNotFound;
+                try
+                {
+                    ErrorCode code = _0xdd.Open(file, ovm, row);
+
+                    switch (code)
+                    {
+                        case ErrorCode.Success: break;
+                        case ErrorCode.FileNotFound:
+                            Console.WriteLine("Error: File not found.");
+                            break;
+                        case ErrorCode.FileUnreadable:
+                            Console.WriteLine("Error: File not readable.");
+                            break;
+                        case ErrorCode.UnknownError:
+                            Console.WriteLine("Error: Unknown error.");
+                            break;
+                        default:
+                            Console.WriteLine("Error: Unknown error. [default]");
+                            break;
+                    }
+
+                    return (int)code;
+                }
+                catch (Exception e)
+                {
+                    Abort(e);
+                }
+#endif
+
+#if !DEBUG // To supress an error
+                return 0;
 #endif
             }
         }
