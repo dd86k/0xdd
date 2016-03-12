@@ -57,7 +57,7 @@ namespace _0xdd
             //args = new string[] { "b" };
             //args = new string[] { "tt" };
             //args = new string[] { "/dump", "tt" };
-            args = new string[] { "hf.iso" };
+            //args = new string[] { "hf.iso" };
             //args = new string[] { "/w", "16", "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] { "gg.txt" };
@@ -109,25 +109,22 @@ namespace _0xdd
                     case "/w":
                     case "-width":
                     case "/width":
-                        // Automatic
-                        if (args[i + 1][0] == 'a' || args[i + 1][0] == 'A')
+                        if (char.ToLower(args[i + 1][0]) == 'a') // Automatic
                         {
                             row = Utils.GetBytesInRow();
                         }
-                        // User-defined
-                        else if (int.TryParse(args[i + 1], out row))
+                        else if (int.TryParse(args[i + 1], out row)) // User-defined
                         {
                             if (row < 1)
                             {
-                                Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Too low)");
+                                Console.WriteLine($"Invalid parameter for /w : {row} (Too low)");
 #if DEBUG
                                 Console.ReadLine();
 #endif
                                 return 1;
                             }
                         }
-                        // If parsing failed
-                        else
+                        else // If parsing failed
                         {
                             Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Invalid format)");
 #if DEBUG
@@ -168,6 +165,7 @@ namespace _0xdd
                     case ErrorCode.Success:
                         Console.WriteLine("OK!");
                         break;
+
                     case ErrorCode.FileNotFound:
                         Console.WriteLine("File not found, aborted.");
                         break;
@@ -177,6 +175,7 @@ namespace _0xdd
                     case ErrorCode.DumbCannotWrite:
                         Console.WriteLine("Not possible to write to output file, aborted.");
                         break;
+
                     default:
                         Console.WriteLine("Unknown error, aborted.");
                         return byte.MaxValue;
