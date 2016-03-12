@@ -51,8 +51,6 @@ namespace _0xdd
     enum ErrorCode : byte
     {
         Success = 0,
-        Exiting = 0x1,
-
 
         // File related
         FileNotFound = 0x4,
@@ -533,7 +531,6 @@ namespace _0xdd
                 case ConsoleKey.X:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        pUserResponse.Error = ErrorCode.Exiting;
                         Exit();
                     }
                     return;
