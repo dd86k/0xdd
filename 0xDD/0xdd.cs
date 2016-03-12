@@ -2,6 +2,8 @@
 using System.IO;
 using System.Text;
 
+//TODO: Hashing (with menu)
+
 //TODO: Implement different display formats
 /*
 - ASCII
@@ -22,7 +24,7 @@ cc eb 00 48 83 c4 38 c3 cc cc cc cc cc cc cc cc  ...H..8.........
 ebcc 4800 c483 c338 cccc cccc cccc cccc 8b48 48c4 5889 4810 7089
 - Short Unsigned
 60364 18432 50307 49976 52428 52428 52428 52428 35656 18628 22665
-- Unicode (DANGER)
+- Unicode (Dump only)
 . 䠀 쒃 쌸 쳌 쳌 쳌 쳌 譈 䣄 墉 䠐 炉 䠘 碉 唠 赈 . . 䣿 . . . 譈 댅 . 䠀 쐳 襈 . . 䰀 .
 */
 
@@ -49,6 +51,8 @@ namespace _0xdd
     enum ErrorCode : byte
     {
         Success = 0,
+        Exiting = 0x1,
+
 
         // File related
         FileNotFound = 0x4,
@@ -118,8 +122,28 @@ namespace _0xdd
         public long Position;
         public ErrorCode Error;
     }
+
+    struct UserResponse
+    {
+        public UserResponse(ErrorCode pError)
+        {
+            Error = pError;
+        }
+
+        public bool Success
+        {
+            get
+            {
+                if (Error == ErrorCode.Success)
+                    return true;
+                else
+                    return false;
+            }
+        }
+        public ErrorCode Error;
+    }
     #endregion
-    
+
     static class _0xdd
     {
         #region Constants
@@ -193,11 +217,14 @@ namespace _0xdd
 
             PrepareScreen();
 
-            ///TODO: Find a way to return any <see cref="ErrorCode"/> through that loop
+            UserResponse ur = new UserResponse(ErrorCode.Success);
             
-            while (ReadUserKey()) { }
+            while (ur.Success)
+            {
+                ReadUserKey(ref ur);
+            }
 
-            return 0;
+            return ur.Error;
         }
 
         /// <summary>
@@ -238,7 +265,7 @@ namespace _0xdd
         /// Read user input.
         /// </summary>
         /// <returns>Returns true if still using 0xdd.</returns>
-        static bool ReadUserKey()
+        static void ReadUserKey(ref UserResponse pUserResponse)
         {
             ConsoleKeyInfo input = Console.ReadKey(true);
             
@@ -259,13 +286,13 @@ namespace _0xdd
                     {
                         MainPanel.Refresh();
                     }
-                    return true;
+                    return;
 
                 case ConsoleKey.F10:
                     {
                         ToggleFullscreenMode();
                     }
-                    return true;
+                    return;
 
                 // -- Shown shortcuts --
 
@@ -276,13 +303,13 @@ namespace _0xdd
                         if (CurrentFileStream.Position >= CurrentFile.Length - MainPanel.MaxBytes)
                         {
                             Message("Already at the end of the file.");
-                            return true;
+                            return;
                         }
 
                         if (MainPanel.MaxBytes >= CurrentFile.Length)
                         {
                             Message("Not possible.");
-                            return true;
+                            return;
                         }
 
                         long? t = Utils.GetNumberFromUser("Find byte:");
@@ -290,7 +317,7 @@ namespace _0xdd
                         if (t == null)
                         {
                             MainPanel.Update();
-                            return true;
+                            return;
                         }
                         
                         if (t < 0 || t > byte.MaxValue)
@@ -324,13 +351,14 @@ namespace _0xdd
                                 case ErrorCode.FindNoResult:
                                     Message($"No results. Input: 0x{t:X2}");
                                     break;
+
                                 default:
-                                    Message($"Byte 0x{t:X2} could not be found. (Unknown error)");
+                                    Message($"Unknown error occurred.");
                                     break;
                             }
                         }
                     }
-                    return true;
+                    return;
 
                 // Find data
                 case ConsoleKey.J:
@@ -339,13 +367,13 @@ namespace _0xdd
                         if (CurrentFileStream.Position >= CurrentFile.Length - MainPanel.MaxBytes)
                         {
                             Message("Already at the end of the file.");
-                            return true;
+                            return;
                         }
 
                         if (MainPanel.MaxBytes >= CurrentFile.Length)
                         {
                             Message("Not possible.");
-                            return true;
+                            return;
                         }
 
                         string t = Utils.GetUserInput("Find data:");
@@ -354,7 +382,7 @@ namespace _0xdd
                         {
                             MainPanel.Update();
                             Message("Canceled.");
-                            return true;
+                            return;
                         }
 
                         MainPanel.Update();
@@ -363,6 +391,11 @@ namespace _0xdd
                         
                         switch (p.Error)
                         {
+                            case ErrorCode.Success:
+                                Goto(p.Position);
+                                Message($"Found {t} at position {p.Position}");
+                                break;
+
                             case ErrorCode.FileNotFound:
                                 Message("File not found.");
                                 MainPanel.Update();
@@ -381,12 +414,12 @@ namespace _0xdd
                                 break;
 
                             default:
-                                Goto(p.Position - 1);
-                                Message($"Found {t} at position {p.Position - 1}");
+                                MainPanel.Update();
+                                Message("Unknown error occurred.");
                                 break;
                         }
                     }
-                    return true;
+                    return;
 
                 // Goto
                 case ConsoleKey.G:
@@ -395,13 +428,13 @@ namespace _0xdd
                         if (MainPanel.MaxBytes >= CurrentFile.Length)
                         {
                             Message("Not possible.");
-                            return true;
+                            return;
                         }
 
                         if (CurrentFileStream.Position >= CurrentFile.Length)
                         {
                             Message("Already at the end of the file.");
-                            return true;
+                            return;
                         }
 
                         long? t = Utils.GetNumberFromUser("Goto:");
@@ -410,7 +443,7 @@ namespace _0xdd
                         {
                             MainPanel.Update();
                             Message("Canceled.");
-                            return true;
+                            return;
                         }
 
                         if (t >= 0 && t <= CurrentFile.Length - MainPanel.MaxBytes)
@@ -423,7 +456,7 @@ namespace _0xdd
                             Message("Position out of bound!");
                         }
                     }
-                    return true;
+                    return;
 
                 // Offset base
                 case ConsoleKey.O:
@@ -435,7 +468,7 @@ namespace _0xdd
                         {
                             MainPanel.Update();
                             Message("Canceled.");
-                            return true;
+                            return;
                         }
 
                         switch (c[0])
@@ -446,7 +479,7 @@ namespace _0xdd
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                return true;
+                                return;
 
                             case 'O':
                             case 'o':
@@ -454,7 +487,7 @@ namespace _0xdd
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                return true;
+                                return;
 
                             case 'D':
                             case 'd':
@@ -462,15 +495,15 @@ namespace _0xdd
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                return true;
+                                return;
 
                             default:
                                 Message("Invalid view mode!");
                                 MainPanel.Update();
-                                return true;
+                                return;
                         }
                     }
-                    return true;
+                    return;
 
                 // Edit mode
                 case ConsoleKey.E:
@@ -486,7 +519,7 @@ namespace _0xdd
                     {
                         Message("Not implemented. Sorry!");
                     }
-                    return true;
+                    return;
 
                 // Info
                 case ConsoleKey.I:
@@ -494,13 +527,16 @@ namespace _0xdd
                     {
                         Message($"Size: {Utils.GetFormattedSize(CurrentFile.Length)}");
                     }
-                    return true;
+                    return;
 
                 // Exit
                 case ConsoleKey.X:
                     if (input.Modifiers == ConsoleModifiers.Control)
-                        return Exit();
-                    return true;
+                    {
+                        pUserResponse.Error = ErrorCode.Exiting;
+                        Exit();
+                    }
+                    return;
 
                 // Dump
                 case ConsoleKey.D:
@@ -510,7 +546,7 @@ namespace _0xdd
                         Dump();
                         Message("Dumping done!");
                     }
-                    return true;
+                    return;
 
                 // -- Data nagivation --
                 case ConsoleKey.LeftArrow:
@@ -521,7 +557,7 @@ namespace _0xdd
                             ReadFileAndUpdate(CurrentFileStream.Position - 1);
                         }
                     }
-                    return true;
+                    return;
                 case ConsoleKey.RightArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
@@ -530,7 +566,7 @@ namespace _0xdd
                             ReadFileAndUpdate(CurrentFileStream.Position + 1);
                         }
                     }
-                    return true;
+                    return;
 
                 case ConsoleKey.UpArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -544,7 +580,7 @@ namespace _0xdd
                             ReadFileAndUpdate(0);
                         }
                     }
-                    return true;
+                    return;
                 case ConsoleKey.DownArrow:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
@@ -558,7 +594,7 @@ namespace _0xdd
                                 ReadFileAndUpdate(CurrentFile.Length - MainPanel.MaxBytes);
                         }
                     }
-                    return true;
+                    return;
 
                 case ConsoleKey.PageUp:
                     if (CurrentWritingMode == OperatingMode.Read)
@@ -572,7 +608,7 @@ namespace _0xdd
                             ReadFileAndUpdate(0);
                         }
                     }
-                    return true;
+                    return;
                 case ConsoleKey.PageDown:
                     if (CurrentWritingMode == OperatingMode.Read)
                     {
@@ -582,22 +618,20 @@ namespace _0xdd
                         }
                         else
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position = CurrentFile.Length - MainPanel.MaxBytes);
+                            ReadFileAndUpdate(CurrentFile.Length - MainPanel.MaxBytes);
                         }
                     }
-                    return true;
+                    return;
 
                 case ConsoleKey.Home:
                     if (CurrentWritingMode == OperatingMode.Read)
                         ReadFileAndUpdate(0);
-                    return true;
+                    return;
                 case ConsoleKey.End:
                     if (CurrentWritingMode == OperatingMode.Read)
                         ReadFileAndUpdate(CurrentFile.Length - MainPanel.MaxBytes);
-                    return true;
+                    return;
             }
-
-            return true;
         }
 
         /// <summary>
@@ -883,11 +917,16 @@ namespace _0xdd
                     }
                     else
                     {
+                        CurrentFileStream.Position--;
                         CurrentFileStream.Read(b, 0, b.Length);
                         if (pData == Encoding.ASCII.GetString(b))
                         {
-                            CurrentFileStream.Position = CurrentFileStream.Position - pData.Length - 1;
-                            return new FindResult(CurrentFileStream.Position + 1);
+                            CurrentFileStream.Position = CurrentFileStream.Position - pData.Length;
+
+                            FindResult f = new FindResult(ErrorCode.Success);
+                            f.Position = CurrentFileStream.Position;
+
+                            return f;
                         }
                     }
                 }
