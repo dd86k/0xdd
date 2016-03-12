@@ -69,7 +69,7 @@ namespace _0xdd
         
         UnknownError = 0xFE
     }
-
+    /*
     enum DisplayFormat : byte
     {
         ASCII,
@@ -83,7 +83,7 @@ namespace _0xdd
         ShortUnsigned,
         Unicode
     }
-    
+    */
     enum OffsetBaseView : byte
     {
         Hexadecimal,
@@ -156,10 +156,10 @@ namespace _0xdd
         static FileStream CurrentFileStream;
 
         /// <summary>
-        /// Buffer used for on-screen display.
+        /// Active buffer used for on-screen display.
         /// </summary>
         /// <remarks>
-        /// This doesn't use a lot of memory.
+        /// Do not worry, this doesn't use a lot of memory.
         /// </remarks>
         static byte[] Buffer;
         
@@ -282,7 +282,7 @@ namespace _0xdd
                 // -- Hidden shortcuts --
                 case ConsoleKey.F5:
                     {
-                        MainPanel.Refresh();
+                        MainPanel.Update();
                     }
                     return;
 
@@ -989,10 +989,7 @@ namespace _0xdd
             {
                 get
                 {
-                    if (Fullscreen)
-                        return 1;
-                    else
-                        return 2;
+                    return Fullscreen ? 1 : 2;
                 }
             }
 
@@ -1003,10 +1000,8 @@ namespace _0xdd
             {
                 get
                 {
-                    if (Fullscreen)
-                        return Console.WindowHeight - 2;
-                    else
-                        return Console.WindowHeight - 5;
+                    return Fullscreen ?
+                        Console.WindowHeight - 2 : Console.WindowHeight - 5;
                 }
             }
 
@@ -1034,8 +1029,6 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                long l = CurrentFile.Length;
-
                 int BufferOffsetData = 0;
                 int BufferOffsetText = 0;
 
@@ -1064,7 +1057,7 @@ namespace _0xdd
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (CurrentFileStream.Position + BufferOffsetData < l)
+                        if (CurrentFileStream.Position + BufferOffsetData < CurrentFile.Length)
                             t.Append($"{Buffer[BufferOffsetData]:X2} ");
                         else
                             t.Append("   ");
@@ -1076,7 +1069,7 @@ namespace _0xdd
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (CurrentFileStream.Position + BufferOffsetText < l)
+                        if (CurrentFileStream.Position + BufferOffsetText < CurrentFile.Length)
                             t.Append($"{Buffer[BufferOffsetText].ToSafeChar()}");
                         else
                         {
@@ -1090,24 +1083,6 @@ namespace _0xdd
                     t.Append(" ");
 
                     Console.WriteLine(t.ToString());
-                }
-            }
-
-            static internal void Refresh()
-            {
-                Clear();
-                ReadFileAndUpdate(CurrentFileStream.Position);
-            }
-
-            static internal void Clear()
-            {
-                Console.SetCursorPosition(0, Position);
-                int i = 0;
-                for (int line = Position; i < FrameHeight; line++)
-                {
-                    Console.SetCursorPosition(0, line);
-                    Console.Write(new string(' ', Console.WindowWidth));
-                    i++;
                 }
             }
         }
@@ -1188,12 +1163,13 @@ namespace _0xdd
         static class ControlPanel
         {
             /// <summary>
-            /// Places the control map on screen (e.g. ^T Try jumping)
+            /// Places the control map on screen (e.g. ^T Try jumping and etc.)
             /// </summary>
             static internal void Place()
             {
                 //TODO: Adjust Place() depending on screen width
                 // Place the most important actions first
+
                 Console.SetCursorPosition(0, Console.WindowHeight - 2);
 
                 WriteWhite("^U");
@@ -1214,12 +1190,12 @@ namespace _0xdd
                 // CHANGING LINE BOYS
                 Console.WriteLine();
 
-                WriteWhite("^O");
-                Console.Write(" Offset base  ");
-
                 WriteWhite("^X");
                 Console.Write(" Exit         ");
 
+                WriteWhite("^O");
+                Console.Write(" Offset base  ");
+                
                 WriteWhite("^I");
                 Console.Write(" Info         ");
 
