@@ -244,7 +244,7 @@ namespace _0xdd
                 (int)CurrentFile.Length : MainPanel.MaxBytes];
 
             TitlePanel.Update();
-            ReadCurrentFile(0);
+            ReadCurrentFile(CurrentFileStream.Position);
             MainPanel.Update();
             InfoPanel.Update();
             ControlPanel.Place();
