@@ -1,25 +1,26 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 
-//TODO: Hashing (with menu)
-//TODO: Goto beginning of line
-
-//TODO: Edit mode
-// 0E 0F
-// D2 DD ..
-// ^^    ^
-// highlighted (gray on black) while navigating
+//TODO: Hashing (with menu) (medium, long, v0.7)
+//TODO: Goto beginning of line (easy-medium, short, v0.6)
+//TODO: Search from end of file (easy, medium, v0.6)
 
 /*
-    Box of ideas (Lazy TODO/idea list)
+    TODO: Edit mode (medium-hard, long, v0.9)
     - Top right: Insert(INS)/Overwrite(OVR)
-    - Search: /regex/ (Begins && ends with '/')
+    - Cursor/Navigation mode?
     - Edit:
-      - Dictionary<long, byte> (FilePosition, Data)
+      - Dictionary<long, byte> Edits (FilePosition, Data)
       - Rendering: If byte at position, write that byte to display instead
-      - Saving: Remove duplicates, loop through List and write
-      - Editing: If new data on same position, replace
+      - Saving: Remove duplicates, loop through List and write (at positions)
+      - Editing: If new data on same position, replace in Edits (overwrite)
+
+0E 0F
+D2 DD ..
+^^    ^
+highlighted (gray on black) while navigating
 */
 
 namespace _0xdd
@@ -130,18 +131,12 @@ namespace _0xdd
 
         static OffsetView CurrentOffsetBaseView;
         static OperatingMode CurrentWritingMode;
-
-        //TODO: Put these thingies into action
+        
         static string LastDataSearched;
         static byte LastByteSearched;
         #endregion
 
-        #region Methods
-        internal static ErrorCode Open(string pFilePath)
-        {
-            return Open(pFilePath, OffsetView.Hexadecimal, Utils.GetBytesInRow());
-        }
-        
+        #region Methods        
         internal static ErrorCode Open(string pFilePath, OffsetView pOffsetViewMode = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
             if (!File.Exists(pFilePath))
@@ -159,7 +154,7 @@ namespace _0xdd
             }
 
             AutoSize = pBytesRow > 0;
-            MainPanel.BytesInRow = AutoSize ? Utils.GetBytesInRow() : pBytesRow;
+            MainPanel.BytesInRow = AutoSize ? pBytesRow : Utils.GetBytesInRow();
 
             CurrentWritingMode = OperatingMode.Read;
 
@@ -182,7 +177,9 @@ namespace _0xdd
         }
 
         /// <summary>
-        /// Prepares the screen with the information needed.
+        /// Prepares the screen with the information needed.<para/>
+        /// Initialize: AutoSizing, Buffer, TitlePanel, Readfile, MainPanel,
+        /// InfoPanel, and ControlPanel.
         /// </summary>
         /// <remarks>
         /// Also used when resizing.
@@ -266,11 +263,13 @@ namespace _0xdd
                             return;
                         }
 
-                        long? t = Utils.GetNumberFromUser("Find byte:");
+                        long? t = Utils.GetNumberFromUser("Find byte:",
+                            pSuggestion: LastByteSearched > 0 ? LastByteSearched.ToString() : null);
 
                         if (t == null)
                         {
                             MainPanel.Update();
+                            Message("Canceled.");
                             return;
                         }
                         
@@ -281,6 +280,7 @@ namespace _0xdd
                         }
                         else
                         {
+                            LastByteSearched = (byte)t;
                             MainPanel.Update();
                             Message("Searching...");
                             FindResult p = Find((byte)t, CurrentFileStream.Position + 1);
@@ -291,9 +291,9 @@ namespace _0xdd
                                     {
                                         Goto(--p.Position);
                                         if (p.Position > uint.MaxValue)
-                                            Message($"Found 0x{t:X2} at {p.Position:X16}");
+                                            Message($"Found {t:X2} at {p.Position:X16}");
                                         else
-                                            Message($"Found 0x{t:X2} at {p.Position:X8}");
+                                            Message($"Found {t:X2} at {p.Position:X8}");
                                     }
                                     break;
                                 case ErrorCode.FileNotFound:
@@ -330,7 +330,7 @@ namespace _0xdd
                             return;
                         }
 
-                        string t = Utils.GetUserInput("Find data:");
+                        string t = Utils.GetUserInput("Find data:", pSuggestion: LastDataSearched);
 
                         if (t == null || t.Length == 0)
                         {
@@ -338,10 +338,11 @@ namespace _0xdd
                             Message("Canceled.");
                             return;
                         }
-
+                        
+                        LastDataSearched = t;
                         MainPanel.Update();
                         Message("Searching...");
-                        FindResult p = Find(t, CurrentFileStream.Position + 1);
+                        FindResult p = FindData(t, CurrentFileStream.Position + 1);
                         
                         switch (p.Error)
                         {
@@ -826,7 +827,7 @@ namespace _0xdd
         /// <returns><see cref="FindResult"/></returns>
         static FindResult FindData(string pData)
         {
-            return Find(pData, CurrentFileStream.Position);
+            return FindData(pData, CurrentFileStream.Position);
         }
 
         /// <summary>
@@ -837,10 +838,10 @@ namespace _0xdd
         /// <returns><see cref="FindResult"/></returns>
         /// <remarks>
         /// How does this work?
-        /// Search every character, if one seems to be right.
-        /// Read the data and compare it.
+        /// Search every character, if the first one seems to be right,
+        /// read the data and compare it.
         /// </remarks>
-        static FindResult Find(string pData, long pPosition)
+        static FindResult FindData(string pData, long pPosition)
         {
             if (pPosition < 0 || pPosition > CurrentFile.Length)
                 return new FindResult(ErrorCode.PositionOutOfBound);
@@ -855,29 +856,58 @@ namespace _0xdd
 
             byte[] b = new byte[pData.Length];
             bool Continue = true;
-            while (Continue)
+            if (pData.StartsWith("/") && pData.EndsWith("/"))
             {
-                if (CurrentFileStream.Position + pData.Length > CurrentFileStream.Length)
-                    Continue = false;
+                RegexOptions rf = RegexOptions.Compiled | RegexOptions.ECMAScript | RegexOptions.CultureInvariant;
 
-                if (pData[0] == (char)CurrentFileStream.ReadByte())
+                Regex r = new Regex(pData.Trim(new char[] { '/' }), rf);
+
+                Message("Searching with regex...");
+
+                while (Continue)
                 {
-                    if (pData.Length == 1)
+                    if (CurrentFileStream.Position + pData.Length > CurrentFileStream.Length)
+                        Continue = false;
+
+                    if (r.IsMatch(char.ToString((char)CurrentFileStream.ReadByte())))
                     {
-                        return new FindResult(CurrentFileStream.Position - 1);
-                    }
-                    else
-                    {
-                        CurrentFileStream.Position--;
-                        CurrentFileStream.Read(b, 0, b.Length);
-                        if (pData == Encoding.ASCII.GetString(b))
+                        if (pData.Length == 1)
                         {
-                            CurrentFileStream.Position = CurrentFileStream.Position - pData.Length;
+                            return new FindResult(CurrentFileStream.Position - 1);
+                        }
+                        else
+                        {
+                            CurrentFileStream.Position--;
+                            CurrentFileStream.Read(b, 0, b.Length);
+                            if (r.IsMatch(Encoding.ASCII.GetString(b)))
+                            {
+                                return new FindResult(CurrentFileStream.Position - pData.Length);
+                            }
+                        }
+                    }
+                }
+            }
+            else // Copying pasting is good
+            {
+                while (Continue)
+                {
+                    if (CurrentFileStream.Position + pData.Length > CurrentFileStream.Length)
+                        Continue = false;
 
-                            FindResult f = new FindResult(ErrorCode.Success);
-                            f.Position = CurrentFileStream.Position;
-
-                            return f;
+                    if (pData[0] == (char)CurrentFileStream.ReadByte())
+                    {
+                        if (pData.Length == 1)
+                        {
+                            return new FindResult(CurrentFileStream.Position - 1);
+                        }
+                        else
+                        {
+                            CurrentFileStream.Position--;
+                            CurrentFileStream.Read(b, 0, b.Length);
+                            if (pData == Encoding.ASCII.GetString(b))
+                            {
+                                return new FindResult(CurrentFileStream.Position - pData.Length);
+                            }
                         }
                     }
                 }
@@ -1238,29 +1268,30 @@ namespace _0xdd
 
         #region User input
         /// <summary>
-        /// Readline with a maximum length.
-        /// </summary>
-        /// <param name="pLimit">Limit in characters</param>
-        /// <returns>User's input</returns>
-        internal static string ReadLine(int pLimit)
-        {
-            return ReadLine(pLimit, false);
-        }
-
-        /// <summary>
         /// Readline with a maximum length plus optional password mode.
         /// </summary>
         /// <param name="pLimit">Character limit</param>
         /// <param name="pPassword">Is password</param>
         /// <returns>User's input</returns>
-        internal static string ReadLine(int pLimit, bool pPassword)
+        /// <remarks>v1.1</remarks>
+        internal static string ReadLine(int pLimit, string pSuggestion = null, bool pPassword = false)
         {
-            StringBuilder _out = new StringBuilder();
+            StringBuilder o = pSuggestion == null ? new StringBuilder() : new StringBuilder(pSuggestion);
             int Index = 0;
-            bool gotString = false;
-            int OrigninalLeftPosition = Console.CursorLeft;
+            bool Continue = true;
+            int oleft = Console.CursorLeft; // Origninal Left Position
+            int otop = Console.CursorTop; // Origninal Top Position
 
-            while (!gotString)
+            if (pSuggestion != null)
+            {
+                Console.Write(pSuggestion);
+                Index = pSuggestion.Length;
+                Console.SetCursorPosition(oleft + Index, otop);
+            }
+
+            Console.CursorVisible = true;
+
+            while (Continue)
             {
                 ConsoleKeyInfo c = Console.ReadKey(true);
 
@@ -1268,51 +1299,88 @@ namespace _0xdd
                 {
                     // Ignore keys
                     case ConsoleKey.Tab:
+                    case ConsoleKey.UpArrow:
+                    case ConsoleKey.DownArrow:
                         break;
 
                     // Cancel
                     case ConsoleKey.Escape:
-                        gotString = true;
+                        Continue =
+                            Console.CursorVisible = false;
                         return string.Empty;
 
                     // Returns the string
                     case ConsoleKey.Enter:
-                        gotString = true;
-                        if (_out.Length > 0)
-                            return _out.ToString();
+                        Continue = false;
+                        if (o.Length > 0)
+                            return o.ToString();
+                        break;
+
+                    // Navigation
+                    case ConsoleKey.LeftArrow:
+                        if (Index > 0)
+                        {
+                            Console.SetCursorPosition(oleft + --Index, otop);
+                        }
+                        break;
+                    case ConsoleKey.RightArrow:
+                        if (Index < o.Length)
+                        {
+                            Console.SetCursorPosition(oleft + ++Index, otop);
+                        }
+                        break;
+                    case ConsoleKey.Home:
+                        if (Index > 0)
+                        {
+                            Index = 0;
+                            Console.SetCursorPosition(oleft, otop);
+                        }
+                        break;
+                    case ConsoleKey.End:
+                        if (Index < o.Length)
+                        {
+                            Index = o.Length;
+                            Console.SetCursorPosition(oleft + Index, otop);
+                        }
                         break;
 
                     case ConsoleKey.Backspace:
                         if (Index > 0)
                         {
                             // Erase whole
+                            //TODO: Erase from index (easy, medium, v0.6)
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
-                                _out = new StringBuilder();
+                                o = new StringBuilder();
                                 Index = 0;
-                                Console.SetCursorPosition(OrigninalLeftPosition, Console.CursorTop);
+                                Console.SetCursorPosition(oleft, otop);
                                 Console.Write(new string(' ', pLimit));
-                                Console.SetCursorPosition(OrigninalLeftPosition, Console.CursorTop);
+                                Console.SetCursorPosition(oleft, otop);
                             }
-                            // Erase one character
-                            else
+                            else // Erase one character
                             {
-                                _out = _out.Remove(_out.Length - 1, 1);
-                                Index--;
-                                Console.SetCursorPosition(OrigninalLeftPosition + Index, Console.CursorTop);
-                                Console.Write(' ');
-                                Console.SetCursorPosition(OrigninalLeftPosition + Index, Console.CursorTop);
+                                if (Index > 0)
+                                {
+                                    o = o.Remove(--Index, 1);
+                                    Console.SetCursorPosition(oleft, otop);
+                                    Console.Write(new string(' ', pLimit));
+                                    Console.SetCursorPosition(oleft, otop);
+                                    Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
+                                    Console.SetCursorPosition(oleft + Index, otop);
+                                }
                             }
                         }
                         break;
 
                     default:
-                        if (Index < pLimit)
+                        if (o.Length < pLimit)
                         {
-                            _out.Append(c.KeyChar);
-                            Index++;
-
-                            Console.Write(pPassword ? '*' : c.KeyChar);
+                            o.Insert(Index++, c.KeyChar);
+                            Console.SetCursorPosition(oleft, otop);
+                            Console.Write(new string(' ', pLimit));
+                            Console.SetCursorPosition(oleft, otop);
+                            Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
+                            Console.SetCursorPosition(oleft + Index, otop);
                         }
                         break;
                 }
@@ -1321,9 +1389,9 @@ namespace _0xdd
             return string.Empty;
         }
 
-        internal static long ReadValue(int pLimit)
+        internal static long ReadValue(int pLimit, string pSuggestion = null)
         {
-            string t = ReadLine(pLimit);
+            string t = ReadLine(pLimit, pSuggestion);
 
             if (t.StartsWith("0x")) // Hexadecimal
             {
@@ -1339,17 +1407,7 @@ namespace _0xdd
             }
         }
 
-        internal static string GetUserInput(string pMessage)
-        {
-            return GetUserInput(pMessage, 27, 4);
-        }
-
-        internal static long? GetNumberFromUser(string pMessage)
-        {
-            return GetNumberFromUser(pMessage, 27, 4);
-        }
-
-        internal static long? GetNumberFromUser(string pMessage, int pWidth, int pHeight)
+        internal static long? GetNumberFromUser(string pMessage, int pWidth = 27, int pHeight = 4, string pSuggestion = null)
         {
             GenerateInputBox(pMessage, pWidth, pHeight);
 
@@ -1357,23 +1415,20 @@ namespace _0xdd
 
             try
             {
-                t = ReadValue(pWidth - 2);
+                t = ReadValue(pWidth - 2, pSuggestion);
             }
-            catch
-            {
-
-            }
+            catch { }
 
             Console.ResetColor();
 
             return t;
         }
 
-        internal static string GetUserInput(string pMessage, int pWidth, int pHeight)
+        internal static string GetUserInput(string pMessage, int pWidth = 32, int pHeight = 4, string pSuggestion = null)
         {
             GenerateInputBox(pMessage, pWidth, pHeight);
 
-            string t = ReadLine(pWidth - 2);
+            string t = ReadLine(pWidth - 2, pSuggestion: pSuggestion);
 
             Console.ResetColor();
 

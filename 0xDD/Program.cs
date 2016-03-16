@@ -75,7 +75,7 @@ namespace _0xdd
             OffsetView ovm = OffsetView.Hexadecimal;
             bool dump = false;
 
-            //TODO: Settings!
+            //TODO: Settings! (easy, long, v0.8)
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -85,16 +85,13 @@ namespace _0xdd
                     case "/v":
                         switch (args[i + 1][0])
                         {
-                            case 'h':
-                            case 'H':
+                            case 'h': case 'H':
                                 ovm = OffsetView.Hexadecimal;
                                 break;
-                            case 'd':
-                            case 'D':
+                            case 'd': case 'D':
                                 ovm = OffsetView.Decimal;
                                 break;
-                            case 'o':
-                            case 'O':
+                            case 'o': case 'O':
                                 ovm = OffsetView.Octal;
                                 break;
                             default:
@@ -151,9 +148,8 @@ namespace _0xdd
             {
                 Console.Write("Dumping file... ");
                 ErrorCode err = _0xdd.Dump(file, row, ovm);
-
-                if (err != ErrorCode.Success)
-                    Console.WriteLine(gerrcs(err));
+                
+                Console.WriteLine(gerrcs(err));
 
                 return err.Int();
             }
@@ -200,7 +196,7 @@ namespace _0xdd
 
             switch (pCode)
             {
-                case ErrorCode.Success: break;
+                case ErrorCode.Success: return m = "OK!";
 
                 case ErrorCode.FileNotFound:
                     m += "Error: File not found.";
@@ -215,7 +211,7 @@ namespace _0xdd
                     m += "Error: Could not write to output.";
                     break;
                 case ErrorCode.DumbCannotRead:
-                    m += "Error: Could not from from input.";
+                    m += "Error: Could not read from input.";
                     break;
 
                 case ErrorCode.CLI_InvalidOffsetView:
