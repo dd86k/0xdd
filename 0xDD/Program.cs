@@ -75,8 +75,10 @@ namespace _0xdd
             // Defaults
             string file = args[args.Length - 1];
             int row = 0; // 0 - Auto, past default: 16
-            OffsetBaseView ovm = OffsetBaseView.Hexadecimal;
+            OffsetView ovm = OffsetView.Hexadecimal;
             bool dump = false;
+
+            //TODO: Settings!
 
             for (int i = 0; i < args.Length; i++)
             {
@@ -84,49 +86,42 @@ namespace _0xdd
                 {
                     case "-v":
                     case "/v":
-                    case "-view":
-                    case "/view":
                         switch (args[i + 1][0])
                         {
+                            case 'h':
+                            case 'H':
+                                ovm = OffsetView.Hexadecimal;
+                                break;
                             case 'd':
                             case 'D':
-                                ovm = OffsetBaseView.Decimal;
+                                ovm = OffsetView.Decimal;
                                 break;
                             case 'o':
                             case 'O':
-                                ovm = OffsetBaseView.Octal;
+                                ovm = OffsetView.Octal;
                                 break;
-                            default: // hex is default
-                                Console.WriteLine($"Invalid parameter for /v : {args[i + 1]}");
+                            default:
+                                Console.WriteLine(gerrcs(ErrorCode.CLI_InvalidOffsetView, args[i + 1]));
 #if DEBUG
                                 Console.ReadLine();
 #endif
-                                return 1;
+                                return (int)ErrorCode.CLI_InvalidOffsetView;
                         }
                         break;
 
                     case "-w":
                     case "/w":
-                    case "-width":
-                    case "/width":
-                        if (char.ToLower(args[i + 1][0]) == 'a') // Automatic
+                        if (char.ToLower(args[i + 1][0]) != 'a') // Automatic
                         {
-                            row = Utils.GetBytesInRow();
+                            row = 0;
                         }
                         else if (int.TryParse(args[i + 1], out row)) // User-defined
                         {
-                            if (row < 1)
-                            {
-                                Console.WriteLine($"Invalid parameter for /w : {row} (Too low)");
-#if DEBUG
-                                Console.ReadLine();
-#endif
-                                return 1;
-                            }
+                            row = Math.Abs(row);
                         }
                         else // If parsing failed
                         {
-                            Console.WriteLine($"Invalid parameter for /w : {args[i + 1]} (Invalid format)");
+                            Console.WriteLine(gerrcs(ErrorCode.CLI_InvalidWidth, args[i + 1]));
 #if DEBUG
                             Console.ReadLine();
 #endif
@@ -160,26 +155,8 @@ namespace _0xdd
                 Console.Write("Dumping file... ");
                 ErrorCode err = _0xdd.Dump(file, row, ovm);
 
-                switch (err)
-                {
-                    case ErrorCode.Success:
-                        Console.WriteLine("OK!");
-                        break;
-
-                    case ErrorCode.FileNotFound:
-                        Console.WriteLine("File not found, aborted.");
-                        break;
-                    case ErrorCode.DumbCannotRead:
-                        Console.WriteLine("Not possible to read input file, aborted.");
-                        break;
-                    case ErrorCode.DumbCannotWrite:
-                        Console.WriteLine("Not possible to write to output file, aborted.");
-                        break;
-
-                    default:
-                        Console.WriteLine("Unknown error, aborted.");
-                        return byte.MaxValue;
-                }
+                if (err != ErrorCode.Success)
+                    Console.WriteLine(gerrcs(err));
 
                 return (int)err;
             }
@@ -195,26 +172,12 @@ namespace _0xdd
 #else
                 try
                 {
-                    ErrorCode code = _0xdd.Open(file, ovm, row);
+                    ErrorCode err = _0xdd.Open(file, ovm, row);
 
-                    switch (code)
-                    {
-                        case ErrorCode.Success: break;
-                        case ErrorCode.FileNotFound:
-                            Console.WriteLine("Error: File not found.");
-                            break;
-                        case ErrorCode.FileUnreadable:
-                            Console.WriteLine("Error: File not readable.");
-                            break;
-                        case ErrorCode.UnknownError:
-                            Console.WriteLine("Error: Unknown error.");
-                            break;
-                        default:
-                            Console.WriteLine("Error: Unknown error. [default]");
-                            break;
-                    }
+                    if (err != ErrorCode.Success)
+                        Console.WriteLine(gerrcs(err));
 
-                    return (int)code;
+                    return (int)err;
                 }
                 catch (Exception e)
                 {
@@ -226,6 +189,58 @@ namespace _0xdd
                 return 0;
 #endif
             }
+        }
+
+        /// <summary>
+        /// Generate a line about the <see cref="ErrorCode"/>
+        /// </summary>
+        /// <param name="pCode"><see cref="ErrorCode"/></param>
+        /// <returns><see cref="string"/></returns>
+        /// <remarks> C syntax </remarks>
+        static string gerrcs(ErrorCode pCode, string pArgument = null)
+        {
+            string m = string.Empty;
+
+            switch (pCode)
+            {
+                case ErrorCode.Success: break;
+
+                case ErrorCode.FileNotFound:
+                    m += "Error: File not found.";
+                    break;
+                case ErrorCode.FileUnreadable:
+                    m += "Error: File not readable.";
+                    break; ;
+                case ErrorCode.PositionOutOfBound:
+                    m += "Error: Position out of bound.";
+                    break;
+                case ErrorCode.DumbCannotWrite:
+                    m += "Error: Could not write to output.";
+                    break;
+                case ErrorCode.DumbCannotRead:
+                    m += "Error: Could not from from input.";
+                    break;
+
+                case ErrorCode.CLI_InvalidOffsetView:
+                    m += $"Invalid parameter for /v : {pArgument}";
+                    break;
+                case ErrorCode.CLI_InvalidWidth:
+                    m += $"Invalid parameter for /w : {pArgument}";
+                    break;
+
+                // The "should not be an app return code" club
+                case ErrorCode.FindNoResult: break;
+                case ErrorCode.FindEmptyString: break;
+
+                case ErrorCode.UnknownError:
+                    m += "Error: Unknown error.";
+                    break;
+                default:
+                    m += "Error: Unknown error. [default]";
+                    break;
+            }
+
+            return m += $" ({pCode} - 0x{(int)pCode:X2})";
         }
 
         static void Abort(Exception e)

@@ -4,30 +4,6 @@ using System.Text;
 
 //TODO: Hashing (with menu)
 
-//TODO: Implement different display formats
-/*
-- ASCII
-. . . H . . 8 . . . . . . . . . H . . H . X . H . p . H . x   U H
-- Bit
-11001100 11101011 00000000 01001000 10000011 11000100 00111000
-- Bytes (Default, already there)
-cc eb 00 48 83 c4 38 c3 cc cc cc cc cc cc cc cc  ...H..8.........
-- Long
-1208019916 -1019689853  -858993460  -858993460  1220840264
-- Long Hex
-4800ebcc c338c483 cccccccc cccccccc 48c48b48 48105889 48187089
-- Long Unsigned
-1208019916 3275277443 3435973836 3435973836 1220840264 1209030793
-- Short
--5172  18432 -15229 -15560 -13108 -13108 -13108 -13108 -29880
-- Short Hex
-ebcc 4800 c483 c338 cccc cccc cccc cccc 8b48 48c4 5889 4810 7089
-- Short Unsigned
-60364 18432 50307 49976 52428 52428 52428 52428 35656 18628 22665
-- Unicode (Dump only)
-. 䠀 쒃 쌸 쳌 쳌 쳌 쳌 譈 䣄 墉 䠐 炉 䠘 碉 唠 赈 . . 䣿 . . . 譈 댅 . 䠀 쐳 襈 . . 䰀 .
-*/
-
 //TODO: Edit mode
 // 0E 0F
 // D2 DD ..
@@ -53,38 +29,28 @@ namespace _0xdd
         Success = 0,
 
         // File related
-        FileNotFound = 0x4,
-        FileUnreadable = 0x5,
+        FileNotFound = 4,
+        FileUnreadable = 5,
 
         // Position related
-        PositionOutOfBound = 0x16,
+        PositionOutOfBound = 8,
 
         // Dump related
-        DumbCannotWrite = 0x32,
-        DumbCannotRead = 0x33,
+        DumbCannotWrite = 16,
+        DumbCannotRead = 17,
 
         // Find related
-        FindNoResult = 0x64,
-        FindEmptyString = 0x65,
+        FindNoResult = 32,
+        FindEmptyString = 33,
+
+        // CLI related
+        CLI_InvalidOffsetView = 0xC0,
+        CLI_InvalidWidth = 0xC4,
         
         UnknownError = 0xFE
     }
-    /*
-    enum DisplayFormat : byte
-    {
-        ASCII,
-        Bit,
-        Bytes, // Default
-        Long,
-        LongHex,
-        LongUnsigned,
-        Short,
-        ShortHex,
-        ShortUnsigned,
-        Unicode
-    }
-    */
-    enum OffsetBaseView : byte
+
+    enum OffsetView : byte
     {
         Hexadecimal,
         Decimal,
@@ -132,10 +98,7 @@ namespace _0xdd
         {
             get
             {
-                if (Error == ErrorCode.Success)
-                    return true;
-                else
-                    return false;
+                return Error == ErrorCode.Success;
             }
         }
         public ErrorCode Error;
@@ -154,34 +117,27 @@ namespace _0xdd
         #region General properties
         static FileInfo CurrentFile;
         static FileStream CurrentFileStream;
-
-        /// <summary>
-        /// Active buffer used for on-screen display.
-        /// </summary>
-        /// <remarks>
-        /// Do not worry, this doesn't use a lot of memory.
-        /// </remarks>
+        
         static byte[] Buffer;
         
         static bool Fullscreen;
-
-        // Last window sizes.
+        
         static int LastWindowHeight;
         static int LastWindowWidth;
 
         static bool AutoSize;
 
-        static OffsetBaseView CurrentOffsetBaseView;
+        static OffsetView CurrentOffsetBaseView;
         static OperatingMode CurrentWritingMode;
         #endregion
 
         #region Methods
         internal static ErrorCode Open(string pFilePath)
         {
-            return Open(pFilePath, OffsetBaseView.Hexadecimal, Utils.GetBytesInRow());
+            return Open(pFilePath, OffsetView.Hexadecimal, Utils.GetBytesInRow());
         }
         
-        internal static ErrorCode Open(string pFilePath, OffsetBaseView pOffsetViewMode, int pBytesRow)
+        internal static ErrorCode Open(string pFilePath, OffsetView pOffsetViewMode = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
             if (!File.Exists(pFilePath))
                 return ErrorCode.FileNotFound;
@@ -197,15 +153,8 @@ namespace _0xdd
                 return ErrorCode.FileUnreadable;
             }
 
-            if (pBytesRow > 0)
-            {
-                MainPanel.BytesInRow = pBytesRow;
-            }
-            else
-            {
-                AutoSize = true;
-                MainPanel.BytesInRow = Utils.GetBytesInRow();
-            }
+            MainPanel.BytesInRow = pBytesRow > 0 ? pBytesRow : Utils.GetBytesInRow();
+            AutoSize = pBytesRow > 0;
 
             CurrentWritingMode = OperatingMode.Read;
 
@@ -475,7 +424,7 @@ namespace _0xdd
                         {
                             case 'H':
                             case 'h':
-                                CurrentOffsetBaseView = OffsetBaseView.Hexadecimal;
+                                CurrentOffsetBaseView = OffsetView.Hexadecimal;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
@@ -483,7 +432,7 @@ namespace _0xdd
 
                             case 'O':
                             case 'o':
-                                CurrentOffsetBaseView = OffsetBaseView.Octal;
+                                CurrentOffsetBaseView = OffsetView.Octal;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
@@ -491,7 +440,7 @@ namespace _0xdd
 
                             case 'D':
                             case 'd':
-                                CurrentOffsetBaseView = OffsetBaseView.Decimal;
+                                CurrentOffsetBaseView = OffsetView.Decimal;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
@@ -707,9 +656,9 @@ namespace _0xdd
         /// </summary>
         /// <param name="pFileToDump">Output filename.</param>
         /// <param name="pBytesInRow">Number of bytes in a row.</param>
-        /// <param name="pViewMode"><see cref="OffsetBaseView"/> to use.</param>
+        /// <param name="pViewMode"><see cref="OffsetView"/> to use.</param>
         /// <returns><see cref="ErrorCode"/></returns>
-        static public ErrorCode Dump(string pFileToDump, int pBytesInRow, OffsetBaseView pViewMode)
+        static public ErrorCode Dump(string pFileToDump, int pBytesInRow, OffsetView pViewMode)
         {
             if (!File.Exists(pFileToDump))
                 return ErrorCode.FileNotFound;
@@ -755,7 +704,7 @@ namespace _0xdd
         /// <remarks>
         /// Only to be used with <see cref="Dump()"/>!
         /// </remarks>
-        static ErrorCode DumpFile(FileStream pIn, StreamWriter pOut, OffsetBaseView pViewMode, int pBytesInRow)
+        static ErrorCode DumpFile(FileStream pIn, StreamWriter pOut, OffsetView pViewMode, int pBytesInRow)
         {
             long line = 0;
             int BufferPositionHex = 0;
@@ -775,15 +724,15 @@ namespace _0xdd
             {
                 switch (pViewMode)
                 {
-                    case OffsetBaseView.Hexadecimal:
+                    case OffsetView.Hexadecimal:
                         t = $"{line:X8}  ";
                         break;
 
-                    case OffsetBaseView.Decimal:
+                    case OffsetView.Decimal:
                         t = $"{line:D8}  ";
                         break;
 
-                    case OffsetBaseView.Octal:
+                    case OffsetView.Octal:
                         t = $"{ToOct(line)}  ";
                         break;
                 }
@@ -1045,15 +994,15 @@ namespace _0xdd
                 {
                     switch (CurrentOffsetBaseView)
                     {
-                        case OffsetBaseView.Hexadecimal:
-                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFileStream.Position):X8}  ");
+                        case OffsetView.Hexadecimal:
+                            t = new StringBuilder($"{(line * BytesInRow) + CurrentFileStream.Position:X8}  ");
                             break;
 
-                        case OffsetBaseView.Decimal:
-                            t = new StringBuilder($"{((line * BytesInRow) + CurrentFileStream.Position):D8}  ");
+                        case OffsetView.Decimal:
+                            t = new StringBuilder($"{(line * BytesInRow) + CurrentFileStream.Position:D8}  ");
                             break;
 
-                        case OffsetBaseView.Octal:
+                        case OffsetView.Octal:
                             t = new StringBuilder($"{ToOct((line * BytesInRow) + CurrentFileStream.Position)}  ");
                             break;
                     }
@@ -1114,12 +1063,8 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                //TODO: Make a property to "buffer" the number of rendered characters
-                // -> CurrentFile.Length < MainPanel.MaxBytes ? CurrentFile.Length : MainPanel.MaxBytes
                 decimal r =
-                    Math.Round(((CurrentFileStream.Position +
-                    (decimal)(CurrentFile.Length < MainPanel.MaxBytes ? CurrentFile.Length : MainPanel.MaxBytes))
-                    / CurrentFile.Length) * 100);
+                    Math.Round(((decimal)(CurrentFileStream.Position + Buffer.Length) / CurrentFile.Length) * 100);
 
                 string s = $"  DEC: {CurrentFileStream.Position:D8} | HEX: {CurrentFileStream.Position:X8} | OCT: {ToOct(CurrentFileStream.Position)} | POS: {r}%";
 
@@ -1165,6 +1110,8 @@ namespace _0xdd
         /// </summary>
         static class ControlPanel
         {
+            const int ItemLength = 16;
+
             /// <summary>
             /// Places the control map on screen (e.g. ^T Try jumping and etc.)
             /// </summary>
@@ -1173,48 +1120,34 @@ namespace _0xdd
                 //TODO: Adjust Place() depending on screen width
                 // Place the most important actions first
 
+                int width = Console.WindowWidth;
+
                 Console.SetCursorPosition(0, Console.WindowHeight - 2);
-
-                WriteWhite("^U");
-                Console.Write(" Display type ");
-
-                WriteWhite("^W");
-                Console.Write(" Find byte    ");
-
-                WriteWhite("^J");
-                Console.Write(" Find data    ");
-
-                WriteWhite("^G");
-                Console.Write(" Goto         ");
-
-                WriteWhite("^H");
-                Console.Write(" Replace");
-
-                // CHANGING LINE BOYS
-                Console.WriteLine();
-
-                WriteWhite("^X");
-                Console.Write(" Exit         ");
-
-                WriteWhite("^O");
-                Console.Write(" Offset base  ");
-                
-                WriteWhite("^I");
-                Console.Write(" Info         ");
-
-                WriteWhite("^D");
-                Console.Write(" Dump         ");
-                
-                WriteWhite("^E");
-                Console.Write(" Edit mode");
+                if (width >= ItemLength)     m("^W", " Find byte    ");
+                if (width >= ItemLength * 2) m("^J", " Find data    ");
+                if (width >= ItemLength * 3) m("^G", " Goto         ");
+                if (width >= ItemLength * 4) m("^H", " Replace      ");
+                //if (width >= ItemLength * 5) m("  ", "              ");
+                Console.SetCursorPosition(0, Console.WindowHeight - 1);
+                if (width >= ItemLength)     m("^X", " Exit         ");
+                if (width >= ItemLength * 2) m("^O", " Offset base  ");
+                if (width >= ItemLength * 3) m("^I", " Info         ");
+                if (width >= ItemLength * 4) m("^D", " Dump         ");
+                if (width >= ItemLength * 5) m("^E", " Edit mode");
             }
         }
 
-        static void WriteWhite(string pText)
+        /// <summary>
+        /// Write out a shortcut and its short description
+        /// </summary>
+        /// <param name="pShortcut">Shortcut, e.g. ^D</param>
+        /// <param name="pTitle">Title, e.g. Dump</param>
+        static void m(string pShortcut, string pTitle)
         {
             Utils.ToggleColors();
-            Console.Write(pText);
+            Console.Write(pShortcut);
             Console.ResetColor();
+            Console.Write(pTitle);
         }
         #endregion
         #endregion
@@ -1225,8 +1158,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="l">Length</param>
         /// <returns>String</returns>
-        static string s(int l) =>
-            new string(' ', l);
+        static string s(int l) => new string(' ', l);
         #endregion
 
         #region Type extensions
@@ -1235,42 +1167,32 @@ namespace _0xdd
         /// </summary>
         /// <param name="c">Number.</param>
         /// <returns>String.</returns>
-        static string ToOct(this long c)
-        {
-            if (c > int.MaxValue)
-                return $"{Convert.ToString(c, 8).FillZeros(16),16}";
-            else
-                return $"{Convert.ToString(c, 8).FillZeros(8),8}";
-        }
+        static string ToOct(this long c) =>
+            Convert.ToString(c, 8).FillZeros(8);
 
         /// <summary>
         /// Returns a printable character if found.
         /// </summary>
         /// <param name="pIn">Byte to transform.</param>
-        /// <returns>Console readable character.</returns>
-        static char ToSafeChar(this byte pIn)
-        {
-            if (pIn < 0x20 || pIn > 0x7E)
-                return '.';
-            else
-                return (char)pIn;
-        }
+        /// <returns>Console (Windows) readable character.</returns>
+        static char ToSafeChar(this byte pIn) =>
+            pIn < 0x20 || pIn > 0x7E ? '.' : (char)pIn;
 
         /// <summary>
         /// Gets the character for the upper bar depending on the
         /// offset base view.
         /// </summary>
-        /// <param name="pObject">This <see cref="OffsetBaseView"/></param>
+        /// <param name="pObject">This <see cref="OffsetView"/></param>
         /// <returns>Character.</returns>
-        static char GetChar(this OffsetBaseView pObject)
+        static char GetChar(this OffsetView pObject)
         {
             switch (pObject)
             {
-                case OffsetBaseView.Hexadecimal:
+                case OffsetView.Hexadecimal:
                     return 'h';
-                case OffsetBaseView.Decimal:
+                case OffsetView.Decimal:
                     return 'd';
-                case OffsetBaseView.Octal:
+                case OffsetView.Octal:
                     return 'o';
                 default:
                     return '?'; // ??????????
@@ -1283,8 +1205,14 @@ namespace _0xdd
         /// <param name="pString">Input.</param>
         /// <param name="pLength">Desired length.</param>
         /// <returns>String-zero-filed.</returns>
+        /// <remark>
+        /// If the desired length is smaller than the input,
+        /// the desired length will be the same length as
+        /// the input.
+        /// </remark>
         static string FillZeros(this string pString, int pLength) =>
-            new string('0', pLength - pString.Length) + pString;
+            new string('0',
+                (pLength < pString.Length ? pString.Length : pLength) - pString.Length) + pString;
         #endregion
     }
 }

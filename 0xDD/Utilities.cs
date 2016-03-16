@@ -217,7 +217,7 @@ namespace _0xdd
         }
 
         internal static int GetBytesInRow()
-        { //TODO: Different display formats on GetBytesInRow()
+        {
             return ((Console.WindowWidth - 10) / 4) - 1;
         }
         #endregion
