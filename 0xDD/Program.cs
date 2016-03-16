@@ -292,7 +292,7 @@ namespace _0xdd
             Console.WriteLine($"0xdd - {Version}");
             Console.WriteLine("Copyright (c) 2015-2016 DD~!/guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
-            Console.WriteLine("Project page: <https://github.com/guitarxhero/0xDD>");
+            Console.WriteLine("Project page: <https://github.com/guitarxhero/0xdd>");
             Console.WriteLine();
             Console.WriteLine(" -- Credits --");
             Console.WriteLine("DD~! (guitarxhero) - Original author");
