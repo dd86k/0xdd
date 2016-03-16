@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 
 //TODO: Hashing (with menu)
+//TODO: Goto beginning of line
 
 //TODO: Edit mode
 // 0E 0F
