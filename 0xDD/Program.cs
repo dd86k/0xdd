@@ -48,7 +48,7 @@ namespace _0xdd
 #if DEBUG
 #warning Reminder: Re-comment
             /* ~~ Used for debugging within Visual Studio (vshost) ~~ */
-            //args = new string[] { ExecutableFilename };
+            args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
