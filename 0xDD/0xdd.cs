@@ -130,6 +130,10 @@ namespace _0xdd
 
         static OffsetView CurrentOffsetBaseView;
         static OperatingMode CurrentWritingMode;
+
+        //TODO: Put these thingies into action
+        static string LastDataSearched;
+        static byte LastByteSearched;
         #endregion
 
         #region Methods
@@ -154,8 +158,8 @@ namespace _0xdd
                 return ErrorCode.FileUnreadable;
             }
 
-            MainPanel.BytesInRow = pBytesRow > 0 ? pBytesRow : Utils.GetBytesInRow();
             AutoSize = pBytesRow > 0;
+            MainPanel.BytesInRow = AutoSize ? Utils.GetBytesInRow() : pBytesRow;
 
             CurrentWritingMode = OperatingMode.Read;
 
@@ -412,7 +416,7 @@ namespace _0xdd
                 case ConsoleKey.O:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        string c = Utils.GetUserInput("Hex|Dec|Oct?:");
+                        string c = Utils.GetUserInput("Hex, dec, oct?");
 
                         if (c == null || c.Length < 1)
                         {
@@ -423,24 +427,21 @@ namespace _0xdd
 
                         switch (c[0])
                         {
-                            case 'H':
-                            case 'h':
+                            case 'H': case 'h':
                                 CurrentOffsetBaseView = OffsetView.Hexadecimal;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
                                 return;
 
-                            case 'O':
-                            case 'o':
+                            case 'O': case 'o':
                                 CurrentOffsetBaseView = OffsetView.Octal;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
                                 return;
 
-                            case 'D':
-                            case 'd':
+                            case 'D': case 'd':
                                 CurrentOffsetBaseView = OffsetView.Decimal;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
@@ -1214,6 +1215,8 @@ namespace _0xdd
         static string FillZeros(this string pString, int pLength) =>
             new string('0',
                 (pLength < pString.Length ? pString.Length : pLength) - pString.Length) + pString;
+
+        static public int Int(this ErrorCode pCode) => (int)pCode;
         #endregion
     }
 

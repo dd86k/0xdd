@@ -9,6 +9,10 @@ Written in C# 6.0 for .NET 4.5.2 with Visual Studio 2015.
 
 Compatible with Mono.
 
+Bugs, crashes, suggestions?
+
+The Issues board is available [here](https://github.com/guitarxhero/0xdd/issues).
+
 Questions about goals, porting, licensing?
 
 The Wiki is available [here](https://github.com/guitarxhero/0xDD/wiki).

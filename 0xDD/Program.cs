@@ -3,9 +3,6 @@ using System.IO;
 using static System.Diagnostics.Process;
 using static System.Reflection.Assembly;
 
-//TODO: /dump [<DisplayFormat>]
-// See details in 0xdd.cs
-
 namespace _0xdd
 {
     class Program
@@ -105,7 +102,7 @@ namespace _0xdd
 #if DEBUG
                                 Console.ReadLine();
 #endif
-                                return (int)ErrorCode.CLI_InvalidWidth;
+                                return ErrorCode.CLI_InvalidOffsetView.Int();
                         }
                         break;
 
@@ -125,7 +122,7 @@ namespace _0xdd
 #if DEBUG
                             Console.ReadLine();
 #endif
-                            return 1;
+                            return ErrorCode.CLI_InvalidWidth.Int();
                         }
                         break;
 
@@ -158,7 +155,7 @@ namespace _0xdd
                 if (err != ErrorCode.Success)
                     Console.WriteLine(gerrcs(err));
 
-                return (int)err;
+                return err.Int();
             }
             else
             {
@@ -166,9 +163,9 @@ namespace _0xdd
                 // I want Visual Studio to catch the exceptions!
                 ErrorCode r = _0xdd.Open(file, ovm, row);
                 Console.Clear();
-                Console.WriteLine($"ERRORCODE: {r} 0x{(int)r:X8}");
+                Console.WriteLine($"ERRORCODE: {r} - 0x{r.Int():X2}");
                 Console.ReadLine();
-                return (int)r;
+                return r.Int();
 #else
                 try
                 {
@@ -177,7 +174,7 @@ namespace _0xdd
                     if (err != ErrorCode.Success)
                         Console.WriteLine(gerrcs(err));
 
-                    return (int)err;
+                    return err.Int();
                 }
                 catch (Exception e)
                 {
@@ -240,29 +237,36 @@ namespace _0xdd
                     break;
             }
 
-            return m += $" ({pCode} - 0x{(int)pCode:X2})";
+            return m += $" ({pCode} - 0x{pCode.Int():X2})";
         }
 
         static void Abort(Exception e)
         {
-            Console.SetCursorPosition(0, Console.WindowHeight - 1);
-
-            Console.WriteLine();
+            Console.Clear();
 
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Red;
-
-            Console.WriteLine("  !! Fatal error !!  ");
-
+            Console.WriteLine("  !! FATAL ERROR !!  ");
             Console.ResetColor();
 
             Console.WriteLine($"Exception: {e.GetType()}");
             Console.WriteLine($"Message: {e.Message}");
-            Console.WriteLine("    -- BEGIN STACK --");
-            Console.WriteLine(e.StackTrace);
-            Console.WriteLine("    --  END  STACK --");
-
             Console.WriteLine();
+            Console.WriteLine("More details had been appended to 0xdd_oops.txt");
+
+            StreamWriter o = File.CreateText("0xdd_oops.txt");
+            o.WriteLine("  -- App crash --");
+            o.WriteLine($"Time - {DateTime.Now}");
+            o.WriteLine();
+            o.WriteLine($"Exception: {e.GetType()}");
+            o.WriteLine($"Message: {e.Message}");
+            o.WriteLine();
+            o.WriteLine("    -- BEGIN STACK --");
+            o.WriteLine(e.StackTrace);
+            o.WriteLine("    -- END STACK --");
+            o.WriteLine();
+            o.Flush();
+            o.Close();
         }
 
         static void ShowHelp()
