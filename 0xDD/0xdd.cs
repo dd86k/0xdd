@@ -1149,9 +1149,6 @@ namespace _0xdd
             /// </summary>
             static internal void Place()
             {
-                //TODO: Adjust Place() depending on screen width
-                // Place the most important actions first
-
                 int width = Console.WindowWidth;
 
                 Console.SetCursorPosition(0, Console.WindowHeight - 2);
@@ -1344,30 +1341,53 @@ namespace _0xdd
                         }
                         break;
 
+                    case ConsoleKey.Delete:
+                        if (Index < o.Length)
+                        {
+                            // Erase whole from index
+                            if (c.Modifiers == ConsoleModifiers.Control)
+                            {
+                                o = o.Remove(Index, o.Length - Index);
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(new string(' ', pLimit));
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
+                                Console.SetCursorPosition(oleft + Index, otop);
+                            }
+                            else // Erase one character
+                            {
+                                o = o.Remove(Index, 1);
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(new string(' ', pLimit));
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
+                                Console.SetCursorPosition(oleft + Index, otop);
+                            }
+                        }
+                        break;
+
                     case ConsoleKey.Backspace:
                         if (Index > 0)
                         {
-                            // Erase whole
-                            //TODO: Erase from index (easy, medium, v0.6)
+                            // Erase whole from index
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
-                                o = new StringBuilder();
+                                o = o.Remove(0, Index);
                                 Index = 0;
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(new string(' ', pLimit));
                                 Console.SetCursorPosition(oleft, otop);
+                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
+                                Console.SetCursorPosition(oleft + Index, otop);
                             }
                             else // Erase one character
                             {
-                                if (Index > 0)
-                                {
-                                    o = o.Remove(--Index, 1);
-                                    Console.SetCursorPosition(oleft, otop);
-                                    Console.Write(new string(' ', pLimit));
-                                    Console.SetCursorPosition(oleft, otop);
-                                    Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
-                                    Console.SetCursorPosition(oleft + Index, otop);
-                                }
+                                o = o.Remove(--Index, 1);
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(new string(' ', pLimit));
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
+                                Console.SetCursorPosition(oleft + Index, otop);
                             }
                         }
                         break;
@@ -1375,12 +1395,17 @@ namespace _0xdd
                     default:
                         if (o.Length < pLimit)
                         {
-                            o.Insert(Index++, c.KeyChar);
-                            Console.SetCursorPosition(oleft, otop);
-                            Console.Write(new string(' ', pLimit));
-                            Console.SetCursorPosition(oleft, otop);
-                            Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
-                            Console.SetCursorPosition(oleft + Index, otop);
+                            char h = c.KeyChar;
+
+                            if (char.IsLetterOrDigit(h) || char.IsPunctuation(h) || char.IsSymbol(h) || char.IsWhiteSpace(h))
+                            {
+                                o.Insert(Index++, h);
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(new string(' ', pLimit));
+                                Console.SetCursorPosition(oleft, otop);
+                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
+                                Console.SetCursorPosition(oleft + Index, otop);
+                            }
                         }
                         break;
                 }
