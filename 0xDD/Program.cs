@@ -105,7 +105,7 @@ namespace _0xdd
 #if DEBUG
                                 Console.ReadLine();
 #endif
-                                return (int)ErrorCode.CLI_InvalidOffsetView;
+                                return (int)ErrorCode.CLI_InvalidWidth;
                         }
                         break;
 
