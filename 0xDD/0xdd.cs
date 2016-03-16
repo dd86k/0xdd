@@ -146,7 +146,7 @@ namespace _0xdd
             
             try
             {
-                CurrentFileStream = CurrentFile.Open(FileMode.Open); // Open, for now
+                CurrentFileStream = CurrentFile.Open(FileMode.Open, FileAccess.Read, FileShare.Read); // Open, for now
             }
             catch
             {
