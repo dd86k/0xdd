@@ -153,8 +153,8 @@ namespace _0xdd
                 return ErrorCode.FileUnreadable;
             }
 
-            AutoSize = pBytesRow > 0;
-            MainPanel.BytesInRow = AutoSize ? pBytesRow : Utils.GetBytesInRow();
+            AutoSize = pBytesRow == 0;
+            MainPanel.BytesInRow = AutoSize ? Utils.GetBytesInRow() : pBytesRow;
 
             Console.CursorVisible = false;
 
@@ -1007,9 +1007,9 @@ namespace _0xdd
             static internal void Update()
             {
                 int BufferOffsetData = 0;
-                int BufferOffsetText = 0;
+                int BufferOffsetAscii = 0;
 
-                StringBuilder t = new StringBuilder();
+                StringBuilder t = new StringBuilder(Console.WindowWidth);
                 
                 OffsetPanel.Update();
                 
@@ -1017,18 +1017,20 @@ namespace _0xdd
 
                 for (int line = 0; line < FrameHeight; line++)
                 {
+                    t.Clear();
+
                     switch (CurrentOffsetView)
                     {
                         case OffsetView.Hexadecimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + cFileStream.Position:X8}  ");
+                            t.Append($"{(line * BytesInRow) + cFileStream.Position:X8}  ");
                             break;
 
                         case OffsetView.Decimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + cFileStream.Position:D8}  ");
+                            t.Append($"{(line * BytesInRow) + cFileStream.Position:D8}  ");
                             break;
 
                         case OffsetView.Octal:
-                            t = new StringBuilder($"{ToOct((line * BytesInRow) + cFileStream.Position)}  ");
+                            t.Append($"{ToOct((line * BytesInRow) + cFileStream.Position)}  ");
                             break;
                     }
 
@@ -1046,20 +1048,22 @@ namespace _0xdd
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (cFileStream.Position + BufferOffsetText < cFile.Length)
-                            t.Append($"{Buffer[BufferOffsetText].ToSafeChar()}");
+                        if (cFileStream.Position + BufferOffsetAscii < cFile.Length)
+                            t.Append(Buffer[BufferOffsetAscii].ToSafeChar());
                         else
                         {
+                            Console.SetCursorPosition(0, Position + line);
                             Console.Write(t.ToString());
                             return;
                         }
 
-                        BufferOffsetText++;
+                        BufferOffsetAscii++;
                     }
 
                     t.Append(" ");
 
-                    Console.WriteLine(t.ToString());
+                    Console.SetCursorPosition(0, Position + line);
+                    Console.Write(t.ToString());
                 }
             }
         }
