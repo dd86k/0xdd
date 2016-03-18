@@ -4,8 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 
 //TODO: Hashing (with menu) (medium, long, v0.7)
-//TODO: Goto beginning of line (easy-medium, short, v0.6)
-//TODO: Search from end of file (easy, medium, v0.6)
+//TODO: Search from end of file (medium, medium, v0.6)
 
 /*
     TODO: Edit mode (medium-hard, long, v0.9)
@@ -177,7 +176,6 @@ namespace _0xdd
         /// <summary>
         /// Read user input.
         /// </summary>
-        /// <returns>Returns true if still using 0xdd.</returns>
         static void ReadUserKey(ref UserResponse pUserResponse)
         {
             ConsoleKeyInfo input = Console.ReadKey(true);
@@ -466,7 +464,7 @@ namespace _0xdd
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
                         ReadFileAndUpdate(cFileStream.Position -
-                            (cFileStream.Position % CurrentOffsetView.GetBase()));
+                            (cFileStream.Position % MainPanel.BytesInRow));
                     }
                     else if (cFileStream.Position - 1 >= 0)
                     {
@@ -476,11 +474,13 @@ namespace _0xdd
                 case ConsoleKey.RightArrow:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        //TODO: Find a way to align this
-                        long r = (cFileStream.Position + MainPanel.BytesInRow) % CurrentOffsetView.GetBase();
+                        int b = MainPanel.BytesInRow;
+                        long NewPos = cFileStream.Position + (b - cFileStream.Position % b);
 
-                        if (cFileStream.Position + MainPanel.MaxBytes + r < cFile.Length)
-                            ReadFileAndUpdate(cFileStream.Position + MainPanel.BytesInRow + r);
+                        if (NewPos + b <= cFile.Length)
+                            ReadFileAndUpdate(NewPos);
+                        else
+                            ReadFileAndUpdate(cFile.Length - b);
                     }
                     else if (cFileStream.Position + MainPanel.MaxBytes + 1 <= cFile.Length)
                     {
@@ -906,6 +906,8 @@ namespace _0xdd
                 }
             }
 
+            cFileStream.Position = pPosition - 1;
+
             return new FindResult(ErrorCode.FindNoResult);
         }
 
@@ -1194,7 +1196,7 @@ namespace _0xdd
         /// <param name="c">Number.</param>
         /// <returns>String.</returns>
         static string ToOct(this long c) =>
-            Convert.ToString(c, 8).FillZeros(8);
+            Convert.ToString(c, 8).PadLeft(8, '0');
 
         /// <summary>
         /// Returns a printable character if found.
@@ -1252,8 +1254,8 @@ namespace _0xdd
         /// the input.
         /// </remark>
         static string FillZeros(this string pString, int pLength) =>
-            new string('0',
-                (pLength < pString.Length ? pString.Length : pLength) - pString.Length) + pString;
+            pString.PadLeft(pLength, '0');
+            //new string('0', (pLength < pString.Length ? pString.Length : pLength) - pString.Length) + pString;
 
         static public int Int(this ErrorCode pCode) => (int)pCode;
         #endregion
@@ -1320,7 +1322,8 @@ namespace _0xdd
 
                     // Returns the string
                     case ConsoleKey.Enter:
-                        Continue = false;
+                        Continue =
+                            Console.CursorVisible = false;
                         if (o.Length > 0)
                             return o.ToString();
                         break;
