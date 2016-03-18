@@ -167,7 +167,7 @@ namespace _0xdd
                 {
                     ErrorCode err = _0xdd.Open(file, ovm, row);
 
-                    if (err != ErrorCode.Success)
+                    if (err != ErrorCode.Success || err != ErrorCode.Exit)
                         Console.WriteLine(gerrcs(err));
 
                     return err.Int();
