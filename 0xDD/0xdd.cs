@@ -3,11 +3,16 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
-//TODO: Hashing (with menu) (medium, long, v0.7)
-//TODO: Search from end of file (medium, medium, v0.6)
+//TODO: Hashing (with menu) (v0.8)
+//TODO: Search from end of file (v0.7)
+
+//TODO: Do advanced control input scheme (v0.7)
+// UserInput (advanced) - Will be able to move to different controls for input
+// construction: Control[] (struct with ControlType as enum)
+// output: ControlResults[]
 
 /*
-    TODO: Edit mode (medium-hard, long, v0.9)
+    TODO: Edit mode (v0.9)
     - Top right: Insert(INS)/Overwrite(OVR)
     - Cursor/Navigation mode?
     - Edit:
@@ -19,7 +24,7 @@ using System.Text.RegularExpressions;
 0E 0F
 D2 DD ..
 ^^    ^
-highlighted (gray on black) while navigating
+highlighted (black on gray) while navigating
 */
 
 namespace _0xdd
@@ -102,6 +107,7 @@ namespace _0xdd
                 return Error == ErrorCode.Success;
             }
         }
+
         public ErrorCode Error;
     }
     #endregion
@@ -115,7 +121,7 @@ namespace _0xdd
         const string EXTENSION = "hexdmp";
         #endregion
 
-        #region General variables
+        #region Variables
         static FileInfo cFile;
         static FileStream cFileStream;
         
@@ -477,10 +483,10 @@ namespace _0xdd
                         int b = MainPanel.BytesInRow;
                         long NewPos = cFileStream.Position + (b - cFileStream.Position % b);
 
-                        if (NewPos + b <= cFile.Length)
+                        if (NewPos + MainPanel.MaxBytes + b <= cFile.Length)
                             ReadFileAndUpdate(NewPos);
                         else
-                            ReadFileAndUpdate(cFile.Length - b);
+                            ReadFileAndUpdate(cFile.Length - MainPanel.MaxBytes);
                     }
                     else if (cFileStream.Position + MainPanel.MaxBytes + 1 <= cFile.Length)
                     {
@@ -954,6 +960,35 @@ namespace _0xdd
         }
         #endregion
 
+        #region OffsetPanel
+        /// <summary>
+        /// Shows offset base view and the offset on each byte.
+        /// </summary>
+        static class OffsetPanel
+        {
+            static internal int Position = 1;
+
+            /// <summary>
+            /// Update the offset map
+            /// </summary>
+            static internal void Update()
+            {
+                StringBuilder t = new StringBuilder($"Offset {CurrentOffsetView.GetChar()}  ");
+
+                if (cFileStream.Position > uint.MaxValue)
+                    t.Append(" ");
+
+                for (int i = 0; i < MainPanel.BytesInRow;)
+                {
+                    t.Append($"{i++:X2} ");
+                }
+
+                Console.SetCursorPosition(0, Position);
+                Console.Write(t.ToString());
+            }
+        }
+        #endregion
+
         #region MainPanel
         /// <summary>
         /// Main panel which represents the offset, data as bytes,
@@ -1073,7 +1108,7 @@ namespace _0xdd
 
         #region InfoPanel
         /// <summary>
-        /// Current offset and position.
+        /// Current position information.
         /// </summary>
         static class InfoPanel
         {
@@ -1097,40 +1132,11 @@ namespace _0xdd
                 decimal r =
                     Math.Round(((decimal)(cFileStream.Position + Buffer.Length) / cFile.Length) * 100);
 
-                string s = $"  DEC: {cFileStream.Position:D8} | HEX: {cFileStream.Position:X8} | OCT: {ToOct(cFileStream.Position)} | POS: {r}%";
+                string s =
+                    $"  DEC: {cFileStream.Position:D8} | HEX: {cFileStream.Position:X8} | OCT: {ToOct(cFileStream.Position)} | POS: {r}%";
 
                 Console.SetCursorPosition(0, Position);
-                Console.Write(s + _0xdd.s(Console.WindowWidth - s.Length - 1)); // Force-clear any messages
-            }
-        }
-        #endregion
-
-        #region OffsetPanel
-        /// <summary>
-        /// Shows offset base view and the offset on each byte.
-        /// e.g. Offset h  00 01 02 .. ..
-        /// </summary>
-        static class OffsetPanel
-        {
-            static internal int Position = 1;
-
-            /// <summary>
-            /// Update the offset map
-            /// </summary>
-            static internal void Update()
-            {
-                StringBuilder t = new StringBuilder($"Offset {CurrentOffsetView.GetChar()}  ");
-
-                if (cFileStream.Position > uint.MaxValue)
-                    t.Append(" ");
-
-                for (int i = 0; i < MainPanel.BytesInRow;)
-                {
-                    t.Append($"{i++:X2} ");
-                }
-
-                Console.SetCursorPosition(0, Position);
-                Console.Write(t.ToString());
+                Console.Write(s.PadRight(Console.WindowWidth - s.Length - 1)); // Force-clear any messages
             }
         }
         #endregion
@@ -1241,21 +1247,6 @@ namespace _0xdd
                     return 1;
             }
         }
-
-        /// <summary>
-        /// Fill zeros with a string.
-        /// </summary>
-        /// <param name="pString">Input.</param>
-        /// <param name="pLength">Desired length.</param>
-        /// <returns>String-zero-filed.</returns>
-        /// <remark>
-        /// If the desired length is smaller than the input,
-        /// the desired length will be the same length as
-        /// the input.
-        /// </remark>
-        static string FillZeros(this string pString, int pLength) =>
-            pString.PadLeft(pLength, '0');
-            //new string('0', (pLength < pString.Length ? pString.Length : pLength) - pString.Length) + pString;
 
         static public int Int(this ErrorCode pCode) => (int)pCode;
         #endregion

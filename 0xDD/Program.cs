@@ -75,7 +75,7 @@ namespace _0xdd
             OffsetView ovm = OffsetView.Hexadecimal;
             bool dump = false;
 
-            //TODO: Settings! (easy, long, v0.8)
+            //TODO: Settings! (v0.8)
 
             for (int i = 0; i < args.Length; i++)
             {
