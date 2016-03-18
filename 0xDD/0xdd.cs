@@ -34,6 +34,7 @@ namespace _0xdd
     enum ErrorCode : byte
     {
         Success = 0,
+        
 
         // File related
         FileNotFound = 0x4,
@@ -54,7 +55,8 @@ namespace _0xdd
         CLI_InvalidOffsetView = 0xC0,
         CLI_InvalidWidth = 0xC4,
         
-        UnknownError = 0xFE
+        UnknownError = 0xFE,
+        Exit = 0xFF
     }
 
     enum OffsetView : byte
@@ -171,8 +173,8 @@ namespace _0xdd
             PrepareScreen();
 
             UserResponse ur = new UserResponse(ErrorCode.Success);
-            
-            while (ur.Success)
+
+            while(ur.Success)
             {
                 ReadUserKey(ref ur);
             }
@@ -452,6 +454,7 @@ namespace _0xdd
                 case ConsoleKey.X:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
+                        pUserResponse.Error = ErrorCode.Exit;
                         Exit();
                     }
                     return;
@@ -1049,7 +1052,7 @@ namespace _0xdd
             }
 
             /// <summary>
-            /// Update the section of the screen from the buffer.
+            /// Update from Buffer.
             /// </summary>
             static internal void Update()
             {
@@ -1064,20 +1067,18 @@ namespace _0xdd
 
                 for (int line = 0; line < FrameHeight; line++)
                 {
-                    t.Clear();
-
                     switch (CurrentOffsetView)
                     {
                         case OffsetView.Hexadecimal:
-                            t.Append($"{(line * BytesInRow) + cFileStream.Position:X8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + cFileStream.Position:X8}  ");
                             break;
 
                         case OffsetView.Decimal:
-                            t.Append($"{(line * BytesInRow) + cFileStream.Position:D8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + cFileStream.Position:D8}  ");
                             break;
 
                         case OffsetView.Octal:
-                            t.Append($"{ToOct((line * BytesInRow) + cFileStream.Position)}  ");
+                            t = new StringBuilder($"{ToOct((line * BytesInRow) + cFileStream.Position)}  ");
                             break;
                     }
 
@@ -1108,9 +1109,8 @@ namespace _0xdd
                     }
 
                     t.Append(" ");
-
-                    Console.SetCursorPosition(0, Position + line);
-                    Console.Write(t.ToString());
+                    
+                    Console.WriteLine(t.ToString());
                 }
             }
         }
