@@ -13,6 +13,7 @@ using System.Text.RegularExpressions;
 
 /*
     TODO: Edit mode (v0.9)
+    TODO: Replace Action (v0.9)
     - Top right: Insert(INS)/Overwrite(OVR)
     - Cursor/Navigation mode?
     - Edit:
@@ -483,7 +484,7 @@ namespace _0xdd
                         int b = MainPanel.BytesInRow;
                         long NewPos = cFileStream.Position + (b - cFileStream.Position % b);
 
-                        if (NewPos + MainPanel.MaxBytes + b <= cFile.Length)
+                        if (NewPos + MainPanel.MaxBytes <= cFile.Length)
                             ReadFileAndUpdate(NewPos);
                         else
                             ReadFileAndUpdate(cFile.Length - MainPanel.MaxBytes);
@@ -983,6 +984,9 @@ namespace _0xdd
                     t.Append($"{i++:X2} ");
                 }
 
+                if (LastWindowHeight != Console.WindowHeight || LastWindowWidth != Console.WindowWidth)
+                    t.Append(s(Console.WindowWidth - t.Length - 1)); // Force clean
+
                 Console.SetCursorPosition(0, Position);
                 Console.Write(t.ToString());
             }
@@ -996,6 +1000,12 @@ namespace _0xdd
         /// </summary>
         internal static class MainPanel
         {
+            /// <summary>
+            /// Current cursor position for Edit mode. [x,y]
+            /// </summary>
+            //TODO: Decide on type for CursorPosition (v0.9)
+            //static internal int[,] CursorPosition;
+
             /// <summary>
             /// Gets the position to start rendering on the console (Y axis).
             /// </summary>
