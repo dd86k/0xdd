@@ -1285,10 +1285,10 @@ namespace _0xdd
         /// <param name="pLimit">Character limit</param>
         /// <param name="pPassword">Is password</param>
         /// <returns>User's input</returns>
-        /// <remarks>v1.1</remarks>
+        /// <remarks>v1.1.1 - 0xdd</remarks>
         internal static string ReadLine(int pLimit, string pSuggestion = null, bool pPassword = false)
         {
-            StringBuilder o = pSuggestion == null ? new StringBuilder() : new StringBuilder(pSuggestion);
+            StringBuilder o = new StringBuilder(pSuggestion ?? string.Empty);
             int Index = 0;
             bool Continue = true;
             int oleft = Console.CursorLeft; // Origninal Left Position
@@ -1317,17 +1317,13 @@ namespace _0xdd
 
                     // Cancel
                     case ConsoleKey.Escape:
-                        Continue =
-                            Console.CursorVisible = false;
+                        Console.CursorVisible = false;
                         return string.Empty;
 
                     // Returns the string
                     case ConsoleKey.Enter:
-                        Continue =
-                            Console.CursorVisible = false;
-                        if (o.Length > 0)
-                            return o.ToString();
-                        break;
+                        Console.CursorVisible = false;
+                        return o.ToString();
 
                     // Navigation
                     case ConsoleKey.LeftArrow:
