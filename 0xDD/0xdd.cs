@@ -1265,14 +1265,23 @@ namespace _0xdd
     static class Utils
     {
         #region Formatting
+        const long SIZE_TB = 1099511627776;
+        const long SIZE_GB = 1073741824;
+        const long SIZE_MB = 1048576;
+        const long SIZE_KB = 1024;
+
         static internal string GetFormattedSize(long pSize)
         {
-            if (pSize > Math.Pow(1024, 3)) // GB
-                return $"{Math.Round(pSize / Math.Pow(1024, 3), 2)} GB";
-            else if (pSize > Math.Pow(1024, 2)) // MB
-                return $"{Math.Round(pSize / Math.Pow(1024, 2), 2)} MB";
-            else if (pSize > 1024) // KB
-                return $"{Math.Round((double)pSize / 1024, 1)} KB";
+            double s = pSize;
+
+            if (s > SIZE_TB) // TB
+                return $"{Math.Round(s / SIZE_TB, 2)} TB";
+            else if (s > SIZE_GB) // GB
+                return $"{Math.Round(s / SIZE_GB, 2)} GB";
+            else if (s > SIZE_MB) // MB
+                return $"{Math.Round(s / SIZE_MB, 2)} MB";
+            else if (s > SIZE_KB) // KB
+                return $"{Math.Round(s / SIZE_KB, 1)} KB";
             else // B
                 return $"{pSize} B";
         }
