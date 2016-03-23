@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -446,7 +447,7 @@ namespace _0xdd
                 case ConsoleKey.I:
                     if (input.Modifiers == ConsoleModifiers.Control)
                     {
-                        Message($"Size: {Utils.GetFormattedSize(cFile.Length)}");
+                        Message($"{Utils.GetEntryInfo(cFile)}  {Utils.GetFormattedSize(cFile.Length)}");
                     }
                     return;
 
@@ -609,9 +610,7 @@ namespace _0xdd
                 InfoPanel.Position);
 
             Utils.ToggleColors();
-
             Console.Write(msg);
-
             Console.ResetColor();
         }
 
@@ -991,7 +990,7 @@ namespace _0xdd
                     t.Append(s(Console.WindowWidth - t.Length - 1)); // Force clean
 
                 Console.SetCursorPosition(0, Position);
-                Console.Write(t.ToString());
+                Console.Write(t.ToString() + s(Console.WindowWidth - t.Length - 1));
             }
         }
         #endregion
@@ -1142,11 +1141,11 @@ namespace _0xdd
                 decimal r =
                     Math.Round(((decimal)(cFileStream.Position + Buffer.Length) / cFile.Length) * 100);
 
-                string s =
-                    $"  DEC: {cFileStream.Position:D8} | HEX: {cFileStream.Position:X8} | OCT: {ToOct(cFileStream.Position)} | POS: {r}%";
+                string t =
+                    $"  DEC: {cFileStream.Position:D8} | HEX: {cFileStream.Position:X8} | OCT: {ToOct(cFileStream.Position)} | POS: {r,3}%";
 
                 Console.SetCursorPosition(0, Position);
-                Console.Write(s.PadRight(Console.WindowWidth - s.Length - 1)); // Force-clear any messages
+                Console.Write(t); // Force-clear any messages
             }
         }
         #endregion
@@ -1281,12 +1280,36 @@ namespace _0xdd
             else if (s > SIZE_MB) // MB
                 return $"{Math.Round(s / SIZE_MB, 2)} MB";
             else if (s > SIZE_KB) // KB
-                return $"{Math.Round(s / SIZE_KB, 1)} KB";
+                return $"{Math.Round(s / SIZE_KB, 2)} KB";
             else // B
                 return $"{pSize} B";
         }
-        #endregion
 
+        /// <summary>
+        /// Gets file info and owner from <see cref="FileInfo"/>
+        /// </summary>
+        /// <param name="pFile">File.</param>
+        /// <returns>Info as a string</returns>
+        internal static string GetEntryInfo(this FileInfo pFile)
+        {
+            string o = "-"; // Never a directory
+
+            FileAttributes fa = pFile.Attributes;
+
+            o += fa.HasFlag(FileAttributes.Archive) ? "a" : "-";
+            o += fa.HasFlag(FileAttributes.Compressed) ? "c" : "-";
+            o += fa.HasFlag(FileAttributes.Encrypted) ? "e" : "-";
+            o += fa.HasFlag(FileAttributes.ReadOnly) ? "r" : "-";
+            o += fa.HasFlag(FileAttributes.System) ? "s" : "-";
+
+            IdentityReference n = File.GetAccessControl(pFile.FullName).GetOwner(typeof(SecurityIdentifier)).Translate(typeof(NTAccount));
+
+            o += $"  {n.Value}";
+
+            return o;
+        }
+        #endregion
+        
         #region User input
         /// <summary>
         /// Readline with a maximum length plus optional password mode.

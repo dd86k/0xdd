@@ -155,8 +155,7 @@ namespace _0xdd
             }
             else
             {
-#if DEBUG
-                // I want Visual Studio to catch the exceptions!
+#if DEBUG // I want Visual Studio to catch the exceptions!
                 ErrorCode r = _0xdd.Open(file, ovm, row);
                 Console.Clear();
                 Console.WriteLine($"ERRORCODE: {r} - 0x{r.Int():X2}");
@@ -167,7 +166,7 @@ namespace _0xdd
                 {
                     ErrorCode err = _0xdd.Open(file, ovm, row);
 
-                    if (err != ErrorCode.Success || err != ErrorCode.Exit)
+                    if (err != ErrorCode.Success && err != ErrorCode.Exit)
                         Console.WriteLine(gerrcs(err));
 
                     return err.Int();
