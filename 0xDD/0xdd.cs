@@ -35,7 +35,6 @@ namespace _0xdd
     enum ErrorCode : byte
     {
         Success = 0,
-        
 
         // File related
         FileNotFound = 0x4,
@@ -62,16 +61,13 @@ namespace _0xdd
 
     enum OffsetView : byte
     {
-        Hexadecimal,
-        Decimal,
-        Octal
+        Hexadecimal, Decimal, Octal
     }
     
     enum OperatingMode : byte
     {
-        Read, // READ
-        Overwrite, // OVRW
-        Insert // INSR
+        // READ, OVRW, INSR
+        Read, Overwrite, Insert
     }
     #endregion
 
@@ -126,8 +122,10 @@ namespace _0xdd
         #endregion
 
         #region Variables
-        static FileInfo cFile;
-        static FileStream cFileStream;
+        static FileInfo CurrentFileInfo;
+        static FileStream CurrentFileStream;
+        static OffsetView CurrentOffsetView;
+        //static OperatingMode CurrentWritingMode;
         
         static byte[] Buffer;
         
@@ -135,27 +133,23 @@ namespace _0xdd
         
         static int LastWindowHeight;
         static int LastWindowWidth;
-
-        static bool AutoSize;
-
-        static OffsetView CurrentOffsetView;
-        //static OperatingMode CurrentWritingMode;
-        
         static string LastDataSearched;
         static byte LastByteSearched;
+
+        static bool AutoSize;
         #endregion
 
         #region Methods        
-        internal static ErrorCode Open(string pFilePath, OffsetView pOffsetView = OffsetView.Hexadecimal, int pBytesRow = 0)
+        internal static ErrorCode Open(string pFilePath, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
             if (!File.Exists(pFilePath))
                 return ErrorCode.FileNotFound;
 
-            cFile = new FileInfo(pFilePath);
+            CurrentFileInfo = new FileInfo(pFilePath);
             
             try
             {
-                cFileStream = cFile.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
+                CurrentFileStream = CurrentFileInfo.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
             }
             catch
             {
@@ -165,11 +159,11 @@ namespace _0xdd
             AutoSize = pBytesRow == 0;
             MainPanel.BytesInRow = AutoSize ? Utils.GetBytesInRow() : pBytesRow;
 
-            Console.CursorVisible = false;
-
-            CurrentOffsetView = pOffsetView;
+            CurrentOffsetView = pView;
             LastWindowHeight = Console.WindowHeight;
             LastWindowWidth = Console.WindowWidth;
+
+            Console.CursorVisible = false;
 
             PrepareScreen();
 
@@ -188,21 +182,23 @@ namespace _0xdd
         /// </summary>
         static void ReadUserKey(ref UserResponse pUserResponse)
         {
-            ConsoleKeyInfo input = Console.ReadKey(true);
+            ConsoleKeyInfo k = Console.ReadKey(true);
             
-            if (LastWindowHeight != Console.WindowHeight ||
-                LastWindowWidth != Console.WindowWidth)
-            {
-                Console.Clear();
-                PrepareScreen();
+            if (AutoSize)
+                if (LastWindowHeight != Console.WindowHeight ||
+                    LastWindowWidth != Console.WindowWidth)
+                {
+                    Console.Clear();
+                    PrepareScreen();
 
-                LastWindowHeight = Console.WindowHeight;
-                LastWindowWidth = Console.WindowWidth;
-            }
+                    LastWindowHeight = Console.WindowHeight;
+                    LastWindowWidth = Console.WindowWidth;
+                }
             
-            switch (input.Key)
+            switch (k.Key)
             {
                 // -- Hidden shortcuts --
+
                 case ConsoleKey.F5:
                     {
                         MainPanel.Update();
@@ -219,17 +215,11 @@ namespace _0xdd
 
                 // Find byte
                 case ConsoleKey.W:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (cFileStream.Position >= cFile.Length - MainPanel.MaxBytes)
+                        if (CurrentFileStream.Position >= CurrentFileInfo.Length - MainPanel.BytesOnScreen)
                         {
                             Message("Already at the end of the file.");
-                            return;
-                        }
-
-                        if (MainPanel.MaxBytes >= cFile.Length)
-                        {
-                            Message("Not possible.");
                             return;
                         }
 
@@ -253,7 +243,7 @@ namespace _0xdd
                             LastByteSearched = (byte)t;
                             MainPanel.Update();
                             Message("Searching...");
-                            FindResult p = Find((byte)t, cFileStream.Position + 1);
+                            FindResult p = Find((byte)t, CurrentFileStream.Position + 1);
 
                             switch (p.Error)
                             {
@@ -286,15 +276,15 @@ namespace _0xdd
 
                 // Find data
                 case ConsoleKey.J:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (cFileStream.Position >= cFile.Length - MainPanel.MaxBytes)
+                        if (CurrentFileStream.Position >= CurrentFileInfo.Length - MainPanel.BytesOnScreen)
                         {
                             Message("Already at the end of the file.");
                             return;
                         }
 
-                        if (MainPanel.MaxBytes >= cFile.Length)
+                        if (MainPanel.BytesOnScreen >= CurrentFileInfo.Length)
                         {
                             Message("Not possible.");
                             return;
@@ -312,7 +302,7 @@ namespace _0xdd
                         LastDataSearched = t;
                         MainPanel.Update();
                         Message("Searching...");
-                        FindResult p = FindData(t, cFileStream.Position + 1);
+                        FindResult p = FindData(t, CurrentFileStream.Position + 1);
                         
                         switch (p.Error)
                         {
@@ -348,15 +338,15 @@ namespace _0xdd
 
                 // Goto
                 case ConsoleKey.G:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (MainPanel.MaxBytes >= cFile.Length)
+                        if (MainPanel.BytesOnScreen >= CurrentFileInfo.Length)
                         {
                             Message("Not possible.");
                             return;
                         }
 
-                        if (cFileStream.Position >= cFile.Length)
+                        if (CurrentFileStream.Position >= CurrentFileInfo.Length)
                         {
                             Message("Already at the end of the file.");
                             return;
@@ -371,7 +361,7 @@ namespace _0xdd
                             return;
                         }
 
-                        if (t >= 0 && t <= cFile.Length - MainPanel.MaxBytes)
+                        if (t >= 0 && t <= CurrentFileInfo.Length - MainPanel.BytesOnScreen)
                         {
                             Goto((long)t);
                         }
@@ -385,7 +375,7 @@ namespace _0xdd
 
                 // Offset base
                 case ConsoleKey.O:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         string c = Utils.GetUserInput("Hex, dec, oct?");
 
@@ -429,7 +419,7 @@ namespace _0xdd
 
                 // Edit mode
                 case ConsoleKey.E:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         Message("Not implemented. Sorry!");
                     }
@@ -437,7 +427,7 @@ namespace _0xdd
 
                 // Replace
                 case ConsoleKey.H:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         Message("Not implemented. Sorry!");
                     }
@@ -445,15 +435,15 @@ namespace _0xdd
 
                 // Info
                 case ConsoleKey.I:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        Message($"{Utils.GetEntryInfo(cFile)}  {Utils.GetFormattedSize(cFile.Length)}");
+                        Message($"{Utils.GetEntryInfo(CurrentFileInfo)}  {Utils.GetFormattedSize(CurrentFileInfo.Length)}");
                     }
                     return;
 
                 // Exit
                 case ConsoleKey.X:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         pUserResponse.Error = ErrorCode.Exit;
                         Exit();
@@ -462,7 +452,7 @@ namespace _0xdd
 
                 // Dump
                 case ConsoleKey.D:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         Message("Dumping...");
                         Dump();
@@ -472,37 +462,37 @@ namespace _0xdd
 
                 // -- Data nagivation --
                 case ConsoleKey.LeftArrow:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        ReadFileAndUpdate(cFileStream.Position -
-                            (cFileStream.Position % MainPanel.BytesInRow));
+                        ReadFileAndUpdate(CurrentFileStream.Position -
+                            (CurrentFileStream.Position % MainPanel.BytesInRow));
                     }
-                    else if (cFileStream.Position - 1 >= 0)
+                    else if (CurrentFileStream.Position - 1 >= 0)
                     {
-                        ReadFileAndUpdate(cFileStream.Position - 1);
+                        ReadFileAndUpdate(CurrentFileStream.Position - 1);
                     }
                     return;
                 case ConsoleKey.RightArrow:
-                    if (input.Modifiers == ConsoleModifiers.Control)
+                    if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         int b = MainPanel.BytesInRow;
-                        long NewPos = cFileStream.Position + (b - cFileStream.Position % b);
+                        long NewPos = CurrentFileStream.Position + (b - CurrentFileStream.Position % b);
 
-                        if (NewPos + MainPanel.MaxBytes <= cFile.Length)
+                        if (NewPos + MainPanel.BytesOnScreen <= CurrentFileInfo.Length)
                             ReadFileAndUpdate(NewPos);
                         else
-                            ReadFileAndUpdate(cFile.Length - MainPanel.MaxBytes);
+                            ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
                     }
-                    else if (cFileStream.Position + MainPanel.MaxBytes + 1 <= cFile.Length)
+                    else if (CurrentFileStream.Position + MainPanel.BytesOnScreen + 1 <= CurrentFileInfo.Length)
                     {
-                        ReadFileAndUpdate(cFileStream.Position + 1);
+                        ReadFileAndUpdate(CurrentFileStream.Position + 1);
                     }
                     return;
 
                 case ConsoleKey.UpArrow:
-                    if (cFileStream.Position - MainPanel.BytesInRow >= 0)
+                    if (CurrentFileStream.Position - MainPanel.BytesInRow >= 0)
                     {
-                        ReadFileAndUpdate(cFileStream.Position - MainPanel.BytesInRow);
+                        ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesInRow);
                     }
                     else
                     {
@@ -510,21 +500,21 @@ namespace _0xdd
                     }
                     return;
                 case ConsoleKey.DownArrow:
-                    if (cFileStream.Position + MainPanel.MaxBytes + MainPanel.BytesInRow <= cFile.Length)
+                    if (CurrentFileStream.Position + MainPanel.BytesOnScreen + MainPanel.BytesInRow <= CurrentFileInfo.Length)
                     {
-                        ReadFileAndUpdate(cFileStream.Position + MainPanel.BytesInRow);
+                        ReadFileAndUpdate(CurrentFileStream.Position + MainPanel.BytesInRow);
                     }
                     else
                     {
-                        if (MainPanel.MaxBytes < cFile.Length)
-                            ReadFileAndUpdate(cFile.Length - MainPanel.MaxBytes);
+                        if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                            ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
                     }
                     return;
 
                 case ConsoleKey.PageUp:
-                    if (cFileStream.Position - MainPanel.MaxBytes >= 0)
+                    if (CurrentFileStream.Position - MainPanel.BytesOnScreen >= 0)
                     {
-                        ReadFileAndUpdate(cFileStream.Position - MainPanel.MaxBytes);
+                        ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesOnScreen);
                     }
                     else
                     {
@@ -532,13 +522,13 @@ namespace _0xdd
                     }
                     return;
                 case ConsoleKey.PageDown:
-                    if (cFileStream.Position + (MainPanel.MaxBytes * 2) <= cFile.Length)
+                    if (CurrentFileStream.Position + (MainPanel.BytesOnScreen * 2) <= CurrentFileInfo.Length)
                     {
-                        ReadFileAndUpdate(cFileStream.Position += MainPanel.MaxBytes);
+                        ReadFileAndUpdate(CurrentFileStream.Position += MainPanel.BytesOnScreen);
                     }
                     else
                     {
-                        ReadFileAndUpdate(cFile.Length - MainPanel.MaxBytes);
+                        ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
                     }
                     return;
 
@@ -546,7 +536,7 @@ namespace _0xdd
                     ReadFileAndUpdate(0);
                     return;
                 case ConsoleKey.End:
-                    ReadFileAndUpdate(cFile.Length - MainPanel.MaxBytes);
+                    ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
                     return;
             }
         }
@@ -566,11 +556,11 @@ namespace _0xdd
                 MainPanel.BytesInRow = Utils.GetBytesInRow();
             }
 
-            Buffer = new byte[cFile.Length < MainPanel.MaxBytes ?
-                (int)cFile.Length : MainPanel.MaxBytes];
+            Buffer = new byte[CurrentFileInfo.Length < MainPanel.BytesOnScreen ?
+                (int)CurrentFileInfo.Length : MainPanel.BytesOnScreen];
 
             TitlePanel.Update();
-            ReadFileAndUpdate(cFileStream.Position);
+            ReadFileAndUpdate(CurrentFileStream.Position);
             ControlPanel.Place();
         }
 
@@ -580,9 +570,9 @@ namespace _0xdd
         /// <param name="pBasePosition">Position.</param>
         static void ReadCurrentFile(long pBasePosition)
         {
-            cFileStream.Position = pBasePosition;
-            cFileStream.Read(Buffer, 0, Buffer.Length);
-            cFileStream.Position = pBasePosition;
+            CurrentFileStream.Position = pBasePosition;
+            CurrentFileStream.Read(Buffer, 0, Buffer.Length);
+            CurrentFileStream.Position = pBasePosition;
         }
 
         /// <summary>
@@ -653,7 +643,7 @@ namespace _0xdd
         /// <returns><see cref="ErrorCode"/></returns>
         static ErrorCode Dump()
         {
-            return Dump(cFile.Name, MainPanel.BytesInRow, CurrentOffsetView);
+            return Dump(CurrentFileInfo.Name, MainPanel.BytesInRow, CurrentOffsetView);
         }
 
         /// <summary>
@@ -686,7 +676,7 @@ namespace _0xdd
                 sw.WriteLine(f.Name);
                 sw.WriteLine();
                 sw.WriteLine($"Size: {Utils.GetFormattedSize(f.Length)}");
-                sw.WriteLine($"Attributes: {f.Attributes}");
+                sw.WriteLine($"Attributes: {Utils.GetEntryInfo(f)}");
                 sw.WriteLine($"File date: {f.CreationTime}");
                 sw.WriteLine($"Dump date: {DateTime.Now}");
                 sw.WriteLine();
@@ -698,10 +688,10 @@ namespace _0xdd
                 }
                 sw.WriteLine();
                 
-                if (cFile == null)
+                if (CurrentFileInfo == null)
                     return DumpFile(f.Open(FileMode.Open), sw, pViewMode, pBytesInRow);
                 else
-                    return DumpFile(cFileStream, sw, pViewMode, pBytesInRow);
+                    return DumpFile(CurrentFileStream, sw, pViewMode, pBytesInRow);
                
             }
         }
@@ -718,7 +708,7 @@ namespace _0xdd
 
             Buffer = new byte[pBytesInRow];
 
-            long lastpos = cFileStream.Position;
+            long lastpos = CurrentFileStream.Position;
 
             if (!pIn.CanRead)
                 return ErrorCode.DumbCannotRead;
@@ -761,12 +751,12 @@ namespace _0xdd
                 for (int pos = 0; pos < pBytesInRow; pos++)
                 {
                     if (BufferPositionData < pIn.Length)
-                        t += Buffer[pos].ToSafeChar();
+                        t += Buffer[pos].ToAscii();
                     else
                     {
                         pOut.WriteLine(t);
 
-                        cFileStream.Position = lastpos;
+                        CurrentFileStream.Position = lastpos;
 
                         return 0; // Done!
                     }
@@ -787,7 +777,7 @@ namespace _0xdd
         /// <returns>Positon, if found.</returns>
         static FindResult Find(byte pData)
         {
-           return Find(pData, cFileStream.Position);
+           return Find(pData, CurrentFileStream.Position);
         }
 
         /// <summary>
@@ -798,26 +788,26 @@ namespace _0xdd
         /// <returns>Positon, if found.</returns>
         static FindResult Find(byte pData, long pPosition)
         {
-            if (pPosition < 0 || pPosition > cFile.Length)
+            if (pPosition < 0 || pPosition > CurrentFileInfo.Length)
                 return new FindResult(ErrorCode.PositionOutOfBound);
 
-            if (!cFile.Exists)
+            if (!CurrentFileInfo.Exists)
                 return new FindResult(ErrorCode.FileNotFound);
             
-            cFileStream.Position = pPosition;
+            CurrentFileStream.Position = pPosition;
 
             bool Continue = true;
             while (Continue)
             {
-                if (pData == (byte)cFileStream.ReadByte())
-                    return new FindResult(cFileStream.Position);
+                if (pData == (byte)CurrentFileStream.ReadByte())
+                    return new FindResult(CurrentFileStream.Position);
 
-                if (cFileStream.Position >= cFileStream.Length)
+                if (CurrentFileStream.Position >= CurrentFileStream.Length)
                     Continue = false;
             }
 
             // If not found, place the position back it was before
-            cFileStream.Position = pPosition;
+            CurrentFileStream.Position = pPosition;
 
             return new FindResult(ErrorCode.FindNoResult);
         }
@@ -829,7 +819,7 @@ namespace _0xdd
         /// <returns><see cref="FindResult"/></returns>
         static FindResult FindData(string pData)
         {
-            return FindData(pData, cFileStream.Position);
+            return FindData(pData, CurrentFileStream.Position);
         }
 
         /// <summary>
@@ -845,16 +835,16 @@ namespace _0xdd
         /// </remarks>
         static FindResult FindData(string pData, long pPosition)
         {
-            if (pPosition < 0 || pPosition > cFile.Length)
+            if (pPosition < 0 || pPosition > CurrentFileInfo.Length)
                 return new FindResult(ErrorCode.PositionOutOfBound);
 
-            if (!cFile.Exists)
+            if (!CurrentFileInfo.Exists)
                 return new FindResult(ErrorCode.FileNotFound);
 
             if (string.IsNullOrWhiteSpace(pData))
                 return new FindResult(ErrorCode.FindEmptyString);
 
-            cFileStream.Position = pPosition;
+            CurrentFileStream.Position = pPosition;
 
             byte[] b = new byte[pData.Length];
             bool Continue = true;
@@ -868,22 +858,22 @@ namespace _0xdd
 
                 while (Continue)
                 {
-                    if (cFileStream.Position + pData.Length > cFileStream.Length)
+                    if (CurrentFileStream.Position + pData.Length > CurrentFileStream.Length)
                         Continue = false;
 
-                    if (r.IsMatch(char.ToString((char)cFileStream.ReadByte())))
+                    if (r.IsMatch(char.ToString((char)CurrentFileStream.ReadByte())))
                     {
                         if (pData.Length == 1)
                         {
-                            return new FindResult(cFileStream.Position - 1);
+                            return new FindResult(CurrentFileStream.Position - 1);
                         }
                         else
                         {
-                            cFileStream.Position--;
-                            cFileStream.Read(b, 0, b.Length);
+                            CurrentFileStream.Position--;
+                            CurrentFileStream.Read(b, 0, b.Length);
                             if (r.IsMatch(Encoding.ASCII.GetString(b)))
                             {
-                                return new FindResult(cFileStream.Position - pData.Length);
+                                return new FindResult(CurrentFileStream.Position - pData.Length);
                             }
                         }
                     }
@@ -893,29 +883,29 @@ namespace _0xdd
             {
                 while (Continue)
                 {
-                    if (cFileStream.Position + pData.Length > cFileStream.Length)
+                    if (CurrentFileStream.Position + pData.Length > CurrentFileStream.Length)
                         Continue = false;
 
-                    if (pData[0] == (char)cFileStream.ReadByte())
+                    if (pData[0] == (char)CurrentFileStream.ReadByte())
                     {
                         if (pData.Length == 1)
                         {
-                            return new FindResult(cFileStream.Position - 1);
+                            return new FindResult(CurrentFileStream.Position - 1);
                         }
                         else
                         {
-                            cFileStream.Position--;
-                            cFileStream.Read(b, 0, b.Length);
+                            CurrentFileStream.Position--;
+                            CurrentFileStream.Read(b, 0, b.Length);
                             if (pData == Encoding.ASCII.GetString(b))
                             {
-                                return new FindResult(cFileStream.Position - pData.Length);
+                                return new FindResult(CurrentFileStream.Position - pData.Length);
                             }
                         }
                     }
                 }
             }
 
-            cFileStream.Position = pPosition - 1;
+            CurrentFileStream.Position = pPosition - 1;
 
             return new FindResult(ErrorCode.FindNoResult);
         }
@@ -950,13 +940,12 @@ namespace _0xdd
 
                 Console.SetCursorPosition(0, 0);
 
-                if (cFile.Name.Length <= Console.WindowWidth)
+                if (CurrentFileInfo.Name.Length <= Console.WindowWidth)
                 {
-                    Console.Write(cFile.Name);
-                    Console.Write(s(Console.WindowWidth - cFile.Name.Length));
+                    Console.Write(CurrentFileInfo.Name + s(Console.WindowWidth - CurrentFileInfo.Name.Length));
                 }
                 else
-                    Console.Write(cFile.Name.Substring(0, Console.WindowWidth));
+                    Console.Write(CurrentFileInfo.Name.Substring(0, Console.WindowWidth));
 
                 Console.ResetColor();
             }
@@ -978,7 +967,7 @@ namespace _0xdd
             {
                 StringBuilder t = new StringBuilder($"Offset {CurrentOffsetView.GetChar()}  ");
 
-                if (cFileStream.Position > uint.MaxValue)
+                if (CurrentFileStream.Position > uint.MaxValue)
                     t.Append(" ");
 
                 for (int i = 0; i < MainPanel.BytesInRow;)
@@ -986,11 +975,12 @@ namespace _0xdd
                     t.Append($"{i++:X2} ");
                 }
 
-                if (LastWindowHeight != Console.WindowHeight || LastWindowWidth != Console.WindowWidth)
+                if (LastWindowHeight != Console.WindowHeight ||
+                    LastWindowWidth != Console.WindowWidth)
                     t.Append(s(Console.WindowWidth - t.Length - 1)); // Force clean
 
                 Console.SetCursorPosition(0, Position);
-                Console.Write(t.ToString() + s(Console.WindowWidth - t.Length - 1));
+                Console.Write(t.ToString());
             }
         }
         #endregion
@@ -1042,7 +1032,7 @@ namespace _0xdd
             /// <summary>
             /// Gets the number of elements which can be shown in the main panel.
             /// </summary>
-            static internal int MaxBytes
+            static internal int BytesOnScreen
             {
                 get
                 {
@@ -1055,48 +1045,47 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                int BufferOffsetData = 0;
-                int BufferOffsetAscii = 0;
-
+                int od = 0;
+                int oa = 0;
+                long fpos = CurrentFileStream.Position;
+                int fh = FrameHeight;
+                
                 StringBuilder t = new StringBuilder(Console.WindowWidth);
-                
                 OffsetPanel.Update();
-                
                 Console.SetCursorPosition(0, Position);
-
-                for (int line = 0; line < FrameHeight; line++)
+                for (int line = 0; line < fh; line++)
                 {
                     switch (CurrentOffsetView)
                     {
                         case OffsetView.Hexadecimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + cFileStream.Position:X8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + fpos:X8}  ");
                             break;
 
                         case OffsetView.Decimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + cFileStream.Position:D8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + fpos:D8}  ");
                             break;
 
                         case OffsetView.Octal:
-                            t = new StringBuilder($"{ToOct((line * BytesInRow) + cFileStream.Position)}  ");
+                            t = new StringBuilder($"{ToOct((line * BytesInRow) + fpos)}  ");
                             break;
                     }
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (cFileStream.Position + BufferOffsetData < cFile.Length)
-                            t.Append($"{Buffer[BufferOffsetData]:X2} ");
+                        if (fpos + od < CurrentFileInfo.Length)
+                            t.Append($"{Buffer[od]:X2} ");
                         else
                             t.Append("   ");
 
-                        BufferOffsetData++;
+                        ++od;
                     }
 
                     t.Append(" ");
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (cFileStream.Position + BufferOffsetAscii < cFile.Length)
-                            t.Append(Buffer[BufferOffsetAscii].ToSafeChar());
+                        if (fpos + oa < CurrentFileInfo.Length)
+                            t.Append(Buffer[oa].ToAscii());
                         else
                         {
                             Console.SetCursorPosition(0, Position + line);
@@ -1104,10 +1093,10 @@ namespace _0xdd
                             return;
                         }
 
-                        BufferOffsetAscii++;
+                        ++oa;
                     }
 
-                    t.Append(" ");
+                    t.Append(" "); // 0xFFFFFFFF padding
                     
                     Console.WriteLine(t.ToString());
                 }
@@ -1139,10 +1128,10 @@ namespace _0xdd
             static internal void Update()
             {
                 decimal r =
-                    Math.Round(((decimal)(cFileStream.Position + Buffer.Length) / cFile.Length) * 100);
+                    Math.Round(((decimal)(CurrentFileStream.Position + Buffer.Length) / CurrentFileInfo.Length) * 100);
 
                 string t =
-                    $"  DEC: {cFileStream.Position:D8} | HEX: {cFileStream.Position:X8} | OCT: {ToOct(cFileStream.Position)} | POS: {r,3}%";
+                    $"  DEC: {CurrentFileStream.Position:D8} | HEX: {CurrentFileStream.Position:X8} | OCT: {ToOct(CurrentFileStream.Position)} | POS: {r,3}%";
 
                 Console.SetCursorPosition(0, Position);
                 Console.Write(t); // Force-clear any messages
@@ -1218,7 +1207,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="pIn">Byte to transform.</param>
         /// <returns>Console (Windows) readable character.</returns>
-        static char ToSafeChar(this byte pIn) =>
+        static char ToAscii(this byte pIn) =>
             pIn < 0x20 || pIn > 0x7E ? '.' : (char)pIn;
 
         /// <summary>
@@ -1302,7 +1291,8 @@ namespace _0xdd
             o += fa.HasFlag(FileAttributes.ReadOnly) ? "r" : "-";
             o += fa.HasFlag(FileAttributes.System) ? "s" : "-";
 
-            IdentityReference n = File.GetAccessControl(pFile.FullName).GetOwner(typeof(SecurityIdentifier)).Translate(typeof(NTAccount));
+            IdentityReference n = // Get username
+                File.GetAccessControl(pFile.FullName).GetOwner(typeof(SecurityIdentifier)).Translate(typeof(NTAccount));
 
             o += $"  {n.Value}";
 

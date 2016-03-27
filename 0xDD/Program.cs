@@ -47,7 +47,7 @@ namespace _0xdd
         {
 #if DEBUG
 #warning Reminder: Re-comment
-            /* ~~ Used for debugging within Visual Studio (vshost) ~~ */
+            // Used for debugging within Visual Studio (vshost)
             args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
@@ -158,7 +158,7 @@ namespace _0xdd
 #if DEBUG // I want Visual Studio to catch the exceptions!
                 ErrorCode r = _0xdd.Open(file, ovm, row);
                 Console.Clear();
-                Console.WriteLine($"ERRORCODE: {r} - 0x{r.Int():X2}");
+                Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Int():X2}");
                 Console.ReadLine();
                 return r.Int();
 #else
@@ -191,7 +191,7 @@ namespace _0xdd
         /// <remarks> C syntax </remarks>
         static string gerrcs(ErrorCode pCode, string pArgument = null)
         {
-            string m = string.Empty;
+            string m = " ";
 
             switch (pCode)
             {
@@ -232,7 +232,7 @@ namespace _0xdd
                     break;
             }
 
-            return m += $" ({pCode} - 0x{pCode.Int():X2})";
+            return m += $"\n ERROR: {pCode} - 0x{pCode.Int():X2}";
         }
 
         static void Abort(Exception e)
