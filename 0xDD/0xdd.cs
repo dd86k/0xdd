@@ -142,10 +142,10 @@ namespace _0xdd
         #region Methods        
         internal static ErrorCode Open(string pFilePath, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
-            if (!File.Exists(pFilePath))
-                return ErrorCode.FileNotFound;
-
             CurrentFileInfo = new FileInfo(pFilePath);
+
+            if (!CurrentFileInfo.Exists)
+                return ErrorCode.FileNotFound;
             
             try
             {
