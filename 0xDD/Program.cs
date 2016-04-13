@@ -57,7 +57,7 @@ namespace _0xdd
             //args = new string[] { "hf.iso" };
             //args = new string[] { "/w", "16", "hf.iso" };
             //args = new string[] { "-dump", "tt" };
-            args = new string[] {  "/dump", "gg.txt" };
+            //args = new string[] {  "/dump", "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
             //args = new string[] { "zero" };
 #endif
