@@ -164,6 +164,7 @@ namespace _0xdd
             LastWindowWidth = Console.WindowWidth;
 
             Console.CursorVisible = false;
+            Console.Clear();
 
             PrepareScreen();
 
@@ -1296,7 +1297,6 @@ namespace _0xdd
 
             IdentityReference n = // Get username
                 File.GetAccessControl(pFile.FullName).GetOwner(typeof(SecurityIdentifier)).Translate(typeof(NTAccount));
-
             o += $"  {n.Value}";
 
             return o;
