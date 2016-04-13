@@ -239,6 +239,7 @@ namespace _0xdd
         static void Abort(Exception e)
         {
             Console.Clear();
+            Console.CursorVisible = true;
 
             Console.ForegroundColor = ConsoleColor.White;
             Console.BackgroundColor = ConsoleColor.Red;
