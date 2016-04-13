@@ -1127,11 +1127,14 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                decimal r =
-                    Math.Round(((decimal)(CurrentFileStream.Position + Buffer.Length) / CurrentFileInfo.Length) * 100);
+                long pos = CurrentFileStream.Position;
+
+                decimal r = CurrentFileInfo.Length > 0 ?
+                    Math.Round(((decimal)(pos + Buffer.Length) / CurrentFileInfo.Length) * 100) :
+                    0;
 
                 string t =
-                    $"  DEC: {CurrentFileStream.Position:D8} | HEX: {CurrentFileStream.Position:X8} | OCT: {ToOct(CurrentFileStream.Position)} | POS: {r,3}%";
+                    $"  DEC: {pos:D8} | HEX: {pos:X8} | OCT: {ToOct(pos)} | POS: {r,3}%";
 
                 Console.SetCursorPosition(0, Position);
                 Console.Write(t); // Force-clear any messages
