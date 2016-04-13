@@ -262,6 +262,7 @@ namespace _0xdd
             o.WriteLine(e.StackTrace);
             o.WriteLine("    -- END STACK --");
             o.WriteLine();
+            o.WriteLine();
             o.Flush();
             o.Close();
         }

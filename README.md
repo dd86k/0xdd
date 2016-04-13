@@ -8,16 +8,12 @@
 
 Inspired by nano, 0xdd is a simple, interactive, hexadecimal file viewer for Windows.
 
-Written in C# 6.0 for .NET 4.5.2 with Visual Studio 2015.
+Written in C# 6.0 for .NET 4.5.1 with Visual Studio 2015.
 
-Probably still Mono compatible.
-
-The issue board is available [here](https://github.com/guitarxhero/0xdd/issues).
-
-The Wiki is available [here](https://github.com/guitarxhero/0xdd/wiki).
+Mono compatible.
 
 ---
 
 ## Requirements
 
-- .NET 4.5 (Windows) or Mono Runtime 4.x (OS X and GNU/Linux).
+- .NET 4.5.1 or Mono (where .NET 4.5.1 is supported)
