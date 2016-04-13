@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Security.Principal;
 using System.Text;
@@ -1294,10 +1295,16 @@ namespace _0xdd
             o += fa.HasFlag(FileAttributes.Encrypted) ? "e" : "-";
             o += fa.HasFlag(FileAttributes.ReadOnly) ? "r" : "-";
             o += fa.HasFlag(FileAttributes.System) ? "s" : "-";
+            o += fa.HasFlag(FileAttributes.Hidden) ? "h" : "-";
+            o += fa.HasFlag(FileAttributes.Temporary) ? "t" : "-";
 
-            IdentityReference n = // Get username
-                File.GetAccessControl(pFile.FullName).GetOwner(typeof(SecurityIdentifier)).Translate(typeof(NTAccount));
-            o += $"  {n.Value}";
+            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
+            {
+                o += "  " +
+                    pFile.GetAccessControl()
+                    .GetOwner(typeof(SecurityIdentifier))
+                    .Translate(typeof(NTAccount));
+            }
 
             return o;
         }
