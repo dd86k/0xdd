@@ -81,6 +81,11 @@ namespace _0xdd
         // READ, OVRW, INSR
         Read, Overwrite, Insert
     }
+
+    enum EntryType : byte
+    {
+        File, Process
+    }
     #endregion
 
     #region Structs
@@ -138,8 +143,10 @@ namespace _0xdd
         static FileStream CurrentFileStream;
 
         static Process CurrentProcess;
+        static IntPtr CurrentProcessHandle;
 
         static OffsetView CurrentOffsetView;
+        static EntryType CurrentEntryType;
         //static OperatingMode CurrentWritingMode;
         
         static byte[] Buffer;
@@ -157,6 +164,8 @@ namespace _0xdd
         #region Methods        
         internal static ErrorCode Open(string pFilePath, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
+            CurrentEntryType = EntryType.File;
+
             {
                 CurrentFileInfo = new FileInfo(pFilePath);
 
@@ -184,9 +193,11 @@ namespace _0xdd
 
             return ur.Code;
         }
-
+        
         internal static ErrorCode OpenProcess(string pProcess, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
+            CurrentEntryType = EntryType.Process;
+
             {
                 if (Environment.OSVersion.Platform != PlatformID.Win32NT)
                     return ErrorCode.MiscNotSupported;
@@ -194,7 +205,7 @@ namespace _0xdd
                 if (Regex.IsMatch(pProcess, @"^#\d", RegexOptions.ECMAScript))
                 {
                     int pid;
-                    if (!int.TryParse(pProcess.Replace('#', '\0'), out pid))
+                    if (!int.TryParse(pProcess.Replace("#", string.Empty), out pid))
                         return ErrorCode.ProgramNoParse;
 
                     try
@@ -223,6 +234,8 @@ namespace _0xdd
                         return ErrorCode.ProcessNotFound;
                 }
                 
+                CurrentProcessHandle = WinNTKernel.OpenProcess(WinNTKernel.PROCESS_WM_READ, false, CurrentProcess.Id);
+
                 PrepareOpen(pBytesRow, pView);
             }
 
@@ -239,7 +252,6 @@ namespace _0xdd
         static void PrepareOpen(int pBytesRow, OffsetView pView)
         {
             AutoSize = pBytesRow <= 0;
-            MainPanel.BytesInRow = AutoSize ? Utils.GetBytesInRow() : pBytesRow;
 
             CurrentOffsetView = pView;
             LastWindowHeight = Console.WindowHeight;
@@ -536,81 +548,88 @@ namespace _0xdd
 
                 // -- Data nagivation --
                 case ConsoleKey.LeftArrow:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        ReadFileAndUpdate(CurrentFileStream.Position -
-                            (CurrentFileStream.Position % MainPanel.BytesInRow));
-                    }
-                    else if (CurrentFileStream.Position - 1 >= 0)
-                    {
-                        ReadFileAndUpdate(CurrentFileStream.Position - 1);
-                    }
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        if (k.Modifiers == ConsoleModifiers.Control)
+                        {
+                            ReadFileAndUpdate(CurrentFileStream.Position -
+                                (CurrentFileStream.Position % MainPanel.BytesInRow));
+                        }
+                        else if (CurrentFileStream.Position - 1 >= 0)
+                        {
+                            ReadFileAndUpdate(CurrentFileStream.Position - 1);
+                        }
                     return;
                 case ConsoleKey.RightArrow:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        int b = MainPanel.BytesInRow;
-                        long NewPos = CurrentFileStream.Position + (b - CurrentFileStream.Position % b);
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        if (k.Modifiers == ConsoleModifiers.Control)
+                        {
+                            long NewPos = CurrentFileStream.Position +
+                                (MainPanel.BytesInRow - CurrentFileStream.Position % MainPanel.BytesInRow);
 
-                        if (NewPos + MainPanel.BytesOnScreen <= CurrentFileInfo.Length)
-                            ReadFileAndUpdate(NewPos);
-                        else
-                            ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
-                    }
-                    else if (CurrentFileStream.Position + MainPanel.BytesOnScreen + 1 <= CurrentFileInfo.Length)
-                    {
-                        ReadFileAndUpdate(CurrentFileStream.Position + 1);
-                    }
+                            if (NewPos + MainPanel.BytesOnScreen <= CurrentFileInfo.Length)
+                                ReadFileAndUpdate(NewPos);
+                            else
+                                ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
+                        }
+                        else if (CurrentFileStream.Position + MainPanel.BytesOnScreen + 1 <= CurrentFileInfo.Length)
+                        {
+                            ReadFileAndUpdate(CurrentFileStream.Position + 1);
+                        }
                     return;
 
                 case ConsoleKey.UpArrow:
-                    if (CurrentFileStream.Position - MainPanel.BytesInRow >= 0)
-                    {
-                        ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesInRow);
-                    }
-                    else
-                    {
-                        ReadFileAndUpdate(0);
-                    }
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        if (CurrentFileStream.Position - MainPanel.BytesInRow >= 0)
+                        {
+                            ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesInRow);
+                        }
+                        else
+                        {
+                            ReadFileAndUpdate(0);
+                        }
                     return;
                 case ConsoleKey.DownArrow:
-                    if (CurrentFileStream.Position + MainPanel.BytesOnScreen + MainPanel.BytesInRow <= CurrentFileInfo.Length)
-                    {
-                        ReadFileAndUpdate(CurrentFileStream.Position + MainPanel.BytesInRow);
-                    }
-                    else
-                    {
-                        if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        if (CurrentFileStream.Position + MainPanel.BytesOnScreen + MainPanel.BytesInRow <= CurrentFileInfo.Length)
+                        {
+                            ReadFileAndUpdate(CurrentFileStream.Position + MainPanel.BytesInRow);
+                        }
+                        else
+                        {
                             ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
-                    }
+                        }
                     return;
 
                 case ConsoleKey.PageUp:
-                    if (CurrentFileStream.Position - MainPanel.BytesOnScreen >= 0)
-                    {
-                        ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesOnScreen);
-                    }
-                    else
-                    {
-                        ReadFileAndUpdate(0);
-                    }
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        if (CurrentFileStream.Position - MainPanel.BytesOnScreen >= 0)
+                        {
+                            ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesOnScreen);
+                        }
+                        else
+                        {
+                            ReadFileAndUpdate(0);
+                        }
                     return;
                 case ConsoleKey.PageDown:
-                    if (CurrentFileStream.Position + (MainPanel.BytesOnScreen * 2) <= CurrentFileInfo.Length)
-                    {
-                        ReadFileAndUpdate(CurrentFileStream.Position += MainPanel.BytesOnScreen);
-                    }
-                    else
-                    {
-                        ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
-                    }
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        if (CurrentFileStream.Position + (MainPanel.BytesOnScreen * 2) <= CurrentFileInfo.Length)
+                        {
+                            ReadFileAndUpdate(CurrentFileStream.Position += MainPanel.BytesOnScreen);
+                        }
+                        else
+                        {
+                            ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
+                        }
                     return;
 
                 case ConsoleKey.Home:
-                    ReadFileAndUpdate(0);
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        ReadFileAndUpdate(0);
                     return;
                 case ConsoleKey.End:
-                    ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
+                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                        ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
                     return;
             }
         }
@@ -626,18 +645,35 @@ namespace _0xdd
         static void PrepareScreen()
         {
             if (AutoSize)
-            {
                 MainPanel.BytesInRow = Utils.GetBytesInRow();
+
+            switch (CurrentEntryType)
+            {
+                case EntryType.File:
+                    Buffer = new byte[CurrentFileInfo.Length < MainPanel.BytesOnScreen ?
+                        CurrentFileInfo.Length : MainPanel.BytesOnScreen];
+                    break;
+                case EntryType.Process:
+                    Buffer = new byte[CurrentProcess.WorkingSet64 < MainPanel.BytesOnScreen ?
+                        CurrentProcess.WorkingSet64 : MainPanel.BytesOnScreen];
+                    break;
             }
 
-            Buffer = new byte[CurrentFileInfo.Length < MainPanel.BytesOnScreen ?
-                (int)CurrentFileInfo.Length : MainPanel.BytesOnScreen];
-
             TitlePanel.Update();
-            ReadFileAndUpdate(CurrentFileStream.Position);
+            switch (CurrentEntryType)
+            {
+                case EntryType.File:
+                    ReadFileAndUpdate(CurrentFileStream.Position);
+                    break;
+                case EntryType.Process:
+                    ReadFileAndUpdate(0); // temp
+                    break;
+            }
             ControlPanel.Place();
         }
 
+        //temp
+        static bool last;
         #region Read file
         /// <summary>
         /// Read the current file at a position.
@@ -645,9 +681,18 @@ namespace _0xdd
         /// <param name="pBasePosition">Position.</param>
         static void ReadCurrentFile(long pBasePosition)
         {
-            CurrentFileStream.Position = pBasePosition;
-            CurrentFileStream.Read(Buffer, 0, Buffer.Length);
-            CurrentFileStream.Position = pBasePosition;
+            switch (CurrentEntryType)
+            {
+                case EntryType.File:
+                    CurrentFileStream.Position = pBasePosition;
+                    CurrentFileStream.Read(Buffer, 0, Buffer.Length);
+                    CurrentFileStream.Position = pBasePosition;
+                    break;
+                case EntryType.Process: // 2nd: pos
+                    int read = 0;
+                    last = WinNTKernel.ReadProcessMemory(CurrentProcessHandle.ToInt32(), 0, Buffer, Buffer.Length, ref read);
+                    break;
+            }
         }
 
         /// <summary>
@@ -677,12 +722,12 @@ namespace _0xdd
         /// <param name="pMessage">Message to show.</param>
         static void Message(string pMessage)
         {
-            Console.SetCursorPosition(0, InfoPanel.Position);
+            Console.SetCursorPosition(0, InfoPanel.StartPosition);
             Console.Write(s(Console.WindowWidth - 1));
 
             string msg = $"[ {pMessage} ]";
             Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2),
-                InfoPanel.Position);
+                InfoPanel.StartPosition);
 
             Utils.ToggleColors();
             Console.Write(msg);
@@ -1015,12 +1060,24 @@ namespace _0xdd
 
                 Console.SetCursorPosition(0, 0);
 
-                if (CurrentFileInfo.Name.Length <= Console.WindowWidth)
+                string name = string.Empty;
+
+                switch (CurrentEntryType)
                 {
-                    Console.Write(CurrentFileInfo.Name + s(Console.WindowWidth - CurrentFileInfo.Name.Length));
+                    case EntryType.File:
+                        name = CurrentFileInfo.Name;
+                        break;
+                    case EntryType.Process:
+                        name = CurrentProcess.ProcessName;
+                        break;
+                }
+
+                if (name.Length <= Console.WindowWidth)
+                {
+                    Console.Write(name + s(Console.WindowWidth - name.Length));
                 }
                 else
-                    Console.Write(CurrentFileInfo.Name.Substring(0, Console.WindowWidth));
+                    Console.Write(name.Substring(0, Console.WindowWidth));
 
                 Console.ResetColor();
             }
@@ -1042,8 +1099,15 @@ namespace _0xdd
             {
                 StringBuilder t = new StringBuilder($"Offset {CurrentOffsetView.GetChar()}  ");
 
-                if (CurrentFileStream.Position > uint.MaxValue)
-                    t.Append(" ");
+                switch (CurrentEntryType)
+                {
+                    case EntryType.File:
+                        if (CurrentFileStream.Position > uint.MaxValue)
+                            t.Append(" ");
+                        break;
+                    case EntryType.Process:
+                        break;
+                }
 
                 for (int i = 0; i < MainPanel.BytesInRow;)
                 {
@@ -1122,8 +1186,21 @@ namespace _0xdd
             {
                 int od = 0;
                 int oa = 0;
-                long fpos = CurrentFileStream.Position;
                 int fh = FrameHeight;
+
+                long len = 0;
+                long pos = 0;
+                switch (CurrentEntryType)
+                {
+                    case EntryType.File:
+                        pos = CurrentFileStream.Position;
+                        len = CurrentFileInfo.Length;
+                        break;
+                    case EntryType.Process:
+                        pos = 0;
+                        len = 500;
+                        break;
+                }
                 
                 StringBuilder t = new StringBuilder(Console.WindowWidth);
                 OffsetPanel.Update();
@@ -1133,21 +1210,21 @@ namespace _0xdd
                     switch (CurrentOffsetView)
                     {
                         case OffsetView.Hexadecimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + fpos:X8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + pos:X8}  ");
                             break;
 
                         case OffsetView.Decimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + fpos:D8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + pos:D8}  ");
                             break;
 
                         case OffsetView.Octal:
-                            t = new StringBuilder($"{ToOct((line * BytesInRow) + fpos)}  ");
+                            t = new StringBuilder($"{ToOct((line * BytesInRow) + pos)}  ");
                             break;
                     }
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (fpos + od < CurrentFileInfo.Length)
+                        if (pos + od < len)
                             t.Append($"{Buffer[od]:X2} ");
                         else
                             t.Append("   ");
@@ -1159,7 +1236,7 @@ namespace _0xdd
 
                     for (int x = 0; x < BytesInRow; x++)
                     {
-                        if (fpos + oa < CurrentFileInfo.Length)
+                        if (pos + oa < len)
                             t.Append(Buffer[oa].ToAscii());
                         else
                         {
@@ -1171,7 +1248,7 @@ namespace _0xdd
                         ++oa;
                     }
 
-                    t.Append(" "); // 0xFFFFFFFF padding
+                    t.Append(" "); // 0xFFFFFFFF+ padding
                     
                     Console.WriteLine(t.ToString());
                 }
@@ -1186,9 +1263,9 @@ namespace _0xdd
         static class InfoPanel
         {
             /// <summary>
-            /// Position to start rendering on the console (Y axis).
+            /// Starting position to rendering on the console (Y axis).
             /// </summary>
-            static internal int Position
+            static internal int StartPosition
             {
                 get
                 {
@@ -1202,16 +1279,27 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                long pos = CurrentFileStream.Position;
+                long pos = 0;
+                decimal r = 0;
 
-                decimal r = CurrentFileInfo.Length > 0 ?
-                    Math.Round(((decimal)(pos + Buffer.Length) / CurrentFileInfo.Length) * 100) :
-                    0;
+                switch (CurrentEntryType)
+                {
+                    case EntryType.File:
+                        pos = CurrentFileStream.Position;
+                        r = CurrentFileInfo.Length > 0 ?
+                            Math.Round(
+                                ((decimal)(pos + Buffer.Length) / CurrentFileInfo.Length) * 100) :
+                                0;
+                        break;
+                    case EntryType.Process:
+
+                        break;
+                }
 
                 string t =
                     $"  DEC: {pos:D8} | HEX: {pos:X8} | OCT: {ToOct(pos)} | POS: {r,3}%";
 
-                Console.SetCursorPosition(0, Position);
+                Console.SetCursorPosition(0, StartPosition);
                 Console.Write(t); // Force-clear any messages
             }
         }
@@ -1331,8 +1419,10 @@ namespace _0xdd
     #region WindowsNT Kernel
     static class WinNTKernel
     {
+        public const int PROCESS_WM_READ = 0x0010;
+
         [DllImport("kernel32.dll")]
-        public static extern int OpenProcess(int dwDesiredAccess, int bInheritHandle, int dwProcessId);
+        public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
         [DllImport("kernel32.dll")]
         public static extern int VirtualAllocEx(int hProcess, int lpAddress, int dwSize, int flAllocationType, int flProtect);
         [DllImport("kernel32.dll")]
@@ -1347,7 +1437,7 @@ namespace _0xdd
         /// <param name="lpNumberOfBytesRead">[MSDN] A pointer to a variable that receives the number of bytes transferred into the specified buffer. If lpNumberOfBytesRead is NULL, the parameter is ignored.</param>
         /// <returns>[MSDN] If the function succeeds, the return value is nonzero.</returns>
         [DllImport("kernel32.dll")]
-        public static extern bool ReadProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int nSize, out int lpNumberOfBytesRead);
+        public static extern bool ReadProcessMemory(int hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
         [DllImport("kernel32.dll")]
         public static extern bool WriteProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int nSize, out uint lpNumberOfBytesWritten);
         [DllImport("kernel32.dll")]

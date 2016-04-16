@@ -47,7 +47,7 @@ namespace _0xdd
         {
 #if DEBUG
             // Used for debugging within Visual Studio (vshost)
-            args = new string[] { ExecutableFilename };
+            //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
@@ -59,6 +59,7 @@ namespace _0xdd
             //args = new string[] {  "/dump", "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
             //args = new string[] { "zero" };
+            args = new string[] { "/p", "#3020" };
 #endif
 
             if (args.Length == 0)
@@ -74,6 +75,7 @@ namespace _0xdd
             int row = 0; // 0 - Auto, past default: 16
             OffsetView ovm = OffsetView.Hexadecimal;
             bool dump = false;
+            bool process = false;
 
             //TODO: Settings! (v0.8)
 
@@ -119,6 +121,10 @@ namespace _0xdd
                         }
                         break;
 
+                    case "/p":
+                        process = true;
+                        break;
+
                     case "-dump":
                     case "/dump":
                         dump = true;
@@ -152,7 +158,11 @@ namespace _0xdd
             else
             {
 #if DEBUG // I want Visual Studio to catch the exceptions!
-                ErrorCode r = _0xdd.Open(file, ovm, row);
+                ErrorCode r = ErrorCode.Success;
+                if (process)
+                    r = _0xdd.OpenProcess(file, ovm, row);
+                else
+                    r = _0xdd.Open(file, ovm, row);
                 Console.Clear();
                 Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Int():X2}");
                 Console.ReadLine();
