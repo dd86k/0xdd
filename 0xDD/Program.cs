@@ -46,9 +46,8 @@ namespace _0xdd
         static int Main(string[] args)
         {
 #if DEBUG
-#warning Reminder: Re-comment
             // Used for debugging within Visual Studio (vshost)
-            //args = new string[] { ExecutableFilename };
+            args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
@@ -106,15 +105,11 @@ namespace _0xdd
 
                     case "-w":
                     case "/w":
-                        if (char.ToLower(args[i + 1][0]) != 'a') // Automatic
+                        if (char.ToLower(args[i + 1][0]) != 'a') // Automatic, in case to overwrite settings
                         {
                             row = 0;
                         }
-                        else if (int.TryParse(args[i + 1], out row)) // User-defined
-                        {
-                            row = Math.Abs(row);
-                        }
-                        else // If parsing failed
+                        else if (!int.TryParse(args[i + 1], out row))
                         {
                             Console.WriteLine(gerrcs(ErrorCode.CLI_InvalidWidth, args[i + 1]));
 #if DEBUG
@@ -192,7 +187,7 @@ namespace _0xdd
         /// <remarks> C syntax </remarks>
         static string gerrcs(ErrorCode pCode, string pArgument = null)
         {
-            string m = " ";
+            string m = string.Empty;
 
             switch (pCode)
             {

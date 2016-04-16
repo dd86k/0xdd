@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -37,24 +38,34 @@ namespace _0xdd
     {
         Success = 0,
 
-        // File related
+        // File
         FileNotFound = 0x4,
         FileUnreadable = 0x5,
 
-        // Position related
-        PositionOutOfBound = 0x8,
+        // Process
+        ProcessNotFound = 0x8, // Name or ID
+        ProcessUnreadable = 0x9,
 
-        // Dump related
-        DumbCannotWrite = 0x10,
-        DumbCannotRead = 0x11,
+        // Position
+        PositionOutOfBound = 0x10,
 
-        // Find related
+        // Dump
+        DumbCannotWrite = 0x18,
+        DumbCannotRead = 0x19,
+
+        // Find
         FindNoResult = 0x20,
         FindEmptyString = 0x21,
 
-        // CLI related
+        // Program
+        ProgramNoParse = 0xA0,
+
+        // CLI
         CLI_InvalidOffsetView = 0xC0,
         CLI_InvalidWidth = 0xC4,
+
+        // Misc.
+        MiscNotSupported = 0xD0,
         
         UnknownError = 0xFE,
         Exit = 0xFF
@@ -98,18 +109,18 @@ namespace _0xdd
     {
         public UserResponse(ErrorCode pError)
         {
-            Error = pError;
+            Code = pError;
         }
 
         public bool Success
         {
             get
             {
-                return Error == ErrorCode.Success;
+                return Code == ErrorCode.Success;
             }
         }
 
-        public ErrorCode Error;
+        public ErrorCode Code;
     }
     #endregion
 
@@ -125,6 +136,9 @@ namespace _0xdd
         #region Variables
         static FileInfo CurrentFileInfo;
         static FileStream CurrentFileStream;
+
+        static Process CurrentProcess;
+
         static OffsetView CurrentOffsetView;
         //static OperatingMode CurrentWritingMode;
         
@@ -143,21 +157,88 @@ namespace _0xdd
         #region Methods        
         internal static ErrorCode Open(string pFilePath, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
-            CurrentFileInfo = new FileInfo(pFilePath);
-
-            if (!CurrentFileInfo.Exists)
-                return ErrorCode.FileNotFound;
-            
-            try
             {
-                CurrentFileStream = CurrentFileInfo.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
-            }
-            catch
-            {
-                return ErrorCode.FileUnreadable;
+                CurrentFileInfo = new FileInfo(pFilePath);
+
+                if (!CurrentFileInfo.Exists)
+                    return ErrorCode.FileNotFound;
+
+                try
+                {
+                    CurrentFileStream = CurrentFileInfo.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
+                }
+                catch
+                {
+                    return ErrorCode.FileUnreadable;
+                }
+
+                PrepareOpen(pBytesRow, pView);
             }
 
-            AutoSize = pBytesRow == 0;
+            UserResponse ur = new UserResponse(ErrorCode.Success);
+
+            while(ur.Success)
+            {
+                ReadUserKey(ref ur);
+            }
+
+            return ur.Code;
+        }
+
+        internal static ErrorCode OpenProcess(string pProcess, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
+        {
+            {
+                if (Environment.OSVersion.Platform != PlatformID.Win32NT)
+                    return ErrorCode.MiscNotSupported;
+
+                if (Regex.IsMatch(pProcess, @"^#\d", RegexOptions.ECMAScript))
+                {
+                    int pid;
+                    if (!int.TryParse(pProcess.Replace('#', '\0'), out pid))
+                        return ErrorCode.ProgramNoParse;
+
+                    try
+                    {
+                        CurrentProcess = Process.GetProcessById(pid);
+                    }
+                    catch
+                    {
+                        return ErrorCode.ProcessNotFound;
+                    }
+                }
+                else
+                {
+                    Process[] pl = Process.GetProcessesByName(pProcess);
+
+                    if (pl.Length > 0)
+                    {
+                        if (pl.Length == 1)
+                            CurrentProcess = pl[0];
+                        else
+                        { //TODO: Notation to process selection (by index (of name), or idk)
+                            CurrentProcess = pl[0]; // temporary
+                        }
+                    }
+                    else
+                        return ErrorCode.ProcessNotFound;
+                }
+                
+                PrepareOpen(pBytesRow, pView);
+            }
+
+            UserResponse ur = new UserResponse(ErrorCode.Success);
+
+            while (ur.Success)
+            {
+                ReadUserKey(ref ur);
+            }
+
+            return ur.Code;
+        }
+
+        static void PrepareOpen(int pBytesRow, OffsetView pView)
+        {
+            AutoSize = pBytesRow <= 0;
             MainPanel.BytesInRow = AutoSize ? Utils.GetBytesInRow() : pBytesRow;
 
             CurrentOffsetView = pView;
@@ -168,15 +249,6 @@ namespace _0xdd
             Console.Clear();
 
             PrepareScreen();
-
-            UserResponse ur = new UserResponse(ErrorCode.Success);
-
-            while(ur.Success)
-            {
-                ReadUserKey(ref ur);
-            }
-
-            return ur.Error;
         }
 
         /// <summary>
@@ -226,7 +298,7 @@ namespace _0xdd
                         }
 
                         long? t = Utils.GetNumberFromUser("Find byte:",
-                            pSuggestion: LastByteSearched > 0 ? LastByteSearched.ToString() : null);
+                            pSuggestion: LastByteSearched.ToString("X2"));
 
                         if (t == null)
                         {
@@ -447,7 +519,7 @@ namespace _0xdd
                 case ConsoleKey.X:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        pUserResponse.Error = ErrorCode.Exit;
+                        pUserResponse.Code = ErrorCode.Exit;
                         Exit();
                     }
                     return;
@@ -566,6 +638,7 @@ namespace _0xdd
             ControlPanel.Place();
         }
 
+        #region Read file
         /// <summary>
         /// Read the current file at a position.
         /// </summary>
@@ -586,6 +659,16 @@ namespace _0xdd
             ReadCurrentFile(pPosition);
             MainPanel.Update();
             InfoPanel.Update();
+        }
+        #endregion
+
+        /// <summary>
+        /// Go to a specific position in the file.
+        /// </summary>
+        /// <param name="pPosition">Position</param>
+        static void Goto(long pPosition)
+        {
+            ReadFileAndUpdate(pPosition);
         }
         
         /// <summary>
@@ -611,14 +694,7 @@ namespace _0xdd
         /// </summary>
         static void ToggleFullscreenMode()
         {
-            if (Fullscreen)
-            { // Turning off
-                Fullscreen = false;
-            }
-            else
-            { // Turning on
-                Fullscreen = true;
-            }
+            Fullscreen = !Fullscreen;
 
             PrepareScreen();
 
@@ -629,15 +705,7 @@ namespace _0xdd
             }
         }
 
-        /// <summary>
-        /// Go to a specific position in the file.
-        /// </summary>
-        /// <param name="pPosition">Position</param>
-        static void Goto(long pPosition)
-        {
-            ReadFileAndUpdate(pPosition);
-        }
-
+        #region Dump
         /// <summary>
         /// File to dump as text data with the app's <see cref="MainPanel.BytesInRow"/>
         /// and <see cref="CurrentOffsetView"/>.
@@ -771,7 +839,9 @@ namespace _0xdd
 
             return 0;
         }
+        #endregion
 
+        #region Find
         /// <summary>
         /// Find a byte starting at the current position.
         /// </summary>
@@ -911,7 +981,9 @@ namespace _0xdd
 
             return new FindResult(ErrorCode.FindNoResult);
         }
+        #endregion
 
+        #region Exit
         /// <summary>
         /// When the user exits the program.
         /// </summary>
@@ -927,6 +999,7 @@ namespace _0xdd
 
             return false;
         }
+        #endregion
         #endregion
 
         #region Panels
@@ -1255,6 +1328,42 @@ namespace _0xdd
         #endregion
     }
 
+    #region WindowsNT Kernel
+    static class WinNTKernel
+    {
+        [DllImport("kernel32.dll")]
+        public static extern int OpenProcess(int dwDesiredAccess, int bInheritHandle, int dwProcessId);
+        [DllImport("kernel32.dll")]
+        public static extern int VirtualAllocEx(int hProcess, int lpAddress, int dwSize, int flAllocationType, int flProtect);
+        [DllImport("kernel32.dll")]
+        public static extern ulong ReadMemory(ulong offset, byte[] lpBuffer, ulong cb, ulong lpcbBytesRead);
+        /// <summary>
+        /// [MSDN] Reads data from an area of memory in a specified process. The entire area to be read must be accessible or the operation fails.
+        /// </summary>
+        /// <param name="hProcess">[MSDN] A handle to the process with memory that is being read. The handle must have PROCESS_VM_READ access to the process.</param>
+        /// <param name="lpBaseAddress">[MSDN] A pointer to the base address in the specified process from which to read. Before any data transfer occurs, the system verifies that all data in the base address and memory of the specified size is accessible for read access, and if it is not accessible the function fails.</param>
+        /// <param name="lpBuffer">[MSDN] A pointer to a buffer that receives the contents from the address space of the specified process.</param>
+        /// <param name="nSize">[MSDN] The number of bytes to be read from the specified process.</param>
+        /// <param name="lpNumberOfBytesRead">[MSDN] A pointer to a variable that receives the number of bytes transferred into the specified buffer. If lpNumberOfBytesRead is NULL, the parameter is ignored.</param>
+        /// <returns>[MSDN] If the function succeeds, the return value is nonzero.</returns>
+        [DllImport("kernel32.dll")]
+        public static extern bool ReadProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int nSize, out int lpNumberOfBytesRead);
+        [DllImport("kernel32.dll")]
+        public static extern bool WriteProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int nSize, out uint lpNumberOfBytesWritten);
+        [DllImport("kernel32.dll")]
+        public static extern int GetProcAddress(int hModule, string lpProcName);
+        [DllImport("kernel32.dll")]
+        public static extern int GetModuleHandle(string lpModuleName);
+        [DllImport("kernel32.dll")]
+        public static extern int CreateRemoteThread(int hProcess, int lpThreadAttributes, int dwStackSize, int lpStartAddress, int lpParameter, int dwCreationFlags, int lpThreadId);
+        [DllImport("kernel32.dll")]
+        public static extern int WaitForSingleObject(int hHandle, int dwMilliseconds);
+        [DllImport("kernel32.dll")]
+        public static extern int CloseHandle(int hObject);
+    }
+    #endregion
+
+    #region Utilities
     static class Utils
     {
         #region Formatting
@@ -1265,17 +1374,20 @@ namespace _0xdd
 
         static internal string GetFormattedSize(long pSize)
         {
-            double s = pSize;
+            return GetFormattedSize(pSize);
+        }
 
-            if (s > SIZE_TB) // TB
-                return $"{Math.Round(s / SIZE_TB, 2)} TB";
-            else if (s > SIZE_GB) // GB
-                return $"{Math.Round(s / SIZE_GB, 2)} GB";
-            else if (s > SIZE_MB) // MB
-                return $"{Math.Round(s / SIZE_MB, 2)} MB";
-            else if (s > SIZE_KB) // KB
-                return $"{Math.Round(s / SIZE_KB, 2)} KB";
-            else // B
+        static internal string GetFormattedSize(decimal pSize)
+        {
+            if (pSize > SIZE_TB)
+                return $"{Math.Round(pSize / SIZE_TB, 2)} TB";
+            else if (pSize > SIZE_GB)
+                return $"{Math.Round(pSize / SIZE_GB, 2)} GB";
+            else if (pSize > SIZE_MB)
+                return $"{Math.Round(pSize / SIZE_MB, 2)} MB";
+            else if (pSize > SIZE_KB)
+                return $"{Math.Round(pSize / SIZE_KB, 2)} KB";
+            else
                 return $"{pSize} B";
         }
 
@@ -1563,4 +1675,5 @@ namespace _0xdd
         }
         #endregion
     }
+    #endregion
 }
