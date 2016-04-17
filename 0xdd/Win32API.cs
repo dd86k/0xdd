@@ -12,14 +12,6 @@ namespace _0xdd
             kernel32.CheckRemoteDebuggerPresent(Process.GetCurrentProcess().Handle, ref d);
             return d;
         }
-        /*
-        public static bool HasDebuggerAttached(Process p)
-        {
-            bool d = false;
-            kernel32.CheckRemoteDebuggerPresent(p.Handle, ref d);
-            return d;
-        }
-        */
     }
 
     static class kernel32

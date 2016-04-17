@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -64,7 +63,7 @@ namespace _0xdd
         CLI_InvalidWidth = 0xC4,
 
         // Misc.
-        MiscNotSupported = 0xD0,
+        MiscOSNotSupported = 0xD0,
         
         UnknownError = 0xFE,
         Exit = 0xFF
@@ -83,7 +82,7 @@ namespace _0xdd
 
     enum EntryType : byte
     {
-        File, Process, Memory
+        File, Process, MemoryRegion
     }
     #endregion
 
@@ -161,7 +160,7 @@ namespace _0xdd
         #endregion
 
         #region Methods        
-        internal static ErrorCode Open(string pFilePath, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
+        internal static ErrorCode OpenFile(string pFilePath, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
             CurrentEntryType = EntryType.File;
 
@@ -199,10 +198,17 @@ namespace _0xdd
 
             {
                 if (Environment.OSVersion.Platform != PlatformID.Win32NT)
-                    return ErrorCode.MiscNotSupported;
-
-                if (Regex.IsMatch(pProcess, @"^#\d", RegexOptions.ECMAScript))
+                    return ErrorCode.MiscOSNotSupported;
+                
+                if (Regex.IsMatch(pProcess, "(b|biggest|s|smallest):(p|private|s|shared|w|ws|workingset)\b", RegexOptions.ECMAScript))
                 {
+                    Process[] list = Process.GetProcesses();
+
+                    //TODO: IComparer<Process>
+                }
+                
+                if (Regex.IsMatch(pProcess, @"^#\d", RegexOptions.ECMAScript))
+                { // PID
                     int pid;
                     if (!int.TryParse(pProcess.Replace("#", string.Empty), out pid))
                         return ErrorCode.ProgramNoParse;
@@ -217,7 +223,14 @@ namespace _0xdd
                     }
                 }
                 else
-                {
+                { // Process name
+
+                    //TODO: Notation to process selection (by index of its name, size)
+                    /*
+                        index: processname - 0 based?
+                        size: processname
+                    */
+
                     Process[] pl = Process.GetProcessesByName(pProcess);
 
                     if (pl.Length > 0)
@@ -225,7 +238,7 @@ namespace _0xdd
                         if (pl.Length == 1)
                             CurrentProcess = pl[0];
                         else
-                        { //TODO: Notation to process selection (by index (of name), or idk)
+                        {
                             CurrentProcess = pl[0]; // temporary
                         }
                     }
@@ -302,7 +315,7 @@ namespace _0xdd
 
                 case ConsoleKey.F5:
                     {
-                        MainPanel.Update();
+                        ReadFileAndUpdate(0); //TODO: pos
                     }
                     return;
 
@@ -1377,7 +1390,7 @@ namespace _0xdd
         /// </summary>
         static class ControlPanel
         {
-            const int ItemLength = 16;
+            public static int TitleLength = 12;
 
             /// <summary>
             /// Places the control map on screen (e.g. ^T Try jumping and etc.)
@@ -1387,60 +1400,60 @@ namespace _0xdd
                 int width = Console.WindowWidth;
 
                 Console.SetCursorPosition(0, Console.WindowHeight - 2);
-                if (width >= ItemLength)     m("^W", " Find byte    ");
-                if (width >= ItemLength * 2) m("^J", " Find data    ");
-                if (width >= ItemLength * 3) m("^G", " Goto         ");
-                if (width >= ItemLength * 4) m("^H", " Replace      ");
-                //if (width >= ItemLength * 5) m("  ", "              ");
+                if (width >= TitleLength)     PlaceShortcut('W', "Find byte");
+                if (width >= TitleLength * 2) PlaceShortcut('J', "Find data");
+                if (width >= TitleLength * 3) PlaceShortcut('G', "Goto");
+                if (width >= TitleLength * 4) PlaceShortcut('H', "Replace");
                 Console.SetCursorPosition(0, Console.WindowHeight - 1);
-                if (width >= ItemLength)     m("^X", " Exit         ");
-                if (width >= ItemLength * 2) m("^O", " Offset base  ");
-                if (width >= ItemLength * 3) m("^I", " Info         ");
-                if (width >= ItemLength * 4) m("^D", " Dump         ");
-                if (width >= ItemLength * 5) m("^E", " Edit mode");
+                if (width >= TitleLength)     PlaceShortcut('X', "Exit");
+                if (width >= TitleLength * 2) PlaceShortcut('O', "Offset base");
+                if (width >= TitleLength * 3) PlaceShortcut('I', "Info");
+                if (width >= TitleLength * 4) PlaceShortcut('D', "Dump");
+                if (width >= TitleLength * 5) PlaceShortcut('E', "Edit mode");
+            }
+
+            /// <summary>
+            /// Write out a shortcut and its short description
+            /// </summary>
+            /// <param name="pShortcutKey">Shortcut (^D)</param>
+            /// <param name="pTitle">Display name.</param>
+            static void PlaceShortcut(char pShortcutKey, string pTitle)
+            {
+                Utils.ToggleColors();
+                Console.Write("^" + pShortcutKey);
+                Console.ResetColor();
+
+                if (pTitle.Length > TitleLength)
+                    Console.Write(" " + pTitle.Substring(0, TitleLength - 1));
+                else
+                    Console.Write(" " + pTitle.PadRight(TitleLength));
             }
         }
-
-        /// <summary>
-        /// Write out a shortcut and its short description
-        /// </summary>
-        /// <param name="pShortcut">Shortcut, e.g. ^D</param>
-        /// <param name="pTitle">Title, e.g. Dump</param>
-        static void m(string pShortcut, string pTitle)
-        {
-            Utils.ToggleColors();
-            Console.Write(pShortcut);
-            Console.ResetColor();
-            Console.Write(pTitle);
-        }
         #endregion
         #endregion
 
-        #region Small utils
+        #region Type extensions
         /// <summary>
         /// Generate a string with spaces with a desired length.
         /// </summary>
         /// <param name="l">Length</param>
         /// <returns>String</returns>
-        static string s(int l) => new string(' ', l);
-        #endregion
+        static string s(this int l) => new string(' ', l);
 
-        #region Type extensions
         /// <summary>
         /// Converts into an octal number.
         /// </summary>
         /// <param name="c">Number.</param>
         /// <returns>String.</returns>
-        static string ToOct(this long c) =>
-            Convert.ToString(c, 8).PadLeft(8, '0');
+        static string ToOct(this long c) => Convert.ToString(c, 8).PadLeft(8, '0');
 
         /// <summary>
-        /// Returns a printable character if found.
+        /// Returns a printable character if found.<para/>
+        /// Between 0x20 (space) to 0x7E (~)
         /// </summary>
         /// <param name="pIn">Byte to transform.</param>
-        /// <returns>Console (Windows) readable character.</returns>
-        static char ToAscii(this byte pIn) =>
-            pIn < 0x20 || pIn > 0x7E ? '.' : (char)pIn;
+        /// <returns>ASCII character.</returns>
+        static char ToAscii(this byte pIn) => pIn < 0x20 || pIn > 0x7E ? '.' : (char)pIn;
 
         /// <summary>
         /// Gets the character for the upper bar depending on the
@@ -1463,336 +1476,8 @@ namespace _0xdd
             }
         }
 
-        static int GetBase(this OffsetView pView)
-        {
-            switch (pView)
-            {
-                case OffsetView.Hexadecimal:
-                    return 16;
-                case OffsetView.Decimal:
-                    return 10;
-                case OffsetView.Octal:
-                    return 8;
-                default:
-                    return 1;
-            }
-        }
-
-        static public int Int(this ErrorCode pCode) => (int)pCode;
+        public static int Int(this ErrorCode pCode) => (int)pCode;
         #endregion
     }
 
-    #region Utilities
-    static class Utils
-    {
-        #region Formatting
-        const long SIZE_TB = 1099511627776;
-        const long SIZE_GB = 1073741824;
-        const long SIZE_MB = 1048576;
-        const long SIZE_KB = 1024;
-
-        static internal string GetFormattedSize(long pSize)
-        {
-            return GetFormattedSize(pSize);
-        }
-
-        static internal string GetFormattedSize(decimal pSize)
-        {
-            if (pSize > SIZE_TB)
-                return $"{Math.Round(pSize / SIZE_TB, 2)} TB";
-            else if (pSize > SIZE_GB)
-                return $"{Math.Round(pSize / SIZE_GB, 2)} GB";
-            else if (pSize > SIZE_MB)
-                return $"{Math.Round(pSize / SIZE_MB, 2)} MB";
-            else if (pSize > SIZE_KB)
-                return $"{Math.Round(pSize / SIZE_KB, 2)} KB";
-            else
-                return $"{pSize} B";
-        }
-
-        /// <summary>
-        /// Gets file info and owner from <see cref="FileInfo"/>
-        /// </summary>
-        /// <param name="pFile">File.</param>
-        /// <returns>Info as a string</returns>
-        internal static string GetEntryInfo(this FileInfo pFile)
-        {
-            string o = "-"; // Never a directory
-
-            FileAttributes fa = pFile.Attributes;
-
-            o += fa.HasFlag(FileAttributes.Archive) ? "a" : "-";
-            o += fa.HasFlag(FileAttributes.Compressed) ? "c" : "-";
-            o += fa.HasFlag(FileAttributes.Encrypted) ? "e" : "-";
-            o += fa.HasFlag(FileAttributes.ReadOnly) ? "r" : "-";
-            o += fa.HasFlag(FileAttributes.System) ? "s" : "-";
-            o += fa.HasFlag(FileAttributes.Hidden) ? "h" : "-";
-            o += fa.HasFlag(FileAttributes.Temporary) ? "t" : "-";
-
-            if (Environment.OSVersion.Platform == PlatformID.Win32NT)
-            {
-                o += "  " +
-                    pFile.GetAccessControl()
-                    .GetOwner(typeof(SecurityIdentifier))
-                    .Translate(typeof(NTAccount));
-            }
-
-            return o;
-        }
-        #endregion
-        
-        #region User input
-        /// <summary>
-        /// Readline with a maximum length plus optional password mode.
-        /// </summary>
-        /// <param name="pLimit">Character limit</param>
-        /// <param name="pPassword">Is password</param>
-        /// <returns>User's input</returns>
-        /// <remarks>v1.1.1 - 0xdd</remarks>
-        internal static string ReadLine(int pLimit, string pSuggestion = null, bool pPassword = false)
-        {
-            StringBuilder o = new StringBuilder(pSuggestion ?? string.Empty);
-            int Index = 0;
-            bool Continue = true;
-            int oleft = Console.CursorLeft; // Origninal Left Position
-            int otop = Console.CursorTop; // Origninal Top Position
-
-            if (pSuggestion != null)
-            {
-                Console.Write(pSuggestion);
-                Index = pSuggestion.Length;
-                Console.SetCursorPosition(oleft + Index, otop);
-            }
-
-            Console.CursorVisible = true;
-
-            while (Continue)
-            {
-                ConsoleKeyInfo c = Console.ReadKey(true);
-
-                switch (c.Key)
-                {
-                    // Ignore keys
-                    case ConsoleKey.Tab:
-                    case ConsoleKey.UpArrow:
-                    case ConsoleKey.DownArrow:
-                        break;
-
-                    // Cancel
-                    case ConsoleKey.Escape:
-                        Console.CursorVisible = false;
-                        return string.Empty;
-
-                    // Returns the string
-                    case ConsoleKey.Enter:
-                        Console.CursorVisible = false;
-                        return o.ToString();
-
-                    // Navigation
-                    case ConsoleKey.LeftArrow:
-                        if (Index > 0)
-                        {
-                            Console.SetCursorPosition(oleft + --Index, otop);
-                        }
-                        break;
-                    case ConsoleKey.RightArrow:
-                        if (Index < o.Length)
-                        {
-                            Console.SetCursorPosition(oleft + ++Index, otop);
-                        }
-                        break;
-                    case ConsoleKey.Home:
-                        if (Index > 0)
-                        {
-                            Index = 0;
-                            Console.SetCursorPosition(oleft, otop);
-                        }
-                        break;
-                    case ConsoleKey.End:
-                        if (Index < o.Length)
-                        {
-                            Index = o.Length;
-                            Console.SetCursorPosition(oleft + Index, otop);
-                        }
-                        break;
-
-                    case ConsoleKey.Delete:
-                        if (Index < o.Length)
-                        {
-                            // Erase whole from index
-                            if (c.Modifiers == ConsoleModifiers.Control)
-                            {
-                                o = o.Remove(Index, o.Length - Index);
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', pLimit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + Index, otop);
-                            }
-                            else // Erase one character
-                            {
-                                o = o.Remove(Index, 1);
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', pLimit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + Index, otop);
-                            }
-                        }
-                        break;
-
-                    case ConsoleKey.Backspace:
-                        if (Index > 0)
-                        {
-                            // Erase whole from index
-                            if (c.Modifiers == ConsoleModifiers.Control)
-                            {
-                                o = o.Remove(0, Index);
-                                Index = 0;
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', pLimit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + Index, otop);
-                            }
-                            else // Erase one character
-                            {
-                                o = o.Remove(--Index, 1);
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', pLimit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + Index, otop);
-                            }
-                        }
-                        break;
-
-                    default:
-                        if (o.Length < pLimit)
-                        {
-                            char h = c.KeyChar;
-
-                            if (char.IsLetterOrDigit(h) || char.IsPunctuation(h) || char.IsSymbol(h) || char.IsWhiteSpace(h))
-                            {
-                                o.Insert(Index++, h);
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', pLimit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(pPassword ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + Index, otop);
-                            }
-                        }
-                        break;
-                }
-            }
-
-            return string.Empty;
-        }
-
-        internal static long ReadValue(int pLimit, string pSuggestion = null)
-        {
-            string t = ReadLine(pLimit, pSuggestion);
-
-            if (t.StartsWith("0x")) // Hexadecimal
-            {
-                return Convert.ToInt64(t, 16);
-            }
-            else if (t[0] == '0') // Octal
-            {
-                return Convert.ToInt64(t, 8);
-            }
-            else // Decimal
-            {
-                return long.Parse(t);
-            }
-        }
-
-        internal static long? GetNumberFromUser(string pMessage, int pWidth = 27, int pHeight = 4, string pSuggestion = null)
-        {
-            GenerateInputBox(pMessage, pWidth, pHeight);
-
-            long? t = null;
-
-            try
-            {
-                t = ReadValue(pWidth - 2, pSuggestion);
-            }
-            catch { }
-
-            Console.ResetColor();
-
-            return t;
-        }
-
-        internal static string GetUserInput(string pMessage, int pWidth = 32, int pHeight = 4, string pSuggestion = null)
-        {
-            GenerateInputBox(pMessage, pWidth, pHeight);
-
-            string t = ReadLine(pWidth - 2, pSuggestion: pSuggestion);
-
-            Console.ResetColor();
-
-            return t;
-        }
-        #endregion
-
-        #region Console
-        static void GenerateInputBox(string pMessage, int pWidth, int pHeight)
-        {
-            // -- Begin prepare box --
-            int startx = (Console.WindowWidth / 2) - (pWidth / 2);
-            int starty = (Console.WindowHeight / 2) - (pHeight / 2);
-
-            Console.SetCursorPosition(startx, starty);
-            Console.Write('┌');
-            Console.Write(new string('─', pWidth - 2));
-            Console.Write('┐');
-
-            for (int i = 0; i < pHeight - 2; i++)
-            {
-                Console.SetCursorPosition(startx, starty + i + 1);
-                Console.Write('│');
-            }
-            for (int i = 0; i < pHeight - 2; i++)
-            {
-                Console.SetCursorPosition(startx + pWidth - 1, starty + i + 1);
-                Console.Write('│');
-            }
-
-            Console.SetCursorPosition(startx, starty + pHeight - 1);
-            Console.Write('└');
-            Console.Write(new string('─', pWidth - 2));
-            Console.Write('┘');
-
-            Console.SetCursorPosition(startx + 1, starty + 1);
-            Console.Write(pMessage);
-            if (pMessage.Length < pWidth - 2)
-                Console.Write(new string(' ', pWidth - pMessage.Length - 2));
-            // -- End prepare box --
-
-            // -- Begin prepare text box --
-            ToggleColors();
-            Console.SetCursorPosition(startx + 1, starty + 2);
-            Console.Write(new string(' ', pWidth - 2));
-            Console.SetCursorPosition(startx + 1, starty + 2);
-            // -- End prepare text box --
-        }
-
-        /// <summary>
-        /// Toggles current ForegroundColor to black
-        /// and BackgroundColor to gray.
-        /// </summary>
-        internal static void ToggleColors()
-        {
-            Console.ForegroundColor = ConsoleColor.Black;
-            Console.BackgroundColor = ConsoleColor.Gray;
-        }
-
-        internal static int GetBytesInRow()
-        {
-            return ((Console.WindowWidth - 10) / 4) - 1;
-        }
-        #endregion
-    }
-    #endregion
 }

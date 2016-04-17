@@ -167,7 +167,7 @@ namespace _0xdd
                 if (process)
                     r = _0xdd.OpenProcess(entry, ovm, row);
                 else
-                    r = _0xdd.Open(entry, ovm, row);
+                    r = _0xdd.OpenFile(entry, ovm, row);
                 Console.Clear();
                 Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Int():X2}");
                 Console.ReadLine();
