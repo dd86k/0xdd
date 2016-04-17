@@ -59,7 +59,7 @@ namespace _0xdd
             //args = new string[] {  "/dump", "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
             //args = new string[] { "zero" };
-            args = new string[] { "/p", "#3020" };
+            args = new string[] { "/p", "#11388" };
 #endif
 
             if (args.Length == 0)
@@ -71,11 +71,12 @@ namespace _0xdd
             }
             
             // Defaults
-            string file = args[args.Length - 1];
+            string entry = args[args.Length - 1];
             int row = 0; // 0 - Auto, past default: 16
             OffsetView ovm = OffsetView.Hexadecimal;
             bool dump = false;
             bool process = false;
+            bool memory = false;
 
             //TODO: Settings! (v0.8)
 
@@ -125,6 +126,10 @@ namespace _0xdd
                         process = true;
                         break;
 
+                    case "/mem":
+                        memory = true;
+                        break;
+
                     case "-dump":
                     case "/dump":
                         dump = true;
@@ -149,7 +154,7 @@ namespace _0xdd
             if (dump)
             {
                 Console.Write("Dumping file... ");
-                ErrorCode err = _0xdd.Dump(file, row, ovm);
+                ErrorCode err = _0xdd.Dump(entry, row, ovm);
                 
                 Console.WriteLine(gerrcs(err));
 
@@ -160,9 +165,9 @@ namespace _0xdd
 #if DEBUG // I want Visual Studio to catch the exceptions!
                 ErrorCode r = ErrorCode.Success;
                 if (process)
-                    r = _0xdd.OpenProcess(file, ovm, row);
+                    r = _0xdd.OpenProcess(entry, ovm, row);
                 else
-                    r = _0xdd.Open(file, ovm, row);
+                    r = _0xdd.Open(entry, ovm, row);
                 Console.Clear();
                 Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Int():X2}");
                 Console.ReadLine();

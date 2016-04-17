@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -84,7 +83,7 @@ namespace _0xdd
 
     enum EntryType : byte
     {
-        File, Process
+        File, Process, Memory
     }
     #endregion
 
@@ -147,8 +146,8 @@ namespace _0xdd
 
         static OffsetView CurrentOffsetView;
         static EntryType CurrentEntryType;
-        //static OperatingMode CurrentWritingMode;
-        
+        //static OperatingMode CurrentOperatingMode;
+
         static byte[] Buffer;
         
         static bool Fullscreen;
@@ -233,12 +232,27 @@ namespace _0xdd
                     else
                         return ErrorCode.ProcessNotFound;
                 }
-                
-                CurrentProcessHandle = WinNTKernel.OpenProcess(WinNTKernel.PROCESS_WM_READ, false, CurrentProcess.Id);
+
+                Process.EnterDebugMode();
+
+                //CurrentProcessHandle = WinNTKernel.OpenProcess(WinNTKernel.PROCESS_WM_READ, false, CurrentProcess.Id);
+                CurrentProcessHandle = CurrentProcess.MainWindowHandle;
 
                 PrepareOpen(pBytesRow, pView);
             }
 
+            UserResponse ur = new UserResponse(ErrorCode.Success);
+
+            while (ur.Success)
+            {
+                ReadUserKey(ref ur);
+            }
+
+            return ur.Code;
+        }
+
+        internal static ErrorCode OpenMemory(string pBaseAddress, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
+        {
             UserResponse ur = new UserResponse(ErrorCode.Success);
 
             while (ur.Success)
@@ -654,8 +668,7 @@ namespace _0xdd
                         CurrentFileInfo.Length : MainPanel.BytesOnScreen];
                     break;
                 case EntryType.Process:
-                    Buffer = new byte[CurrentProcess.WorkingSet64 < MainPanel.BytesOnScreen ?
-                        CurrentProcess.WorkingSet64 : MainPanel.BytesOnScreen];
+                    Buffer = new byte[500]; // temp
                     break;
             }
 
@@ -679,6 +692,7 @@ namespace _0xdd
         /// Read the current file at a position.
         /// </summary>
         /// <param name="pBasePosition">Position.</param>
+        
         static void ReadCurrentFile(long pBasePosition)
         {
             switch (CurrentEntryType)
@@ -689,8 +703,14 @@ namespace _0xdd
                     CurrentFileStream.Position = pBasePosition;
                     break;
                 case EntryType.Process: // 2nd: pos
+                    Debug.WriteLine("handle: 0x" + CurrentProcessHandle.ToInt32().ToString("X8"));
+                    Debug.WriteLine("main module: 0x" + CurrentProcess.MainModule.BaseAddress.ToInt32().ToString("X8"));
+                    Debug.WriteLine("Buffer length: " + Buffer.Length);
+                    
                     int read = 0;
-                    last = WinNTKernel.ReadProcessMemory(CurrentProcessHandle.ToInt32(), 0, Buffer, Buffer.Length, ref read);
+                    last = kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), CurrentProcess.MainModule.BaseAddress.ToInt32(), Buffer, Buffer.Length, ref read);
+
+                    Debug.WriteLine("Bytes read: " + read);
                     break;
             }
         }
@@ -698,7 +718,7 @@ namespace _0xdd
         /// <summary>
         /// 1. Read file. 2. Update MainPanel. 3. Update InfoPanel
         /// </summary>
-        /// <param name="pPosition"></param>
+        /// <param name="pPosition">New position.</param>
         static void ReadFileAndUpdate(long pPosition)
         {
             ReadCurrentFile(pPosition);
@@ -1415,43 +1435,6 @@ namespace _0xdd
         static public int Int(this ErrorCode pCode) => (int)pCode;
         #endregion
     }
-
-    #region WindowsNT Kernel
-    static class WinNTKernel
-    {
-        public const int PROCESS_WM_READ = 0x0010;
-
-        [DllImport("kernel32.dll")]
-        public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
-        [DllImport("kernel32.dll")]
-        public static extern int VirtualAllocEx(int hProcess, int lpAddress, int dwSize, int flAllocationType, int flProtect);
-        [DllImport("kernel32.dll")]
-        public static extern ulong ReadMemory(ulong offset, byte[] lpBuffer, ulong cb, ulong lpcbBytesRead);
-        /// <summary>
-        /// [MSDN] Reads data from an area of memory in a specified process. The entire area to be read must be accessible or the operation fails.
-        /// </summary>
-        /// <param name="hProcess">[MSDN] A handle to the process with memory that is being read. The handle must have PROCESS_VM_READ access to the process.</param>
-        /// <param name="lpBaseAddress">[MSDN] A pointer to the base address in the specified process from which to read. Before any data transfer occurs, the system verifies that all data in the base address and memory of the specified size is accessible for read access, and if it is not accessible the function fails.</param>
-        /// <param name="lpBuffer">[MSDN] A pointer to a buffer that receives the contents from the address space of the specified process.</param>
-        /// <param name="nSize">[MSDN] The number of bytes to be read from the specified process.</param>
-        /// <param name="lpNumberOfBytesRead">[MSDN] A pointer to a variable that receives the number of bytes transferred into the specified buffer. If lpNumberOfBytesRead is NULL, the parameter is ignored.</param>
-        /// <returns>[MSDN] If the function succeeds, the return value is nonzero.</returns>
-        [DllImport("kernel32.dll")]
-        public static extern bool ReadProcessMemory(int hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
-        [DllImport("kernel32.dll")]
-        public static extern bool WriteProcessMemory(IntPtr hProcess, int lpBaseAddress, byte[] lpBuffer, int nSize, out uint lpNumberOfBytesWritten);
-        [DllImport("kernel32.dll")]
-        public static extern int GetProcAddress(int hModule, string lpProcName);
-        [DllImport("kernel32.dll")]
-        public static extern int GetModuleHandle(string lpModuleName);
-        [DllImport("kernel32.dll")]
-        public static extern int CreateRemoteThread(int hProcess, int lpThreadAttributes, int dwStackSize, int lpStartAddress, int lpParameter, int dwCreationFlags, int lpThreadId);
-        [DllImport("kernel32.dll")]
-        public static extern int WaitForSingleObject(int hHandle, int dwMilliseconds);
-        [DllImport("kernel32.dll")]
-        public static extern int CloseHandle(int hObject);
-    }
-    #endregion
 
     #region Utilities
     static class Utils
