@@ -72,11 +72,11 @@ namespace _0xdd
             
             // Defaults
             string entry = args[args.Length - 1];
-            int row = 0; // 0 - Auto, past default: 16
+            int row = 0; // Default: Auto
             OffsetView ovm = OffsetView.Hexadecimal;
             bool dump = false;
             bool process = false;
-            bool memory = false;
+            //bool memory = false;
 
             //TODO: Settings! (v0.8)
 
@@ -127,7 +127,7 @@ namespace _0xdd
                         break;
 
                     case "/mem":
-                        memory = true;
+                        //memory = true;
                         break;
 
                     case "-dump":
@@ -162,7 +162,8 @@ namespace _0xdd
             }
             else
             {
-#if DEBUG // I want Visual Studio to catch the exceptions!
+#if DEBUG
+                // I want Visual Studio to catch the exceptions!
                 ErrorCode r = ErrorCode.Success;
                 if (process)
                     r = _0xdd.OpenProcess(entry, ovm, row);
@@ -170,7 +171,7 @@ namespace _0xdd
                     r = _0xdd.OpenFile(entry, ovm, row);
                 Console.Clear();
                 Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Int():X2}");
-                Console.ReadLine();
+                Console.ReadKey();
                 return r.Int();
 #else
                 try
@@ -213,7 +214,7 @@ namespace _0xdd
                     break;
                 case ErrorCode.FileUnreadable:
                     m += "Error: File not readable.";
-                    break; ;
+                    break;
                 case ErrorCode.PositionOutOfBound:
                     m += "Error: Position out of bound.";
                     break;
@@ -231,15 +232,16 @@ namespace _0xdd
                     m += $"Invalid parameter for /w : {pArgument}";
                     break;
 
-                // The "should not be an app return code" club
-                case ErrorCode.FindNoResult: break;
-                case ErrorCode.FindEmptyString: break;
-
                 case ErrorCode.UnknownError:
                     m += "Error: Unknown error.";
                     break;
                 default:
                     m += "Error: Unknown error. [default]";
+                    break;
+
+                // The "should not be an app return code" club
+                case ErrorCode.FindNoResult:
+                case ErrorCode.FindEmptyString:
                     break;
             }
 

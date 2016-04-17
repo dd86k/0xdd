@@ -4,7 +4,7 @@ using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
-//TODO: Hashing (with menu) (v0.8)
+//TODO: Hashing (with menu) (v1.1)
 //TODO: Search from end of file (v0.7)
 
 //TODO: Do advanced control input scheme (v0.7)
@@ -41,7 +41,7 @@ namespace _0xdd
         FileUnreadable = 0x5,
 
         // Process
-        ProcessNotFound = 0x8, // Name or ID
+        ProcessNotFound = 0x8,
         ProcessUnreadable = 0x9,
 
         // Position
@@ -63,7 +63,7 @@ namespace _0xdd
         CLI_InvalidWidth = 0xC4,
 
         // Misc.
-        MiscOSNotSupported = 0xD0,
+        OSNotSupported = 0xD0,
         
         UnknownError = 0xFE,
         Exit = 0xFF
@@ -198,7 +198,7 @@ namespace _0xdd
 
             {
                 if (Environment.OSVersion.Platform != PlatformID.Win32NT)
-                    return ErrorCode.MiscOSNotSupported;
+                    return ErrorCode.OSNotSupported;
                 
                 if (Regex.IsMatch(pProcess, "(b|biggest|s|smallest):(p|private|s|shared|w|ws|workingset)\b", RegexOptions.ECMAScript))
                 {
@@ -1443,17 +1443,17 @@ namespace _0xdd
         /// <summary>
         /// Converts into an octal number.
         /// </summary>
-        /// <param name="c">Number.</param>
+        /// <param name="l">Number.</param>
         /// <returns>String.</returns>
-        static string ToOct(this long c) => Convert.ToString(c, 8).PadLeft(8, '0');
+        static string ToOct(this long l) => Convert.ToString(l, 8).PadLeft(8, '0');
 
         /// <summary>
         /// Returns a printable character if found.<para/>
         /// Between 0x20 (space) to 0x7E (~)
         /// </summary>
-        /// <param name="pIn">Byte to transform.</param>
+        /// <param name="b">Byte to transform.</param>
         /// <returns>ASCII character.</returns>
-        static char ToAscii(this byte pIn) => pIn < 0x20 || pIn > 0x7E ? '.' : (char)pIn;
+        static char ToAscii(this byte b) => b < 0x20 || b > 0x7E ? '.' : (char)b;
 
         /// <summary>
         /// Gets the character for the upper bar depending on the
@@ -1479,5 +1479,4 @@ namespace _0xdd
         public static int Int(this ErrorCode pCode) => (int)pCode;
         #endregion
     }
-
 }
