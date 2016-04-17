@@ -59,7 +59,7 @@ namespace _0xdd
             //args = new string[] {  "/dump", "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
             //args = new string[] { "zero" };
-            args = new string[] { "/p", "#11388" };
+            args = new string[] { "/p", "#8640" };
 #endif
 
             if (args.Length == 0)

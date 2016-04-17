@@ -233,10 +233,11 @@ namespace _0xdd
                         return ErrorCode.ProcessNotFound;
                 }
 
-                Process.EnterDebugMode();
+#warning OpenProcess is in development
 
-                //CurrentProcessHandle = WinNTKernel.OpenProcess(WinNTKernel.PROCESS_WM_READ, false, CurrentProcess.Id);
-                CurrentProcessHandle = CurrentProcess.MainWindowHandle;
+                CurrentProcessHandle = kernel32.OpenProcess(kernel32.PROCESS_QUERY_INFORMATION |
+                    kernel32.PROCESS_WM_READ, false, CurrentProcess.Id);
+                //CurrentProcessHandle = CurrentProcess.MainWindowHandle;
 
                 PrepareOpen(pBytesRow, pView);
             }
@@ -686,7 +687,6 @@ namespace _0xdd
         }
 
         //temp
-        static bool last;
         #region Read file
         /// <summary>
         /// Read the current file at a position.
@@ -702,15 +702,61 @@ namespace _0xdd
                     CurrentFileStream.Read(Buffer, 0, Buffer.Length);
                     CurrentFileStream.Position = pBasePosition;
                     break;
-                case EntryType.Process: // 2nd: pos
-                    Debug.WriteLine("handle: 0x" + CurrentProcessHandle.ToInt32().ToString("X8"));
-                    Debug.WriteLine("main module: 0x" + CurrentProcess.MainModule.BaseAddress.ToInt32().ToString("X8"));
+                case EntryType.Process:
+                    Debug.WriteLine("handle: 0x" + CurrentProcessHandle.ToInt64().ToString("X8"));
                     Debug.WriteLine("Buffer length: " + Buffer.Length);
+
+#warning: ReadCurrentFile - Process
+                    bool last = false;
+                    SYSTEM_INFO s = new SYSTEM_INFO();
+                    kernel32.GetSystemInfo(out s);
+
+                    IntPtr minp = s.minimumApplicationAddress;
+
+                    long min = s.minimumApplicationAddress.ToInt64();
+                    long max = s.maximumApplicationAddress.ToInt64();
+
+                    MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
                     
                     int read = 0;
-                    last = kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), CurrentProcess.MainModule.BaseAddress.ToInt32(), Buffer, Buffer.Length, ref read);
+
+                    /*while (min < max)
+                    {
+                        // 28 = sizeof(MEMORY_BASIC_INFORMATION)
+                        kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
+
+                        Debug.WriteLine("memprotect: " + mem.Protect + " | memstate: " + mem.State);
+
+                        if (mem.Protect == kernel32.PAGE_READWRITE && mem.State == kernel32.MEM_COMMIT) // or overwrite to true
+                        {
+                            //byte[] _buffer = new byte[mem.RegionSize]; // OutOfMemoryException
+
+                            //Debug.WriteLine("_buffer size: " + _buffer.Length);
+                                                                                                             // mem.RegionSize
+                            kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), mem.BaseAddress, Buffer, Buffer.Length, ref read);
+                            
+                            //for (int i = 0; i < mem.RegionSize && i < Buffer.Length; i++)
+                                //Buffer[i] = _buffer[i];
+                                //sw.WriteLine("0x{0} : {1}", (mem.BaseAddress + i).ToString("X"), (char)buffer[i]);
+                        }
+
+                        min += mem.RegionSize;
+                        minp = new IntPtr(min);
+                    }*/
+
+                    while (min < max)
+                    {
+                        kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
+                        kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), mem.BaseAddress + (int)pBasePosition, Buffer, Buffer.Length, ref read);
+                        min += mem.RegionSize;
+                        minp = new IntPtr(min);
+                    }
+
+                    //kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
+                    //kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), mem.BaseAddress + (int)pBasePosition, Buffer, Buffer.Length, ref read);
 
                     Debug.WriteLine("Bytes read: " + read);
+                    Debug.WriteLineIf(last,"Read Error");
                     break;
             }
         }

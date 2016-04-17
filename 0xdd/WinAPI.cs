@@ -24,9 +24,9 @@ namespace _0xdd
 
     static class kernel32
     {
-        const int PROCESS_QUERY_INFORMATION = 0x0400;
-        const int MEM_COMMIT = 0x00001000;
-        const int PAGE_READWRITE = 0x04;
+        public const int PROCESS_QUERY_INFORMATION = 0x0400;
+        public const int MEM_COMMIT = 0x00001000;
+        public const int PAGE_READWRITE = 0x04;
         public const int PROCESS_WM_READ = 0x0010;
 
         [DllImport("kernel32.dll")]
