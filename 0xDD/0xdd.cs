@@ -64,6 +64,7 @@ namespace _0xdd
 
         // Misc.
         OSNotSupported = 0xD0,
+        NotImplemented = 0xD1,
         
         UnknownError = 0xFE,
         Exit = 0xFF
@@ -147,16 +148,15 @@ namespace _0xdd
         static EntryType CurrentEntryType;
         //static OperatingMode CurrentOperatingMode;
 
-        static byte[] Buffer;
+        static byte[] DisplayBuffer;
         
-        static bool Fullscreen;
+        static bool FullscreenMode;
+        static bool AutoSize;
         
         static int LastWindowHeight;
         static int LastWindowWidth;
         static string LastDataSearched;
         static byte LastByteSearched;
-
-        static bool AutoSize;
         #endregion
 
         #region Methods        
@@ -267,8 +267,10 @@ namespace _0xdd
 
         internal static ErrorCode OpenMemory(string pBaseAddress, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
         {
-            UserResponse ur = new UserResponse(ErrorCode.Success);
+            return ErrorCode.NotImplemented;
 
+            UserResponse ur = new UserResponse(ErrorCode.Success);
+            
             while (ur.Success)
             {
                 ReadUserKey(ref ur);
@@ -678,11 +680,11 @@ namespace _0xdd
             switch (CurrentEntryType)
             {
                 case EntryType.File:
-                    Buffer = new byte[CurrentFileInfo.Length < MainPanel.BytesOnScreen ?
+                    DisplayBuffer = new byte[CurrentFileInfo.Length < MainPanel.BytesOnScreen ?
                         CurrentFileInfo.Length : MainPanel.BytesOnScreen];
                     break;
                 case EntryType.Process:
-                    Buffer = new byte[500]; // temp
+                    DisplayBuffer = new byte[500]; // temp
                     break;
             }
 
@@ -712,22 +714,22 @@ namespace _0xdd
             {
                 case EntryType.File:
                     CurrentFileStream.Position = pBasePosition;
-                    CurrentFileStream.Read(Buffer, 0, Buffer.Length);
+                    CurrentFileStream.Read(DisplayBuffer, 0, DisplayBuffer.Length);
                     CurrentFileStream.Position = pBasePosition;
                     break;
                 case EntryType.Process:
                     Debug.WriteLine("handle: 0x" + CurrentProcessHandle.ToInt64().ToString("X8"));
-                    Debug.WriteLine("Buffer length: " + Buffer.Length);
+                    Debug.WriteLine("Buffer length: " + DisplayBuffer.Length);
 
 #warning: ReadCurrentFile - Process
                     bool last = false;
                     SYSTEM_INFO s = new SYSTEM_INFO();
                     kernel32.GetSystemInfo(out s);
 
-                    IntPtr minp = s.minimumApplicationAddress;
+                    IntPtr minp = s.MinimumApplicationAddress;
 
-                    long min = s.minimumApplicationAddress.ToInt64();
-                    long max = s.maximumApplicationAddress.ToInt64();
+                    long min = s.MinimumApplicationAddress.ToInt64();
+                    long max = s.MaximumApplicationAddress.ToInt64();
 
                     MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
                     
@@ -750,26 +752,40 @@ namespace _0xdd
                             
                             //for (int i = 0; i < mem.RegionSize && i < Buffer.Length; i++)
                                 //Buffer[i] = _buffer[i];
-                                //sw.WriteLine("0x{0} : {1}", (mem.BaseAddress + i).ToString("X"), (char)buffer[i]);
                         }
 
                         min += mem.RegionSize;
                         minp = new IntPtr(min);
                     }*/
 
-                    while (min < max)
+                    /*TODO: Process memory navigation
+                     * How it will go down *
+                    - Memory regions
+                      - Get all pointers in a list? (lpBaseAddress)
+                      - make TUI for list?
+                    - Put
+                      mem.Protect == kernel32.PAGE_READWRITE && mem.State == kernel32.MEM_COMMIT
+                      in there?
+                    - Fill 0s if read is 0?
+                    - VirtualQueryEx: 28 or sizeof(MEMORY_BASIC_INFORMATION)? 28
+                     */
+
+                    int regions = 0;
+                    while (min < max) // temporary/working
                     {
                         kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
-                        kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), mem.BaseAddress + (int)pBasePosition, Buffer, Buffer.Length, ref read);
+                            kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(),
+                            mem.BaseAddress + (int)pBasePosition, DisplayBuffer, DisplayBuffer.Length, ref read);
                         min += mem.RegionSize;
                         minp = new IntPtr(min);
+                        Debug.WriteLine($"Region #{++regions}, read: {read} bytes");
                     }
+
+                    Debug.WriteLine($"Regions: {regions}");
 
                     //kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
                     //kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), mem.BaseAddress + (int)pBasePosition, Buffer, Buffer.Length, ref read);
-
-                    Debug.WriteLine("Bytes read: " + read);
-                    Debug.WriteLineIf(last,"Read Error");
+                    
                     break;
             }
         }
@@ -818,11 +834,11 @@ namespace _0xdd
         /// </summary>
         static void ToggleFullscreenMode()
         {
-            Fullscreen = !Fullscreen;
+            FullscreenMode = !FullscreenMode;
 
             PrepareScreen();
 
-            if (Fullscreen)
+            if (FullscreenMode)
             {
                 MainPanel.Update();
                 InfoPanel.Update();
@@ -856,7 +872,7 @@ namespace _0xdd
             // not want to mess with the global ones and it
             // may happen the user /d directly.
             FileInfo f = new FileInfo(pFileToDump);
-            Buffer = new byte[pBytesInRow];
+            DisplayBuffer = new byte[pBytesInRow];
 
             using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{EXTENSION}"))
             {
@@ -900,7 +916,7 @@ namespace _0xdd
             int BufferPositionData = 0;
             string t = string.Empty;
 
-            Buffer = new byte[pBytesInRow];
+            DisplayBuffer = new byte[pBytesInRow];
 
             long lastpos = CurrentFileStream.Position;
 
@@ -928,12 +944,12 @@ namespace _0xdd
 
                 line += pBytesInRow;
 
-                pIn.Read(Buffer, 0, pBytesInRow);
+                pIn.Read(DisplayBuffer, 0, pBytesInRow);
 
                 for (int pos = 0; pos < pBytesInRow; pos++)
                 {
                     if (BufferPositionHex < pIn.Length)
-                        t += $"{Buffer[pos]:X2} ";
+                        t += $"{DisplayBuffer[pos]:X2} ";
                     else
                         t += "   ";
 
@@ -945,7 +961,7 @@ namespace _0xdd
                 for (int pos = 0; pos < pBytesInRow; pos++)
                 {
                     if (BufferPositionData < pIn.Length)
-                        t += Buffer[pos].ToAscii();
+                        t += DisplayBuffer[pos].ToAscii();
                     else
                     {
                         pOut.WriteLine(t);
@@ -1223,7 +1239,7 @@ namespace _0xdd
             {
                 get
                 {
-                    return Fullscreen ? 1 : 2;
+                    return FullscreenMode ? 1 : 2;
                 }
             }
 
@@ -1234,7 +1250,7 @@ namespace _0xdd
             {
                 get
                 {
-                    return Fullscreen ?
+                    return FullscreenMode ?
                         Console.WindowHeight - 2 : Console.WindowHeight - 5;
                 }
             }
@@ -1304,7 +1320,7 @@ namespace _0xdd
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (pos + od < len)
-                            t.Append($"{Buffer[od]:X2} ");
+                            t.Append($"{DisplayBuffer[od]:X2} ");
                         else
                             t.Append("   ");
 
@@ -1316,7 +1332,7 @@ namespace _0xdd
                     for (int x = 0; x < BytesInRow; x++)
                     {
                         if (pos + oa < len)
-                            t.Append(Buffer[oa].ToAscii());
+                            t.Append(DisplayBuffer[oa].ToAscii());
                         else
                         {
                             Console.SetCursorPosition(0, Position + line);
@@ -1348,7 +1364,7 @@ namespace _0xdd
             {
                 get
                 {
-                    return Fullscreen ?
+                    return FullscreenMode ?
                         Console.WindowHeight - 1 : Console.WindowHeight - 3;
                 }
             }
@@ -1367,7 +1383,7 @@ namespace _0xdd
                         pos = CurrentFileStream.Position;
                         r = CurrentFileInfo.Length > 0 ?
                             Math.Round(
-                                ((decimal)(pos + Buffer.Length) / CurrentFileInfo.Length) * 100) :
+                                ((decimal)(pos + DisplayBuffer.Length) / CurrentFileInfo.Length) * 100) :
                                 0;
                         break;
                     case EntryType.Process:
