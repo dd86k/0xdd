@@ -923,9 +923,9 @@ namespace _0xdd
             if (!pIn.CanRead)
                 return ErrorCode.DumbCannotRead;
 
-            bool Done = false;
+            bool working = true;
 
-            while (!Done)
+            while (working)
             {
                 switch (pViewMode)
                 {
@@ -1193,7 +1193,7 @@ namespace _0xdd
             static internal void Update()
             {
                 StringBuilder t = new StringBuilder($"Offset {CurrentOffsetView.GetChar()}  ");
-
+                
                 switch (CurrentEntryType)
                 {
                     case EntryType.File:
@@ -1235,7 +1235,7 @@ namespace _0xdd
             /// <summary>
             /// Gets the position to start rendering on the console (Y axis).
             /// </summary>
-            static internal int Position
+            static internal int StartPosition
             {
                 get
                 {
@@ -1283,6 +1283,8 @@ namespace _0xdd
                 int oa = 0;
                 int fh = FrameHeight;
 
+                int width = Console.WindowWidth;
+
                 long len = 0;
                 long pos = 0;
                 switch (CurrentEntryType)
@@ -1292,28 +1294,29 @@ namespace _0xdd
                         len = CurrentFileInfo.Length;
                         break;
                     case EntryType.Process:
-                        pos = 0;
-                        len = 500;
+                        pos = 0; //TODO: Position (process)
+                        len = DisplayBuffer.Length;
                         break;
                 }
                 
-                StringBuilder t = new StringBuilder(Console.WindowWidth);
                 OffsetPanel.Update();
-                Console.SetCursorPosition(0, Position);
+                
+                StringBuilder t = new StringBuilder();
+                Console.SetCursorPosition(0, StartPosition);
                 for (int line = 0; line < fh; line++)
                 {
                     switch (CurrentOffsetView)
                     {
                         case OffsetView.Hexadecimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + pos:X8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + pos:X8}  ", width);
                             break;
 
                         case OffsetView.Decimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + pos:D8}  ");
+                            t = new StringBuilder($"{(line * BytesInRow) + pos:D8}  ", width);
                             break;
 
                         case OffsetView.Octal:
-                            t = new StringBuilder($"{ToOct((line * BytesInRow) + pos)}  ");
+                            t = new StringBuilder($"{ToOct((line * BytesInRow) + pos)}  ", width);
                             break;
                     }
 
@@ -1335,7 +1338,6 @@ namespace _0xdd
                             t.Append(DisplayBuffer[oa].ToAscii());
                         else
                         {
-                            Console.SetCursorPosition(0, Position + line);
                             Console.Write(t.ToString());
                             return;
                         }

@@ -51,7 +51,7 @@ namespace _0xdd
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
             //args = new string[] { "b" };
-            //args = new string[] { "tt" };
+            args = new string[] { "tt" };
             //args = new string[] { "/dump", "tt" };
             //args = new string[] { "hf.iso" };
             //args = new string[] { "/w", "16", "hf.iso" };
@@ -59,7 +59,7 @@ namespace _0xdd
             //args = new string[] {  "/dump", "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
             //args = new string[] { "zero" };
-            args = new string[] { "/p", "#7716" };
+            //args = new string[] { "/p", "#7716" };
 #endif
 
             if (args.Length == 0)
