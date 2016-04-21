@@ -4,6 +4,21 @@ using System.Runtime.InteropServices;
 
 namespace _0xdd
 {
+    [StructLayout(LayoutKind.Sequential)]
+    public struct LUID
+    {
+        public uint LowPart;
+        public int HighPart;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct TOKEN_PRIVILEGES
+    {
+        public uint PrivilegeCount;
+        public LUID Luid;
+        public uint Attributes;
+    }
+
     static class WindowsUtilities
     {
         public static bool HasDebuggerAttached()
@@ -14,12 +29,48 @@ namespace _0xdd
         }
     }
 
-    static class kernel32
+    static class Win32Types
     {
-        public const int PROCESS_QUERY_INFORMATION = 0x0400;
+        public const string SE_DEBUG_NAME = "SeDebugPrivilege";
+
+        public const uint SE_PRIVILEGE_ENABLED = 0x00000002;
+
         public const int MEM_COMMIT = 0x00001000;
         public const int PAGE_READWRITE = 0x04;
-        public const int PROCESS_WM_READ = 0x0010;
+
+        public static uint STANDARD_RIGHTS_REQUIRED = 0x000F0000;
+        public static uint STANDARD_RIGHTS_READ = 0x00020000;
+        public static uint TOKEN_ASSIGN_PRIMARY = 0x0001;
+        public static uint TOKEN_DUPLICATE = 0x0002;
+        public static uint TOKEN_IMPERSONATE = 0x0004;
+        public static uint TOKEN_QUERY = 0x0008;
+        public static uint TOKEN_QUERY_SOURCE = 0x0010;
+        public static uint TOKEN_ADJUST_PRIVILEGES = 0x0020;
+        public static uint TOKEN_ADJUST_GROUPS = 0x0040;
+        public static uint TOKEN_ADJUST_DEFAULT = 0x0080;
+        public static uint TOKEN_ADJUST_SESSIONID = 0x0100;
+        public static uint TOKEN_READ = STANDARD_RIGHTS_READ | TOKEN_QUERY;
+        public static uint TOKEN_ALL_ACCESS = STANDARD_RIGHTS_REQUIRED | TOKEN_ASSIGN_PRIMARY |
+            TOKEN_DUPLICATE | TOKEN_IMPERSONATE | TOKEN_QUERY | TOKEN_QUERY_SOURCE |
+            TOKEN_ADJUST_PRIVILEGES | TOKEN_ADJUST_GROUPS | TOKEN_ADJUST_DEFAULT |
+            TOKEN_ADJUST_SESSIONID;
+    }
+
+    static class kernel32
+    {
+        /// <summary>
+        /// Required to read memory in a process using ReadProcessMemory.
+        /// </summary>
+        public const ushort PROCESS_VM_READ = 0x0010;
+        /// <summary>
+        /// Required to retrieve certain information about a process, such as its token, exit code, and priority class (see OpenProcessToken).
+        /// </summary>
+        public const ushort PROCESS_QUERY_INFORMATION = 0x0400;
+        /// <summary>
+        /// Required to retrieve certain information about a process (see GetExitCodeProcess, GetPriorityClass, IsProcessInJob, QueryFullProcessImageName).
+        /// A handle that has the PROCESS_QUERY_INFORMATION access right is automatically granted PROCESS_QUERY_LIMITED_INFORMATION.
+        /// </summary>
+        public const int PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
 
         [DllImport("kernel32.dll")]
         public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
@@ -29,8 +80,8 @@ namespace _0xdd
         public static extern ulong ReadMemory(ulong offset, byte[] lpBuffer, ulong cb, ulong lpcbBytesRead);
         [DllImport("kernel32.dll")]
         public static extern bool ReadProcessMemory(int hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
-        [DllImport("kernel32.dll")]
-        public static extern bool ReadProcessMemory(int hProcess, long lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
+        //[DllImport("kernel32.dll")]
+        //public static extern bool ReadProcessMemory(int hProcess, long lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
         [DllImport("kernel32.dll")]
         public static extern bool WriteProcessMemory(int hProcess, int lpBaseAddress, byte[] lpBuffer, int nSize, out uint lpNumberOfBytesWritten);
         [DllImport("kernel32.dll")]
@@ -44,11 +95,35 @@ namespace _0xdd
         [DllImport("kernel32.dll")]
         public static extern int CloseHandle(int hObject);
         [DllImport("kernel32.dll")]
+        public static extern int CloseHandle(IntPtr hObject);
+        [DllImport("kernel32.dll")]
         public static extern void GetSystemInfo(out SYSTEM_INFO lpSystemInfo);
         [DllImport("kernel32.dll", SetLastError = true)]
         public static extern int VirtualQueryEx(IntPtr hProcess, IntPtr lpAddress, out MEMORY_BASIC_INFORMATION lpBuffer, uint dwLength);
         [DllImport("kernel32.dll", SetLastError = true, ExactSpelling = true)]
         public static extern bool CheckRemoteDebuggerPresent(IntPtr hProcess, ref bool isDebuggerPresent);
+        [DllImport("advapi32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool OpenProcessToken(IntPtr ProcessHandle,
+            uint DesiredAccess, out IntPtr TokenHandle);
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern IntPtr GetCurrentProcess();
+    }
+
+    public static class advapi32
+    {
+        [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Auto)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool LookupPrivilegeValue(string lpSystemName, string lpName,
+               out LUID lpLuid);
+        [DllImport("advapi32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool AdjustTokenPrivileges(IntPtr TokenHandle,
+           [MarshalAs(UnmanagedType.Bool)]bool DisableAllPrivileges,
+           ref TOKEN_PRIVILEGES NewState,
+           uint Zero,
+           IntPtr Null1,
+           IntPtr Null2);
     }
 
     public struct SYSTEM_INFO

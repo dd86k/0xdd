@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -43,6 +44,9 @@ namespace _0xdd
         // Process
         ProcessNotFound = 0x8,
         ProcessUnreadable = 0x9,
+        ProcessAccessViolation = 0xA,
+        ProcessNoSeDebugMode = 0xB,
+        ProcessNoPrevilege = 0xC,
 
         // Position
         PositionOutOfBound = 0x10,
@@ -67,7 +71,7 @@ namespace _0xdd
         NotImplemented = 0xD1,
         
         UnknownError = 0xFE,
-        Exit = 0xFF
+        Exit = 0xFF,
     }
 
     enum OffsetView : byte
@@ -149,6 +153,8 @@ namespace _0xdd
         //static OperatingMode CurrentOperatingMode;
 
         static byte[] DisplayBuffer;
+
+        static long Position;
         
         static bool FullscreenMode;
         static bool AutoSize;
@@ -248,9 +254,72 @@ namespace _0xdd
 
 #warning OpenProcess is in development
 
-                CurrentProcessHandle = kernel32.OpenProcess(kernel32.PROCESS_QUERY_INFORMATION |
-                    kernel32.PROCESS_WM_READ, false, CurrentProcess.Id);
-                //CurrentProcessHandle = CurrentProcess.MainWindowHandle;
+                try
+                {
+                    IntPtr hToken;
+                    LUID luidSEDebugNameValue;
+                    TOKEN_PRIVILEGES tkpPrivileges;
+
+#if DEBUG
+                    Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
+#endif
+
+                    if (kernel32.OpenProcessToken(kernel32.GetCurrentProcess(), Win32Types.TOKEN_ADJUST_PRIVILEGES | Win32Types.TOKEN_QUERY, out hToken))
+                    {
+                        Debug.WriteLine("OpenProcessToken() successfully");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"OpenProcessToken() failed [0x{Marshal.GetLastWin32Error():X8}]. SeDebugPrivilege is not available");
+                        return ErrorCode.ProcessNoSeDebugMode;
+                    }
+
+                    if (advapi32.LookupPrivilegeValue(null, Win32Types.SE_DEBUG_NAME, out luidSEDebugNameValue))
+                    {
+                        Debug.WriteLine("LookupPrivilegeValue() successfully");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"LookupPrivilegeValue() failed [0x{Marshal.GetLastWin32Error()}]. SeDebugPrivilege is not available");
+                        kernel32.CloseHandle(hToken);
+                        return ErrorCode.ProcessNoPrevilege;
+                    }
+
+                    tkpPrivileges.PrivilegeCount = 1;
+                    tkpPrivileges.Luid = luidSEDebugNameValue;
+                    tkpPrivileges.Attributes = Win32Types.SE_PRIVILEGE_ENABLED;
+
+                    if (advapi32.AdjustTokenPrivileges(hToken, false, ref tkpPrivileges, 0, IntPtr.Zero, IntPtr.Zero))
+                    {
+                        Debug.WriteLine("SeDebugPrivilege is now available");
+                    }
+                    else
+                    {
+                        Debug.WriteLine($"LookupPrivilegeValue() failed [0x{Marshal.GetLastWin32Error()}]. SeDebugPrivilege is not available");
+                    }
+                    kernel32.CloseHandle(hToken);
+
+                    CurrentProcessHandle =
+                        kernel32.OpenProcess(
+                            kernel32.PROCESS_QUERY_INFORMATION | kernel32.PROCESS_VM_READ,
+                            false, CurrentProcess.Id);
+
+#if DEBUG
+                    Console.ReadLine();
+#endif
+                }
+                catch (AccessViolationException)
+                {
+                    return ErrorCode.ProcessAccessViolation;
+                }
+                catch (ArgumentException)
+                {
+                    return ErrorCode.ProcessNotFound;
+                }
+                catch (Exception)
+                {
+                    return ErrorCode.UnknownError;
+                }
 
                 PrepareOpen(pBytesRow, pView);
             }
