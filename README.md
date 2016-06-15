@@ -12,6 +12,8 @@ Written in C# 6.0 for .NET 4.5.1 with Visual Studio 2015.
 
 Mono compatible.
 
+Code quality isn't too bad hopefully.
+
 ---
 
 ## Requirements

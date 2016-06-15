@@ -53,13 +53,13 @@ namespace _0xdd
             //args = new string[] { "b" };
             //args = new string[] { "tt" };
             //args = new string[] { "/dump", "tt" };
-            //args = new string[] { "hf.iso" };
+            args = new string[] { "hf.iso" };
             //args = new string[] { "/w", "16", "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] {  "/dump", "gg.txt" };
             //args = new string[] { "/w", "a", "gg.txt" };
             //args = new string[] { "zero" };
-            args = new string[] { "/p", "#2936" };
+            //args = new string[] { "/p", "#2936" };
 #endif
 
             if (args.Length == 0)

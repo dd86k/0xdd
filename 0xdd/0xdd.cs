@@ -1348,14 +1348,12 @@ namespace _0xdd
             /// </summary>
             static internal void Update()
             {
-                int od = 0;
-                int oa = 0;
                 int fh = FrameHeight;
 
                 int width = Console.WindowWidth;
 
-                long len = 0;
-                long pos = 0;
+                long len = 0; // File/Process size
+                long pos = 0; // File/Process position
                 switch (CurrentEntryType)
                 {
                     case EntryType.File:
@@ -1369,54 +1367,51 @@ namespace _0xdd
                 }
                 
                 OffsetPanel.Update();
-                
-                StringBuilder t = new StringBuilder();
+
+                int d = 0;
+                StringBuilder line = new StringBuilder();
+                StringBuilder ascii = new StringBuilder();
                 Console.SetCursorPosition(0, StartPosition);
-                for (int line = 0; line < fh; line++)
+                for (int lineIndex = 0; lineIndex < fh; lineIndex++)
                 {
                     switch (CurrentOffsetView)
                     {
                         case OffsetView.Hexadecimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + pos:X8}  ", width);
+                            line = new StringBuilder($"{(lineIndex * BytesInRow) + pos:X8}  ", width);
                             break;
 
                         case OffsetView.Decimal:
-                            t = new StringBuilder($"{(line * BytesInRow) + pos:D8}  ", width);
+                            line = new StringBuilder($"{(lineIndex * BytesInRow) + pos:D8}  ", width);
                             break;
 
                         case OffsetView.Octal:
-                            t = new StringBuilder($"{ToOct((line * BytesInRow) + pos)}  ", width);
+                            line = new StringBuilder($"{ToOct((lineIndex * BytesInRow) + pos)}  ", width);
                             break;
                     }
 
-                    for (int x = 0; x < BytesInRow; x++)
+                    ascii = new StringBuilder(BytesInRow);
+                    // d = data (hex) index
+                    for (int i = 0; i < BytesInRow; ++i, ++d)
                     {
-                        if (pos + od < len)
-                            t.Append($"{DisplayBuffer[od]:X2} ");
+                        if (pos + d < len)
+                            line.Append($"{DisplayBuffer[d]:X2} ");
                         else
-                            t.Append("   ");
+                            line.Append("   ");
 
-                        ++od;
-                    }
-
-                    t.Append(" ");
-
-                    for (int x = 0; x < BytesInRow; x++)
-                    {
-                        if (pos + oa < len)
-                            t.Append(DisplayBuffer[oa].ToAscii());
+                        if (pos + d < len)
+                            ascii.Append(DisplayBuffer[d].ToAscii());
                         else
                         {
-                            Console.Write(t.ToString());
+                            Console.Write(line.ToString());
                             return;
                         }
-
-                        ++oa;
                     }
 
-                    t.Append(" "); // 0xFFFFFFFF+ padding
+                    line.Append(" "); // over 0xFFFFFFFF padding
+
+                    line.Append(ascii.ToString());
                     
-                    Console.WriteLine(t.ToString());
+                    Console.WriteLine(line.ToString());
                 }
             }
         }
@@ -1463,7 +1458,7 @@ namespace _0xdd
                 }
 
                 string t =
-                    $"  DEC: {pos:D8} | HEX: {pos:X8} | OCT: {ToOct(pos)} | POS: {r,3}%";
+                    $"  DEC={pos:D8} | HEX={pos:X8} | OCT={ToOct(pos)} | POS={r,3}%";
 
                 Console.SetCursorPosition(0, StartPosition);
                 Console.Write(t); // Force-clear any messages
