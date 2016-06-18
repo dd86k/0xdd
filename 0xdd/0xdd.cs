@@ -1275,7 +1275,7 @@ namespace _0xdd
 
                 for (int i = 0; i < MainPanel.BytesInRow;)
                 {
-                    t.Append($"{i++:X2} ");
+                    t.Append($"{++i:X2} ");
                 }
 
                 if (LastWindowHeight != Console.WindowHeight ||
@@ -1400,6 +1400,7 @@ namespace _0xdd
                         }
                         else
                         {
+                            line.Append(ascii.ToString());
                             Console.Write(line.ToString());
                             return;
                         }
