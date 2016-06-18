@@ -50,10 +50,10 @@ namespace _0xdd
             //args = new string[] { ExecutableFilename };
             //args = new string[] { "f" };
             //args = new string[] { "fff" };
-            //args = new string[] { "b" };
+            args = new string[] { "b" };
             //args = new string[] { "tt" };
             //args = new string[] { "/dump", "tt" };
-            args = new string[] { "hf.iso" };
+            //args = new string[] { "hf.iso" };
             //args = new string[] { "/w", "16", "hf.iso" };
             //args = new string[] { "-dump", "tt" };
             //args = new string[] {  "/dump", "gg.txt" };
@@ -102,7 +102,7 @@ namespace _0xdd
 #if DEBUG
                                 Console.ReadLine();
 #endif
-                                return ErrorCode.CLI_InvalidOffsetView.Int();
+                                return ErrorCode.CLI_InvalidOffsetView.Code();
                         }
                         break;
 
@@ -118,7 +118,7 @@ namespace _0xdd
 #if DEBUG
                             Console.ReadLine();
 #endif
-                            return ErrorCode.CLI_InvalidWidth.Int();
+                            return ErrorCode.CLI_InvalidWidth.Code();
                         }
                         break;
 
@@ -158,7 +158,7 @@ namespace _0xdd
                 
                 Console.WriteLine(gerrcs(err));
 
-                return err.Int();
+                return err.Code();
             }
             else
             {
@@ -170,18 +170,23 @@ namespace _0xdd
                 else
                     r = _0xdd.OpenFile(entry, ovm, row);
                 Console.Clear();
-                Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Int():X2}");
+                Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Code():X2}");
                 Console.ReadKey();
-                return r.Int();
+                return r.Code();
 #else
                 try
                 {
-                    ErrorCode err = _0xdd.OpenProcess(entry, ovm, row);
+                    ErrorCode err = ErrorCode.Success;
+
+                    if (process)
+                        err = _0xdd.OpenProcess(entry, ovm, row);
+                    else
+                        err = _0xdd.OpenFile(entry, ovm, row);
 
                     if (err != ErrorCode.Success && err != ErrorCode.Exit)
                         Console.WriteLine(gerrcs(err));
 
-                    return err.Int();
+                    return err.Code();
                 }
                 catch (Exception e)
                 {
@@ -245,7 +250,7 @@ namespace _0xdd
                     break;
             }
 
-            return m += $"\n ERROR: {pCode} - 0x{pCode.Int():X2}";
+            return m += $"\n ERROR: {pCode} - 0x{pCode.Code():X2}";
         }
 
         static void Abort(Exception e)
@@ -263,20 +268,20 @@ namespace _0xdd
             Console.WriteLine();
             Console.WriteLine("More details had been appended to 0xdd_oops.txt");
 
-            StreamWriter o = File.CreateText("0xdd_oops.txt");
-            o.WriteLine("  -- App crash --");
-            o.WriteLine($"Time - {DateTime.Now}");
-            o.WriteLine();
-            o.WriteLine($"Exception: {e.GetType()}");
-            o.WriteLine($"Message: {e.Message}");
-            o.WriteLine();
-            o.WriteLine("    -- BEGIN STACK --");
-            o.WriteLine(e.StackTrace);
-            o.WriteLine("    -- END STACK --");
-            o.WriteLine();
-            o.WriteLine();
-            o.Flush();
-            o.Close();
+            using (StreamWriter o = File.CreateText("0xdd_oops.txt"))
+            {
+                o.WriteLine("  -- App crash --");
+                o.WriteLine($"Time - {DateTime.Now}");
+                o.WriteLine();
+                o.WriteLine($"Exception: {e.GetType()}");
+                o.WriteLine($"Message: {e.Message}");
+                o.WriteLine();
+                o.WriteLine("    -- BEGIN STACK --");
+                o.WriteLine(e.StackTrace);
+                o.WriteLine("    -- END STACK --");
+                o.WriteLine();
+                o.WriteLine();
+            }
         }
 
         static void ShowHelp()

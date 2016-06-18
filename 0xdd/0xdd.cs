@@ -1394,12 +1394,10 @@ namespace _0xdd
                     for (int i = 0; i < BytesInRow; ++i, ++d)
                     {
                         if (pos + d < len)
+                        {
                             line.Append($"{DisplayBuffer[d]:X2} ");
-                        else
-                            line.Append("   ");
-
-                        if (pos + d < len)
                             ascii.Append(DisplayBuffer[d].ToAscii());
+                        }
                         else
                         {
                             Console.Write(line.ToString());
@@ -1558,7 +1556,7 @@ namespace _0xdd
             }
         }
 
-        public static int Int(this ErrorCode pCode) => (int)pCode;
+        public static int Code(this ErrorCode pCode) => (int)pCode;
         #endregion
     }
 }
