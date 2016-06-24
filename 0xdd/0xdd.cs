@@ -1401,6 +1401,8 @@ namespace _0xdd
                         else
                         {
                             line.Append(ascii.ToString());
+                            //TODO: Fill
+                            //line.Append(
                             Console.Write(line.ToString());
                             return;
                         }
