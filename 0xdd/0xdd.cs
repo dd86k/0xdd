@@ -622,7 +622,7 @@ namespace _0xdd
                 case ConsoleKey.I:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        Message($"{Utils.GetEntryInfo(CurrentFileInfo)}  {Utils.GetFormattedSize(CurrentFileInfo.Length)}");
+                        Message($"{Utils.GetEntryInfo(CurrentFileInfo)}  {Utils.FormatSize(CurrentFileInfo.Length)}");
                     }
                     return;
 
@@ -651,7 +651,7 @@ namespace _0xdd
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position -
-                                (CurrentFileStream.Position % MainPanel.BytesInRow));
+                                (CurrentFileStream.Position % Setting.BytesInRow));
                         }
                         else if (CurrentFileStream.Position - 1 >= 0)
                         {
@@ -663,7 +663,7 @@ namespace _0xdd
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
                             long NewPos = CurrentFileStream.Position +
-                                (MainPanel.BytesInRow - CurrentFileStream.Position % MainPanel.BytesInRow);
+                                (Setting.BytesInRow - CurrentFileStream.Position % Setting.BytesInRow);
 
                             if (NewPos + MainPanel.BytesOnScreen <= CurrentFileInfo.Length)
                                 ReadFileAndUpdate(NewPos);
@@ -678,9 +678,9 @@ namespace _0xdd
 
                 case ConsoleKey.UpArrow:
                     if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
-                        if (CurrentFileStream.Position - MainPanel.BytesInRow >= 0)
+                        if (CurrentFileStream.Position - Setting.BytesInRow >= 0)
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesInRow);
+                            ReadFileAndUpdate(CurrentFileStream.Position - Setting.BytesInRow);
                         }
                         else
                         {
@@ -689,9 +689,9 @@ namespace _0xdd
                     return;
                 case ConsoleKey.DownArrow:
                     if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
-                        if (CurrentFileStream.Position + MainPanel.BytesOnScreen + MainPanel.BytesInRow <= CurrentFileInfo.Length)
+                        if (CurrentFileStream.Position + MainPanel.BytesOnScreen + Setting.BytesInRow <= CurrentFileInfo.Length)
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position + MainPanel.BytesInRow);
+                            ReadFileAndUpdate(CurrentFileStream.Position + Setting.BytesInRow);
                         }
                         else
                         {
@@ -744,7 +744,7 @@ namespace _0xdd
         static void PrepareScreen()
         {
             if (AutoSize)
-                MainPanel.BytesInRow = Utils.GetBytesInRow();
+                Setting.BytesInRow = Utils.GetBytesInRow();
 
             switch (CurrentEntryType)
             {
@@ -922,7 +922,7 @@ namespace _0xdd
         /// <returns><see cref="ErrorCode"/></returns>
         static ErrorCode Dump()
         {
-            return Dump(CurrentFileInfo.Name, MainPanel.BytesInRow, CurrentOffsetView);
+            return Dump(CurrentFileInfo.Name, Setting.BytesInRow, CurrentOffsetView);
         }
 
         /// <summary>
@@ -954,7 +954,7 @@ namespace _0xdd
 
                 sw.WriteLine(f.Name);
                 sw.WriteLine();
-                sw.WriteLine($"Size: {Utils.GetFormattedSize(f.Length)}");
+                sw.WriteLine($"Size: {Utils.FormatSize(f.Length)}");
                 sw.WriteLine($"Attributes: {Utils.GetEntryInfo(f)}");
                 sw.WriteLine($"File date: {f.CreationTime}");
                 sw.WriteLine($"Dump date: {DateTime.Now}");
@@ -1273,9 +1273,9 @@ namespace _0xdd
                         break;
                 }
 
-                for (int i = 0; i < MainPanel.BytesInRow;)
+                for (int i = 0; i < Setting.BytesInRow; ++i)
                 {
-                    t.Append($"{++i:X2} ");
+                    t.Append($"{i:X2} ");
                 }
 
                 if (LastWindowHeight != Console.WindowHeight ||
@@ -1325,21 +1325,13 @@ namespace _0xdd
             }
 
             /// <summary>
-            /// Gets or sets the number of bytes showed in a row.
-            /// </summary>
-            static internal int BytesInRow
-            {
-                get; set;
-            }
-
-            /// <summary>
             /// Gets the number of elements which can be shown in the main panel.
             /// </summary>
             static internal int BytesOnScreen
             {
                 get
                 {
-                    return FrameHeight * BytesInRow;
+                    return FrameHeight * Setting.BytesInRow;
                 }
             }
 
@@ -1377,21 +1369,21 @@ namespace _0xdd
                     switch (CurrentOffsetView)
                     {
                         case OffsetView.Hexadecimal:
-                            line = new StringBuilder($"{(lineIndex * BytesInRow) + pos:X8}  ", width);
+                            line = new StringBuilder($"{(lineIndex * Setting.BytesInRow) + pos:X8}  ", width);
                             break;
 
                         case OffsetView.Decimal:
-                            line = new StringBuilder($"{(lineIndex * BytesInRow) + pos:D8}  ", width);
+                            line = new StringBuilder($"{(lineIndex * Setting.BytesInRow) + pos:D8}  ", width);
                             break;
 
                         case OffsetView.Octal:
-                            line = new StringBuilder($"{ToOct((lineIndex * BytesInRow) + pos)}  ", width);
+                            line = new StringBuilder($"{ToOct((lineIndex * Setting.BytesInRow) + pos)}  ", width);
                             break;
                     }
 
-                    ascii = new StringBuilder(BytesInRow);
+                    ascii = new StringBuilder(Setting.BytesInRow);
                     // d = data (hex) index
-                    for (int i = 0; i < BytesInRow; ++i, ++d)
+                    for (int i = 0; i < Setting.BytesInRow; ++i, ++d)
                     {
                         if (pos + d < len)
                         {
@@ -1401,8 +1393,8 @@ namespace _0xdd
                         else
                         {
                             line.Append(ascii.ToString());
-                            //TODO: Fill
-                            //line.Append(
+                            //TODO: Fill (test)
+                            line.Append(new string(' ', Setting.BytesInRow * 3));
                             Console.Write(line.ToString());
                             return;
                         }
@@ -1410,11 +1402,29 @@ namespace _0xdd
 
                     line.Append(" "); // over 0xFFFFFFFF padding
 
+                    if (Setting.ShowWalls)
+                        line.Append(Setting.WallCharStart);
+
                     line.Append(ascii.ToString());
+
+                    if (Setting.ShowWalls)
+                        line.Append(Setting.WallCharEnd);
                     
                     Console.WriteLine(line.ToString());
                 }
             }
+        }
+        #endregion
+
+        #region Settings
+        static class Setting
+        {
+            public static int BytesInRow = 16;
+
+            public static char OutOfAsciiChar = '.';
+            public static bool ShowWalls = false;
+            public static char WallCharStart = '\0';
+            public static char WallCharEnd = '\0';
         }
         #endregion
 
@@ -1536,7 +1546,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="b">Byte to transform.</param>
         /// <returns>ASCII character.</returns>
-        static char ToAscii(this byte b) => b < 0x20 || b > 0x7E ? '.' : (char)b;
+        static char ToAscii(this byte b) => b < 0x20 || b > 0x7E ? Setting.OutOfAsciiChar : (char)b;
 
         /// <summary>
         /// Gets the character for the upper bar depending on the

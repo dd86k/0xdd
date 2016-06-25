@@ -13,12 +13,12 @@ namespace _0xdd
         const long SIZE_MB = 1048576;
         const long SIZE_KB = 1024;
 
-        static internal string GetFormattedSize(long pSize)
+        static internal string FormatSize(long pSize)
         {
-            return GetFormattedSize(pSize);
+            return FormatSize(pSize);
         }
 
-        static internal string GetFormattedSize(decimal pSize)
+        static internal string FormatSizeDemical(decimal pSize)
         {
             if (pSize > SIZE_TB)
                 return $"{Math.Round(pSize / SIZE_TB, 2)} TB";
@@ -312,7 +312,7 @@ namespace _0xdd
 
         internal static int GetBytesInRow()
         {
-            return ((Console.WindowWidth - 10) / 4) - 1;
+            return ((Console.WindowWidth - 10) / 4) - 2;
         }
         #endregion
     }
