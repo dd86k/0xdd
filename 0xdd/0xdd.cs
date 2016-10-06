@@ -41,12 +41,12 @@ namespace _0xdd
         PositionOutOfBound = 0x10,
 
         // Dump
-        DumbCannotWrite = 0x18,
-        DumbCannotRead = 0x19,
+        DumberCannotWrite = 0x18,
+        DumberCannotRead = 0x19,
 
         // Find
-        FindNoResult = 0x20,
-        FindEmptyString = 0x21,
+        FinderNoResult = 0x20,
+        FinderEmptyString = 0x21,
 
         // Program
         ProgramNoParse = 0xA0,
@@ -99,13 +99,6 @@ namespace _0xdd
 
     static class _0xdd
     {
-        #region Constants
-        /// <summary>
-        /// Extension of data dump files.
-        /// </summary>
-        public const string EXTENSION = "hexdmp";
-        #endregion
-
         #region Properties
         public static FileInfo CurrentFile { get; private set; }
         public static FileStream CurrentFileStream { get; private set; }
@@ -229,10 +222,12 @@ namespace _0xdd
                         }
                         else
                         {
-                            _lastByte = (byte)t;
                             MainPanel.Update();
                             InfoPanel.Message("Searching...");
-                            long p = Finder.FindByte(_lastByte, CurrentFileStream, CurrentFile, CurrentFileStream.Position + 1);
+                            long p = Finder.FindByte(
+                                _lastByte = (byte)t, CurrentFileStream,
+                                CurrentFile, CurrentFileStream.Position + 1
+                            );
 
                             if (p > 0)
                             {
@@ -337,7 +332,7 @@ namespace _0xdd
                 case ConsoleKey.O:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        string c = Utils.GetUserInput("Hex, dec, oct?");
+                        string c = Utils.GetUserInput("Hex, Dec, Oct?");
 
                         if (c == null || c.Length < 1)
                         {
@@ -351,29 +346,27 @@ namespace _0xdd
                             case 'H': case 'h':
                                 CurrentOffsetView = OffsetView.Hex;
                                 OffsetPanel.Update();
-                                MainPanel.Update();
                                 InfoPanel.Update();
                                 break;
 
                             case 'O': case 'o':
                                 CurrentOffsetView = OffsetView.Oct;
                                 OffsetPanel.Update();
-                                MainPanel.Update();
                                 InfoPanel.Update();
                                 break;
 
                             case 'D': case 'd':
                                 CurrentOffsetView = OffsetView.Dec;
                                 OffsetPanel.Update();
-                                MainPanel.Update();
                                 InfoPanel.Update();
                                 break;
 
                             default:
                                 InfoPanel.Message("Invalid view mode!");
-                                MainPanel.Update();
                                 break;
                         }
+
+                        MainPanel.Update();
                     }
                     break;
 
@@ -415,7 +408,8 @@ namespace _0xdd
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         InfoPanel.Message("Dumping...");
-                        Dump();
+                        Dumper.Dump(CurrentFile.FullName,
+                            BytesPerRow, CurrentOffsetView);
                         InfoPanel.Message("Dumping done!");
                     }
                     break;
@@ -564,142 +558,6 @@ namespace _0xdd
         static void Goto(long pPosition)
         {
             ReadFileAndUpdate(pPosition);
-        }
-        #endregion
-
-        #region Dump
-        /// <summary>
-        /// File to dump as text data with the app's <see cref="MainPanel.BytesInRow"/>
-        /// and <see cref="CurrentOffsetView"/>.
-        /// </summary>
-        /// <returns><see cref="ErrorCode"/></returns>
-        static ErrorCode Dump()
-        {
-            return Dump(CurrentFile.Name, BytesPerRow, CurrentOffsetView);
-        }
-
-        /// <summary>
-        /// File to dump as text data.
-        /// </summary>
-        /// <param name="pFileToDump">Output filename.</param>
-        /// <param name="pBytesInRow">Number of bytes in a row.</param>
-        /// <param name="pViewMode"><see cref="OffsetView"/> to use.</param>
-        /// <returns><see cref="ErrorCode"/></returns>
-        static public ErrorCode Dump(string pFileToDump, int pBytesInRow = 16, OffsetView pViewMode = OffsetView.Hex)
-        {
-            if (!File.Exists(pFileToDump))
-                return ErrorCode.FileNotFound;
-            
-            // These variables are independant because I do
-            // not want to mess with the global ones and it
-            // may happen the user /d directly.
-            FileInfo f = new FileInfo(pFileToDump);
-            DisplayBuffer = new byte[pBytesInRow];
-
-            using (StreamWriter sw = new StreamWriter($"{pFileToDump}.{EXTENSION}"))
-            {
-                if (!sw.BaseStream.CanWrite)
-                    return ErrorCode.DumbCannotWrite;
-
-                pBytesInRow = pBytesInRow == 0 ? 16 : pBytesInRow;
-
-                sw.AutoFlush = true;
-
-                sw.WriteLine(f.Name);
-                sw.WriteLine();
-                sw.WriteLine($"Size: {Utils.FormatSize(f.Length)}");
-                sw.WriteLine($"Attributes: {Utils.GetEntryInfo(f)}");
-                sw.WriteLine($"File date: {f.CreationTime}");
-                sw.WriteLine($"Dump date: {DateTime.Now}");
-                sw.WriteLine();
-
-                sw.Write($"Offset {pViewMode.GetChar()}  ");
-                for (int i = 0; i < pBytesInRow; i++)
-                {
-                    sw.Write($"{i:X2} ");
-                }
-                sw.WriteLine();
-                
-                if (CurrentFile == null)
-                    return DumpFile(f.Open(FileMode.Open), sw, pViewMode, pBytesInRow);
-                else
-                    return DumpFile(CurrentFileStream, sw, pViewMode, pBytesInRow);
-               
-            }
-        }
-        
-        /// <remarks>
-        /// Only to be used with <see cref="Dump()"/>!
-        /// </remarks>
-        static ErrorCode DumpFile(FileStream pIn, StreamWriter pOut, OffsetView pViewMode, int pBytesInRow)
-        {
-            long line = 0;
-            int BufferPositionHex = 0;
-            int BufferPositionData = 0;
-            string t = string.Empty;
-
-            DisplayBuffer = new byte[pBytesInRow];
-
-            long lastpos = CurrentFileStream.Position;
-
-            if (!pIn.CanRead)
-                return ErrorCode.DumbCannotRead;
-
-            bool working = true;
-
-            while (working)
-            {
-                switch (pViewMode)
-                {
-                    case OffsetView.Hex:
-                        t = $"{line:X8}  ";
-                        break;
-
-                    case OffsetView.Dec:
-                        t = $"{line:D8}  ";
-                        break;
-
-                    case OffsetView.Oct:
-                        t = $"{ToOct(line)}  ";
-                        break;
-                }
-
-                line += pBytesInRow;
-
-                pIn.Read(DisplayBuffer, 0, pBytesInRow);
-
-                for (int pos = 0; pos < pBytesInRow; pos++)
-                {
-                    if (BufferPositionHex < pIn.Length)
-                        t += $"{DisplayBuffer[pos]:X2} ";
-                    else
-                        t += "   ";
-
-                    BufferPositionHex++;
-                }
-
-                t += " ";
-
-                for (int pos = 0; pos < pBytesInRow; pos++)
-                {
-                    if (BufferPositionData < pIn.Length)
-                        t += DisplayBuffer[pos].ToAscii();
-                    else
-                    {
-                        pOut.WriteLine(t);
-
-                        CurrentFileStream.Position = lastpos;
-
-                        return 0; // Done!
-                    }
-
-                    BufferPositionData++;
-                }
-
-                pOut.WriteLine(t);
-            }
-
-            return 0;
         }
         #endregion
 

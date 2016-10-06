@@ -55,7 +55,7 @@ namespace _0xdd
             {
                 _pos[i] = _barlength;
 
-                _barlength += $" {MenuItems[i].Text} ".Length;
+                _barlength += MenuItems[i].Text.Length + 2;
 
                 int max = 0; // Get longuest string in each submenus
                 for (int si = 0; si < MenuItems[i].Items.Count; si++)
@@ -81,7 +81,7 @@ namespace _0xdd
         {
             Update();
             DrawSubMenu();
-            while (Entry()) ;
+            while (Entry());
         }
 
         static bool Entry()

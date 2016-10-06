@@ -55,11 +55,11 @@ namespace _0xdd
             {
                 switch (_0xdd.CurrentOffsetView)
                 {
-                    case OffsetView.Hex:
+                    default:
                         line = new StringBuilder($"{(li * _0xdd.BytesPerRow) + pos:X8}  ", width);
                         break;
 
-                    default:
+                    case OffsetView.Dec:
                         line = new StringBuilder($"{(li * _0xdd.BytesPerRow) + pos:D8}  ", width);
                         break;
 

@@ -111,7 +111,7 @@ namespace _0xdd
             if (dump)
             {
                 Console.Write("Dumping file... ");
-                ErrorCode err = _0xdd.Dump(entry, row, ovm);
+                ErrorCode err = Dumper.Dump(entry, row, ovm);
                 
                 Console.WriteLine(GetMessage(err));
 
@@ -174,10 +174,10 @@ namespace _0xdd
                 case ErrorCode.PositionOutOfBound:
                     m += "Error: Position out of bound.";
                     break;
-                case ErrorCode.DumbCannotWrite:
+                case ErrorCode.DumberCannotWrite:
                     m += "Error: Could not write to output.";
                     break;
-                case ErrorCode.DumbCannotRead:
+                case ErrorCode.DumberCannotRead:
                     m += "Error: Could not read from input.";
                     break;
 
@@ -196,8 +196,8 @@ namespace _0xdd
                     break;
 
                 // The "should not be an app return code" club
-                case ErrorCode.FindNoResult:
-                case ErrorCode.FindEmptyString:
+                case ErrorCode.FinderNoResult:
+                case ErrorCode.FinderEmptyString:
                     break;
             }
 
@@ -244,7 +244,7 @@ namespace _0xdd
             Console.WriteLine();
             Console.WriteLine("  /v      Specify starting offset view.        Default: Hex");
             //Console.WriteLine("  /w      Specify bytes per row.   Default: Auto");
-            Console.WriteLine($"  /dump   Dumps the data to {_0xdd.EXTENSION} as plain text.");
+            Console.WriteLine($"  /dump   Dump to an {Dumper.EXTENSION} file as plain text.");
             Console.WriteLine();
             Console.WriteLine("  /?         Shows this screen and exits.");
             Console.WriteLine("  /version   Shows version and exits.");
