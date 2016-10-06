@@ -1,21 +1,17 @@
-# 0xdd
-## Hexadecimal Console File Viewer
+# 0xdd - Hexadecimal Console File Viewer
 
-![0xdd](http://guitarxhero.github.io/imgs/0xdd0.png)
-![0xdd in cool-term](http://guitarxhero.github.io/imgs/0xdd0_cool-term.jpg)
+![0xdd](http://guitarxhero.github.io/imgs/0xdd1.png)
 
-(Thank you @pt300 for the screenshot)
+Inspired by EDIT (MS-DOS), 0xdd is a simple, interactive, hexadecimal file viewer for Windows.
 
-Inspired by nano, 0xdd is a simple, interactive, hexadecimal file viewer for Windows.
-
-Written in C# 6.0 for .NET 4.5.1 with Visual Studio 2015.
+Written in C# 6.0 for .NET 4.5.2 with Visual Studio 2015.
 
 Mono compatible.
 
-Code quality isn't too bad hopefully.
+Wiki available.
 
 ---
 
 ## Requirements
 
-- .NET 4.5.1 or Mono (where .NET 4.5.1 is supported)
+- .NET 4.5.2 or Mono runtime

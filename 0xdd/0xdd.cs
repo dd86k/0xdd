@@ -1,17 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.RegularExpressions;
 
 //TODO: Hashing (with menu) (v1.1)
 //TODO: Search from end of file (v0.7)
-
-//TODO: Do advanced control input scheme (v0.7)
-// UserInput (advanced) - Will be able to move to different controls for input
-// construction: Control[] (struct with ControlType as enum)
-// output: ControlResults[]
+//TODO: Settings! (v0.8)
 
 /*
     TODO: Edit mode (v0.9)
@@ -40,13 +34,8 @@ namespace _0xdd
         // File
         FileNotFound = 0x4,
         FileUnreadable = 0x5,
-
-        // Process
-        ProcessNotFound = 0x8,
-        ProcessUnreadable = 0x9,
-        ProcessAccessViolation = 0xA,
-        ProcessNoSeDebugMode = 0xB,
-        ProcessNoPrevilege = 0xC,
+        FileAlreadyOpen = 0x6,
+        FileUnauthorized = 0x7,
 
         // Position
         PositionOutOfBound = 0x10,
@@ -71,23 +60,17 @@ namespace _0xdd
         NotImplemented = 0xD1,
         
         UnknownError = 0xFE,
-        Exit = 0xFF,
     }
 
     enum OffsetView : byte
     {
-        Hexadecimal, Decimal, Octal
+        Hex, Dec, Oct
     }
     
     enum OperatingMode : byte
     {
         // READ, OVRW, INSR
         Read, Overwrite, Insert
-    }
-
-    enum EntryType : byte
-    {
-        File, Process, MemoryRegion
     }
     #endregion
 
@@ -112,24 +95,6 @@ namespace _0xdd
         public long Position;
         public ErrorCode Error;
     }
-
-    struct UserResponse
-    {
-        public UserResponse(ErrorCode pError)
-        {
-            Code = pError;
-        }
-
-        public bool Success
-        {
-            get
-            {
-                return Code == ErrorCode.Success;
-            }
-        }
-
-        public ErrorCode Code;
-    }
     #endregion
 
     static class _0xdd
@@ -138,425 +103,235 @@ namespace _0xdd
         /// <summary>
         /// Extension of data dump files.
         /// </summary>
-        const string EXTENSION = "hexdmp";
+        public const string EXTENSION = "hexdmp";
         #endregion
 
-        #region Variables
-        static FileInfo CurrentFileInfo;
-        static FileStream CurrentFileStream;
+        #region Properties
+        public static FileInfo CurrentFile { get; private set; }
+        public static FileStream CurrentFileStream { get; private set; }
 
-        static Process CurrentProcess;
-        static IntPtr CurrentProcessHandle;
+        public static OffsetView CurrentOffsetView { get; private set; }
+        public static ErrorCode LastError { get; private set; }
 
-        static OffsetView CurrentOffsetView;
-        static EntryType CurrentEntryType;
-        //static OperatingMode CurrentOperatingMode;
+        public static byte[] DisplayBuffer { get; private set; }
 
-        static byte[] DisplayBuffer;
-
-        static long Position;
-        
-        static bool FullscreenMode;
-        static bool AutoSize;
-        
         static int LastWindowHeight;
         static int LastWindowWidth;
-        static string LastDataSearched;
-        static byte LastByteSearched;
+
+        #region Settings
+        //TODO: re-add autoadjust + fixed width
+        public static bool AutoAdjust;
+        public static int BytesPerRow;
+
+        static byte _lastByte;
+        private static string _lastData;
+
+        //public static byte BytePerGroup = 1;
+        #endregion
         #endregion
 
         #region Methods        
-        internal static ErrorCode OpenFile(string pFilePath, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
+        public static ErrorCode OpenFile(string path, OffsetView view = OffsetView.Hex, int bytesPerRow = 0)
         {
-            CurrentEntryType = EntryType.File;
+            CurrentFile = new FileInfo(path);
 
+            if (!CurrentFile.Exists)
+                return ErrorCode.FileNotFound;
+
+            try
             {
-                CurrentFileInfo = new FileInfo(pFilePath);
-
-                if (!CurrentFileInfo.Exists)
-                    return ErrorCode.FileNotFound;
-
-                try
-                {
-                    CurrentFileStream = CurrentFileInfo.Open(FileMode.Open, FileAccess.Read, FileShare.Read);
-                }
-                catch
-                {
-                    return ErrorCode.FileUnreadable;
-                }
-
-                PrepareOpen(pBytesRow, pView);
+                CurrentFileStream = CurrentFile.Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return ErrorCode.FileUnauthorized;
+            }
+            catch (IOException)
+            {
+                return ErrorCode.FileAlreadyOpen;
             }
 
-            UserResponse ur = new UserResponse(ErrorCode.Success);
-
-            while(ur.Success)
-            {
-                ReadUserKey(ref ur);
-            }
-
-            return ur.Code;
-        }
-        
-        internal static ErrorCode OpenProcess(string pProcess, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
-        {
-            CurrentEntryType = EntryType.Process;
-
-            {
-                if (Environment.OSVersion.Platform != PlatformID.Win32NT)
-                    return ErrorCode.OSNotSupported;
-                
-                if (Regex.IsMatch(pProcess, "(b|biggest|s|smallest):(p|private|s|shared|w|ws|workingset)\b", RegexOptions.ECMAScript))
-                {
-                    Process[] list = Process.GetProcesses();
-
-                    //TODO: IComparer<Process>
-                }
-                
-                if (Regex.IsMatch(pProcess, @"^#\d", RegexOptions.ECMAScript))
-                { // PID
-                    int pid;
-                    if (!int.TryParse(pProcess.Replace("#", string.Empty), out pid))
-                        return ErrorCode.ProgramNoParse;
-
-                    try
-                    {
-                        CurrentProcess = Process.GetProcessById(pid);
-                    }
-                    catch
-                    {
-                        return ErrorCode.ProcessNotFound;
-                    }
-                }
-                else
-                { // Process name
-
-                    //TODO: Notation to process selection (by index of its name, size)
-                    /*
-                        index: processname - 0 based?
-                        size: processname
-                    */
-
-                    Process[] pl = Process.GetProcessesByName(pProcess);
-
-                    if (pl.Length > 0)
-                    {
-                        if (pl.Length == 1)
-                            CurrentProcess = pl[0];
-                        else
-                        {
-                            CurrentProcess = pl[0]; // temporary
-                        }
-                    }
-                    else
-                        return ErrorCode.ProcessNotFound;
-                }
-
-#warning OpenProcess is in development
-
-                try
-                {
-                    IntPtr hToken;
-                    LUID luidSEDebugNameValue;
-                    TOKEN_PRIVILEGES tkpPrivileges;
-
-#if DEBUG
-                    Debug.Listeners.Add(new TextWriterTraceListener(Console.Out));
-#endif
-
-                    if (kernel32.OpenProcessToken(kernel32.GetCurrentProcess(), Win32Types.TOKEN_ADJUST_PRIVILEGES | Win32Types.TOKEN_QUERY, out hToken))
-                    {
-                        Debug.WriteLine("OpenProcessToken() successfully");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"OpenProcessToken() failed [0x{Marshal.GetLastWin32Error():X8}]. SeDebugPrivilege is not available");
-                        return ErrorCode.ProcessNoSeDebugMode;
-                    }
-
-                    if (advapi32.LookupPrivilegeValue(null, Win32Types.SE_DEBUG_NAME, out luidSEDebugNameValue))
-                    {
-                        Debug.WriteLine("LookupPrivilegeValue() successfully");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"LookupPrivilegeValue() failed [0x{Marshal.GetLastWin32Error()}]. SeDebugPrivilege is not available");
-                        kernel32.CloseHandle(hToken);
-                        return ErrorCode.ProcessNoPrevilege;
-                    }
-
-                    tkpPrivileges.PrivilegeCount = 1;
-                    tkpPrivileges.Luid = luidSEDebugNameValue;
-                    tkpPrivileges.Attributes = Win32Types.SE_PRIVILEGE_ENABLED;
-
-                    if (advapi32.AdjustTokenPrivileges(hToken, false, ref tkpPrivileges, 0, IntPtr.Zero, IntPtr.Zero))
-                    {
-                        Debug.WriteLine("SeDebugPrivilege is now available");
-                    }
-                    else
-                    {
-                        Debug.WriteLine($"LookupPrivilegeValue() failed [0x{Marshal.GetLastWin32Error()}]. SeDebugPrivilege is not available");
-                    }
-                    kernel32.CloseHandle(hToken);
-
-                    CurrentProcessHandle =
-                        kernel32.OpenProcess(
-                            kernel32.PROCESS_QUERY_INFORMATION | kernel32.PROCESS_VM_READ,
-                            false, CurrentProcess.Id);
-
-#if DEBUG
-                    Console.ReadLine();
-#endif
-                }
-                catch (AccessViolationException)
-                {
-                    return ErrorCode.ProcessAccessViolation;
-                }
-                catch (ArgumentException)
-                {
-                    return ErrorCode.ProcessNotFound;
-                }
-                catch (Exception)
-                {
-                    return ErrorCode.UnknownError;
-                }
-
-                PrepareOpen(pBytesRow, pView);
-            }
-
-            UserResponse ur = new UserResponse(ErrorCode.Success);
-
-            while (ur.Success)
-            {
-                ReadUserKey(ref ur);
-            }
-
-            return ur.Code;
-        }
-
-        internal static ErrorCode OpenMemory(string pBaseAddress, OffsetView pView = OffsetView.Hexadecimal, int pBytesRow = 0)
-        {
-            return ErrorCode.NotImplemented;
-
-            UserResponse ur = new UserResponse(ErrorCode.Success);
-            
-            while (ur.Success)
-            {
-                ReadUserKey(ref ur);
-            }
-
-            return ur.Code;
-        }
-
-        static void PrepareOpen(int pBytesRow, OffsetView pView)
-        {
-            AutoSize = pBytesRow <= 0;
-
-            CurrentOffsetView = pView;
+            CurrentOffsetView = view;
             LastWindowHeight = Console.WindowHeight;
             LastWindowWidth = Console.WindowWidth;
 
-            Console.CursorVisible = false;
+            AutoAdjust = bytesPerRow <= 0;
+            BytesPerRow = AutoAdjust ? Utils.GetBytesInRow() : bytesPerRow;
+
+            try
+            {
+                Console.CursorVisible = false;
+                Console.Title = CurrentFile.Name;
+            } catch { }
             Console.Clear();
 
             PrepareScreen();
+
+            while (ReadUserKey());
+
+            return LastError;
         }
 
         /// <summary>
         /// Read user input.
         /// </summary>
-        static void ReadUserKey(ref UserResponse pUserResponse)
-        {
+        static bool ReadUserKey()
+        { //TODO: Recude cyclomatic complexity to under 25
+          // - Place most of the code into new functions
             ConsoleKeyInfo k = Console.ReadKey(true);
             
-            if (AutoSize)
-                if (LastWindowHeight != Console.WindowHeight ||
-                    LastWindowWidth != Console.WindowWidth)
-                {
-                    Console.Clear();
-                    PrepareScreen();
+            if (LastWindowHeight != Console.WindowHeight ||
+                LastWindowWidth != Console.WindowWidth)
+            {
+                BytesPerRow = Utils.GetBytesInRow();
 
-                    LastWindowHeight = Console.WindowHeight;
-                    LastWindowWidth = Console.WindowWidth;
-                }
+                Console.Clear();
+                PrepareScreen();
+
+                LastWindowHeight = Console.WindowHeight;
+                LastWindowWidth = Console.WindowWidth;
+            }
             
             switch (k.Key)
             {
-                // -- Hidden shortcuts --
-
                 case ConsoleKey.F5:
-                    {
-                        ReadFileAndUpdate(0); //TODO: pos
-                    }
-                    return;
+                    ReadFileAndUpdate(CurrentFileStream.Position);
+                    break;
 
-                case ConsoleKey.F10:
-                    {
-                        ToggleFullscreenMode();
-                    }
-                    return;
-
-                // -- Shown shortcuts --
+                case ConsoleKey.Escape:
+                    MenuBarPanel.Enter();
+                    break;
 
                 // Find byte
                 case ConsoleKey.W:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (CurrentFileStream.Position >= CurrentFileInfo.Length - MainPanel.BytesOnScreen)
+                        if (CurrentFileStream.Position >= CurrentFile.Length - MainPanel.BytesOnScreen)
                         {
-                            Message("Already at the end of the file.");
-                            return;
+                            InfoPanel.Message("Already at the end of the file.");
+                            break;
                         }
 
-                        long? t = Utils.GetNumberFromUser("Find byte:",
-                            pSuggestion: LastByteSearched.ToString("X2"));
+                        long t = Utils.GetNumberFromUser("Find byte:",
+                            suggestion: _lastByte.ToString("X2"));
 
-                        if (t == null)
+                        if (t == -1)
                         {
                             MainPanel.Update();
-                            Message("Canceled.");
-                            return;
+                            InfoPanel.Message("Canceled.");
+                            break;
                         }
                         
                         if (t < 0 || t > byte.MaxValue)
                         {
                             MainPanel.Update();
-                            Message("A value between 0 and 255 is required.");
+                            InfoPanel.Message("A value between 0 and 255 is required.");
                         }
                         else
                         {
-                            LastByteSearched = (byte)t;
+                            _lastByte = (byte)t;
                             MainPanel.Update();
-                            Message("Searching...");
-                            FindResult p = Find((byte)t, CurrentFileStream.Position + 1);
+                            InfoPanel.Message("Searching...");
+                            long p = Finder.FindByte(_lastByte, CurrentFileStream, CurrentFile, CurrentFileStream.Position + 1);
 
-                            switch (p.Error)
+                            if (p > 0)
                             {
-                                case ErrorCode.Success:
-                                    {
-                                        Goto(--p.Position);
-                                        if (p.Position > uint.MaxValue)
-                                            Message($"Found {t:X2} at {p.Position:X16}");
-                                        else
-                                            Message($"Found {t:X2} at {p.Position:X8}");
-                                    }
-                                    break;
-                                case ErrorCode.FileNotFound:
-                                    Message($"File not found!");
-                                    break;
-                                case ErrorCode.PositionOutOfBound:
-                                    Message($"Position out of bound.");
-                                    break;
-                                case ErrorCode.FindNoResult:
-                                    Message($"No results. Input: 0x{t:X2}");
-                                    break;
+                                Goto(--p);
+                                if (p > uint.MaxValue)
+                                    InfoPanel.Message($"Found {t:X2} at {p:X16}");
+                                else
+                                    InfoPanel.Message($"Found {t:X2} at {p:X8}");
+                            }
+                            else
+                            {
+                                switch (p)
+                                {
+                                    case -1:
+                                        InfoPanel.Message($"No results.");
+                                        break;
+                                    case -2:
+                                        InfoPanel.Message($"Position out of bound.");
+                                        break;
+                                    case -3:
+                                        InfoPanel.Message($"File not found!");
+                                        break;
 
-                                default:
-                                    Message($"Unknown error occurred.");
-                                    break;
+                                    default:
+                                        InfoPanel.Message($"Unknown error occurred. (0x{p:X2})");
+                                        break;
+                                }
                             }
                         }
                     }
-                    return;
+                    break;
 
                 // Find data
                 case ConsoleKey.J:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (CurrentFileStream.Position >= CurrentFileInfo.Length - MainPanel.BytesOnScreen)
+                        if (CurrentFileStream.Position >= CurrentFile.Length - MainPanel.BytesOnScreen)
                         {
-                            Message("Already at the end of the file.");
-                            return;
+                            InfoPanel.Message("Already at the end of the file.");
+                            break;
                         }
 
-                        if (MainPanel.BytesOnScreen >= CurrentFileInfo.Length)
+                        if (MainPanel.BytesOnScreen >= CurrentFile.Length)
                         {
-                            Message("Not possible.");
-                            return;
+                            InfoPanel.Message("Not possible.");
+                            break;
                         }
 
-                        string t = Utils.GetUserInput("Find data:", pSuggestion: LastDataSearched);
+                        _lastData = Utils.GetUserInput("Find data:", suggestion: _lastData);
 
-                        if (t == null || t.Length == 0)
+                        if (_lastData == null || _lastData.Length == 0)
                         {
                             MainPanel.Update();
-                            Message("Canceled.");
-                            return;
+                            InfoPanel.Message("Canceled.");
+                            break;
                         }
                         
-                        LastDataSearched = t;
                         MainPanel.Update();
-                        Message("Searching...");
-                        FindResult p = FindData(t, CurrentFileStream.Position + 1);
-                        
-                        switch (p.Error)
-                        {
-                            case ErrorCode.Success:
-                                Goto(p.Position);
-                                Message($"Found {t} at position {p.Position}");
-                                break;
-
-                            case ErrorCode.FileNotFound:
-                                Message("File not found.");
-                                MainPanel.Update();
-                                break;
-                            case ErrorCode.FileUnreadable:
-                                Message("File unreadable.");
-                                MainPanel.Update();
-                                break;
-                            case ErrorCode.FindNoResult:
-                                Message("No results.");
-                                MainPanel.Update();
-                                break;
-                            case ErrorCode.PositionOutOfBound:
-                                Message("Position out of bound.");
-                                MainPanel.Update();
-                                break;
-
-                            default:
-                                MainPanel.Update();
-                                Message("Unknown error occurred.");
-                                break;
-                        }
+                        InfoPanel.Message("Searching...");
+                        Finder.FindString(_lastData, CurrentFileStream, CurrentFile, CurrentFileStream.Position + 1);
                     }
-                    return;
+                    break;
 
                 // Goto
                 case ConsoleKey.G:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (MainPanel.BytesOnScreen >= CurrentFileInfo.Length)
+                        if (MainPanel.BytesOnScreen >= CurrentFile.Length)
                         {
-                            Message("Not possible.");
-                            return;
+                            InfoPanel.Message("Not possible.");
+                            break;
                         }
 
-                        if (CurrentFileStream.Position >= CurrentFileInfo.Length)
+                        if (CurrentFileStream.Position >= CurrentFile.Length)
                         {
-                            Message("Already at the end of the file.");
-                            return;
+                            InfoPanel.Message("Already at the end of the file.");
+                            break;
                         }
 
-                        long? t = Utils.GetNumberFromUser("Goto:");
+                        long t = Utils.GetNumberFromUser("Goto:");
 
-                        if (t == null)
+                        if (t == -1)
                         {
                             MainPanel.Update();
-                            Message("Canceled.");
-                            return;
+                            InfoPanel.Message("Canceled.");
+                            break;
                         }
 
-                        if (t >= 0 && t <= CurrentFileInfo.Length - MainPanel.BytesOnScreen)
+                        if (t >= 0 && t <= CurrentFile.Length - MainPanel.BytesOnScreen)
                         {
-                            Goto((long)t);
+                            Goto(t);
                         }
                         else
                         {
                             MainPanel.Update();
-                            Message("Position out of bound!");
+                            InfoPanel.Message("Position out of bound!");
                         }
                     }
-                    return;
+                    break;
 
                 // Offset base
                 case ConsoleKey.O:
@@ -566,47 +341,47 @@ namespace _0xdd
 
                         if (c == null || c.Length < 1)
                         {
+                            InfoPanel.Message("Canceled.");
                             MainPanel.Update();
-                            Message("Canceled.");
-                            return;
+                            break;
                         }
 
                         switch (c[0])
                         {
                             case 'H': case 'h':
-                                CurrentOffsetView = OffsetView.Hexadecimal;
+                                CurrentOffsetView = OffsetView.Hex;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                return;
+                                break;
 
                             case 'O': case 'o':
-                                CurrentOffsetView = OffsetView.Octal;
+                                CurrentOffsetView = OffsetView.Oct;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                return;
+                                break;
 
                             case 'D': case 'd':
-                                CurrentOffsetView = OffsetView.Decimal;
+                                CurrentOffsetView = OffsetView.Dec;
                                 OffsetPanel.Update();
                                 MainPanel.Update();
                                 InfoPanel.Update();
-                                return;
+                                break;
 
                             default:
-                                Message("Invalid view mode!");
+                                InfoPanel.Message("Invalid view mode!");
                                 MainPanel.Update();
-                                return;
+                                break;
                         }
                     }
-                    return;
+                    break;
 
                 // Edit mode
                 case ConsoleKey.E:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        Message("Not implemented. Sorry!");
+                        InfoPanel.Message("Not implemented. Sorry!");
                     }
                     break;
 
@@ -614,93 +389,93 @@ namespace _0xdd
                 case ConsoleKey.H:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        Message("Not implemented. Sorry!");
+                        InfoPanel.Message("Not implemented. Sorry!");
                     }
-                    return;
+                    break;
 
                 // Info
                 case ConsoleKey.I:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        Message($"{Utils.GetEntryInfo(CurrentFileInfo)}  {Utils.FormatSize(CurrentFileInfo.Length)}");
+                        InfoPanel.Message($"{Utils.GetEntryInfo(CurrentFile)} {Utils.FormatSize(CurrentFile.Length)}");
                     }
-                    return;
+                    break;
 
                 // Exit
                 case ConsoleKey.X:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        pUserResponse.Code = ErrorCode.Exit;
-                        Exit();
+                        LastError = ErrorCode.Success;
+                        return Exit();
                     }
-                    return;
+                    break;
 
                 // Dump
                 case ConsoleKey.D:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        Message("Dumping...");
+                        InfoPanel.Message("Dumping...");
                         Dump();
-                        Message("Dumping done!");
+                        InfoPanel.Message("Dumping done!");
                     }
-                    return;
+                    break;
 
                 // -- Data nagivation --
                 case ConsoleKey.LeftArrow:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position -
-                                (CurrentFileStream.Position % Setting.BytesInRow));
+                                (CurrentFileStream.Position % BytesPerRow));
                         }
                         else if (CurrentFileStream.Position - 1 >= 0)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position - 1);
                         }
-                    return;
+                    break;
                 case ConsoleKey.RightArrow:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
                             long NewPos = CurrentFileStream.Position +
-                                (Setting.BytesInRow - CurrentFileStream.Position % Setting.BytesInRow);
+                                (BytesPerRow - CurrentFileStream.Position % BytesPerRow);
 
-                            if (NewPos + MainPanel.BytesOnScreen <= CurrentFileInfo.Length)
+                            if (NewPos + MainPanel.BytesOnScreen <= CurrentFile.Length)
                                 ReadFileAndUpdate(NewPos);
                             else
-                                ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
+                                ReadFileAndUpdate(CurrentFile.Length - MainPanel.BytesOnScreen);
                         }
-                        else if (CurrentFileStream.Position + MainPanel.BytesOnScreen + 1 <= CurrentFileInfo.Length)
+                        else if (CurrentFileStream.Position + MainPanel.BytesOnScreen + 1 <= CurrentFile.Length)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position + 1);
                         }
-                    return;
+                    break;
 
                 case ConsoleKey.UpArrow:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
-                        if (CurrentFileStream.Position - Setting.BytesInRow >= 0)
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
+                        if (CurrentFileStream.Position - BytesPerRow >= 0)
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position - Setting.BytesInRow);
+                            ReadFileAndUpdate(CurrentFileStream.Position - BytesPerRow);
                         }
                         else
                         {
                             ReadFileAndUpdate(0);
                         }
-                    return;
+                    break;
                 case ConsoleKey.DownArrow:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
-                        if (CurrentFileStream.Position + MainPanel.BytesOnScreen + Setting.BytesInRow <= CurrentFileInfo.Length)
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
+                        if (CurrentFileStream.Position + MainPanel.BytesOnScreen + BytesPerRow <= CurrentFile.Length)
                         {
-                            ReadFileAndUpdate(CurrentFileStream.Position + Setting.BytesInRow);
+                            ReadFileAndUpdate(CurrentFileStream.Position + BytesPerRow);
                         }
                         else
                         {
-                            ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
+                            ReadFileAndUpdate(CurrentFile.Length - MainPanel.BytesOnScreen);
                         }
-                    return;
+                    break;
 
                 case ConsoleKey.PageUp:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
                         if (CurrentFileStream.Position - MainPanel.BytesOnScreen >= 0)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position - MainPanel.BytesOnScreen);
@@ -709,28 +484,30 @@ namespace _0xdd
                         {
                             ReadFileAndUpdate(0);
                         }
-                    return;
+                    break;
                 case ConsoleKey.PageDown:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
-                        if (CurrentFileStream.Position + (MainPanel.BytesOnScreen * 2) <= CurrentFileInfo.Length)
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
+                        if (CurrentFileStream.Position + (MainPanel.BytesOnScreen * 2) <= CurrentFile.Length)
                         {
                             ReadFileAndUpdate(CurrentFileStream.Position += MainPanel.BytesOnScreen);
                         }
                         else
                         {
-                            ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
+                            ReadFileAndUpdate(CurrentFile.Length - MainPanel.BytesOnScreen);
                         }
-                    return;
+                    break;
 
                 case ConsoleKey.Home:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
                         ReadFileAndUpdate(0);
-                    return;
+                    break;
                 case ConsoleKey.End:
-                    if (MainPanel.BytesOnScreen < CurrentFileInfo.Length)
-                        ReadFileAndUpdate(CurrentFileInfo.Length - MainPanel.BytesOnScreen);
-                    return;
+                    if (MainPanel.BytesOnScreen < CurrentFile.Length)
+                        ReadFileAndUpdate(CurrentFile.Length - MainPanel.BytesOnScreen);
+                    break;
             }
+
+            return true;
         }
 
         /// <summary>
@@ -738,139 +515,48 @@ namespace _0xdd
         /// Initialize: AutoSizing, Buffer, TitlePanel, Readfile, MainPanel,
         /// InfoPanel, and ControlPanel.
         /// </summary>
-        /// <remarks>
-        /// Also used when resizing.
-        /// </remarks>
+        /// <remarks>Also used when resizing.</remarks>
         static void PrepareScreen()
         {
-            if (AutoSize)
-                Setting.BytesInRow = Utils.GetBytesInRow();
+            if (BytesPerRow <= 0)
+                BytesPerRow = Utils.GetBytesInRow();
 
-            switch (CurrentEntryType)
-            {
-                case EntryType.File:
-                    DisplayBuffer = new byte[CurrentFileInfo.Length < MainPanel.BytesOnScreen ?
-                        CurrentFileInfo.Length : MainPanel.BytesOnScreen];
-                    break;
-                case EntryType.Process:
-                    DisplayBuffer = new byte[500]; // temp
-                    break;
-            }
+            DisplayBuffer = new byte[
+                    CurrentFile.Length < MainPanel.BytesOnScreen ?
+                    CurrentFile.Length : MainPanel.BytesOnScreen
+                ];
 
-            TitlePanel.Update();
-            switch (CurrentEntryType)
-            {
-                case EntryType.File:
-                    ReadFileAndUpdate(CurrentFileStream.Position);
-                    break;
-                case EntryType.Process:
-                    ReadFileAndUpdate(0); // temp
-                    break;
-            }
-            ControlPanel.Place();
+            MenuBarPanel.Initialize();
+
+            if (CurrentFile.Length > 0)
+            ReadFileAndUpdate(CurrentFileStream.Position);
         }
-
-        //temp
+        
         #region Read file
         /// <summary>
-        /// Read the current file at a position.
+        /// Read file, update MainPanel, then update InfoPanel.
         /// </summary>
-        /// <param name="pBasePosition">Position.</param>
-        
-        static void ReadCurrentFile(long pBasePosition)
+        /// <param name="position">New position.</param>
+        static void ReadFileAndUpdate(long position)
         {
-            switch (CurrentEntryType)
-            {
-                case EntryType.File:
-                    CurrentFileStream.Position = pBasePosition;
-                    CurrentFileStream.Read(DisplayBuffer, 0, DisplayBuffer.Length);
-                    CurrentFileStream.Position = pBasePosition;
-                    break;
-                case EntryType.Process:
-                    Debug.WriteLine("handle: 0x" + CurrentProcessHandle.ToInt64().ToString("X8"));
-                    Debug.WriteLine("Buffer length: " + DisplayBuffer.Length);
-
-#warning: ReadCurrentFile - Process
-                    bool last = false;
-                    SYSTEM_INFO s = new SYSTEM_INFO();
-                    kernel32.GetSystemInfo(out s);
-
-                    IntPtr minp = s.MinimumApplicationAddress;
-
-                    long min = s.MinimumApplicationAddress.ToInt64();
-                    long max = s.MaximumApplicationAddress.ToInt64();
-
-                    MEMORY_BASIC_INFORMATION mem = new MEMORY_BASIC_INFORMATION();
-                    
-                    int read = 0;
-
-                    /*while (min < max)
-                    {
-                        // 28 = sizeof(MEMORY_BASIC_INFORMATION)
-                        kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
-
-                        Debug.WriteLine("memprotect: " + mem.Protect + " | memstate: " + mem.State);
-
-                        if (mem.Protect == kernel32.PAGE_READWRITE && mem.State == kernel32.MEM_COMMIT) // or overwrite to true
-                        {
-                            //byte[] _buffer = new byte[mem.RegionSize]; // OutOfMemoryException
-
-                            //Debug.WriteLine("_buffer size: " + _buffer.Length);
-                                                                                                             // mem.RegionSize
-                            kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), mem.BaseAddress, Buffer, Buffer.Length, ref read);
-                            
-                            //for (int i = 0; i < mem.RegionSize && i < Buffer.Length; i++)
-                                //Buffer[i] = _buffer[i];
-                        }
-
-                        min += mem.RegionSize;
-                        minp = new IntPtr(min);
-                    }*/
-
-                    /*TODO: Process memory navigation
-                     * How it will go down *
-                    - Memory regions
-                      - Get all pointers in a list? (lpBaseAddress)
-                      - make TUI for list?
-                    - Put
-                      mem.Protect == kernel32.PAGE_READWRITE && mem.State == kernel32.MEM_COMMIT
-                      in there?
-                    - Fill 0s if read is 0?
-                    - VirtualQueryEx: 28 or sizeof(MEMORY_BASIC_INFORMATION)? 28
-                     */
-
-                    int regions = 0;
-                    while (min < max) // temporary/working
-                    {
-                        kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
-                            kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(),
-                            mem.BaseAddress + (int)pBasePosition, DisplayBuffer, DisplayBuffer.Length, ref read);
-                        min += mem.RegionSize;
-                        minp = new IntPtr(min);
-                        Debug.WriteLine($"Region #{++regions}, read: {read} bytes");
-                    }
-
-                    Debug.WriteLine($"Regions: {regions}");
-
-                    //kernel32.VirtualQueryEx(CurrentProcessHandle, minp, out mem, 28);
-                    //kernel32.ReadProcessMemory(CurrentProcessHandle.ToInt32(), mem.BaseAddress + (int)pBasePosition, Buffer, Buffer.Length, ref read);
-                    
-                    break;
-            }
-        }
-
-        /// <summary>
-        /// 1. Read file. 2. Update MainPanel. 3. Update InfoPanel
-        /// </summary>
-        /// <param name="pPosition">New position.</param>
-        static void ReadFileAndUpdate(long pPosition)
-        {
-            ReadCurrentFile(pPosition);
+            ReadCurrentFile(position);
             MainPanel.Update();
             InfoPanel.Update();
         }
+
+        /// <summary>
+        /// Read the current file at a position.
+        /// </summary>
+        /// <param name="position">Position.</param>
+        static void ReadCurrentFile(long position)
+        {
+            CurrentFileStream.Position = position;
+            CurrentFileStream.Read(DisplayBuffer, 0, DisplayBuffer.Length);
+            CurrentFileStream.Position = position;
+        }
         #endregion
 
+        #region Goto
         /// <summary>
         /// Go to a specific position in the file.
         /// </summary>
@@ -879,40 +565,7 @@ namespace _0xdd
         {
             ReadFileAndUpdate(pPosition);
         }
-        
-        /// <summary>
-        /// Displays a message on screen to inform the user.
-        /// </summary>
-        /// <param name="pMessage">Message to show.</param>
-        static void Message(string pMessage)
-        {
-            Console.SetCursorPosition(0, InfoPanel.StartPosition);
-            Console.Write(s(Console.WindowWidth - 1));
-
-            string msg = $"[ {pMessage} ]";
-            Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2),
-                InfoPanel.StartPosition);
-
-            Utils.ToggleColors();
-            Console.Write(msg);
-            Console.ResetColor();
-        }
-
-        /// <summary>
-        /// Toggle fullscreen mode.
-        /// </summary>
-        static void ToggleFullscreenMode()
-        {
-            FullscreenMode = !FullscreenMode;
-
-            PrepareScreen();
-
-            if (FullscreenMode)
-            {
-                MainPanel.Update();
-                InfoPanel.Update();
-            }
-        }
+        #endregion
 
         #region Dump
         /// <summary>
@@ -922,7 +575,7 @@ namespace _0xdd
         /// <returns><see cref="ErrorCode"/></returns>
         static ErrorCode Dump()
         {
-            return Dump(CurrentFileInfo.Name, Setting.BytesInRow, CurrentOffsetView);
+            return Dump(CurrentFile.Name, BytesPerRow, CurrentOffsetView);
         }
 
         /// <summary>
@@ -932,7 +585,7 @@ namespace _0xdd
         /// <param name="pBytesInRow">Number of bytes in a row.</param>
         /// <param name="pViewMode"><see cref="OffsetView"/> to use.</param>
         /// <returns><see cref="ErrorCode"/></returns>
-        static public ErrorCode Dump(string pFileToDump, int pBytesInRow = 16, OffsetView pViewMode = OffsetView.Hexadecimal)
+        static public ErrorCode Dump(string pFileToDump, int pBytesInRow = 16, OffsetView pViewMode = OffsetView.Hex)
         {
             if (!File.Exists(pFileToDump))
                 return ErrorCode.FileNotFound;
@@ -967,7 +620,7 @@ namespace _0xdd
                 }
                 sw.WriteLine();
                 
-                if (CurrentFileInfo == null)
+                if (CurrentFile == null)
                     return DumpFile(f.Open(FileMode.Open), sw, pViewMode, pBytesInRow);
                 else
                     return DumpFile(CurrentFileStream, sw, pViewMode, pBytesInRow);
@@ -998,15 +651,15 @@ namespace _0xdd
             {
                 switch (pViewMode)
                 {
-                    case OffsetView.Hexadecimal:
+                    case OffsetView.Hex:
                         t = $"{line:X8}  ";
                         break;
 
-                    case OffsetView.Decimal:
+                    case OffsetView.Dec:
                         t = $"{line:D8}  ";
                         break;
 
-                    case OffsetView.Octal:
+                    case OffsetView.Oct:
                         t = $"{ToOct(line)}  ";
                         break;
                 }
@@ -1050,148 +703,6 @@ namespace _0xdd
         }
         #endregion
 
-        #region Find
-        /// <summary>
-        /// Find a byte starting at the current position.
-        /// </summary>
-        /// <param name="pData">Data.</param>
-        /// <returns>Positon, if found.</returns>
-        static FindResult Find(byte pData)
-        {
-           return Find(pData, CurrentFileStream.Position);
-        }
-
-        /// <summary>
-        /// Find a byte at a specific position.
-        /// </summary>
-        /// <param name="pData">Data.</param>
-        /// <param name="pPosition">Positon to start searching from.</param>
-        /// <returns>Positon, if found.</returns>
-        static FindResult Find(byte pData, long pPosition)
-        {
-            if (pPosition < 0 || pPosition > CurrentFileInfo.Length)
-                return new FindResult(ErrorCode.PositionOutOfBound);
-
-            if (!CurrentFileInfo.Exists)
-                return new FindResult(ErrorCode.FileNotFound);
-            
-            CurrentFileStream.Position = pPosition;
-
-            bool Continue = true;
-            while (Continue)
-            {
-                if (pData == (byte)CurrentFileStream.ReadByte())
-                    return new FindResult(CurrentFileStream.Position);
-
-                if (CurrentFileStream.Position >= CurrentFileStream.Length)
-                    Continue = false;
-            }
-
-            // If not found, place the position back it was before
-            CurrentFileStream.Position = pPosition;
-
-            return new FindResult(ErrorCode.FindNoResult);
-        }
-
-        /// <summary>
-        /// Find a string of data.
-        /// </summary>
-        /// <param name="pData">Data as a string.</param>
-        /// <returns><see cref="FindResult"/></returns>
-        static FindResult FindData(string pData)
-        {
-            return FindData(pData, CurrentFileStream.Position);
-        }
-
-        /// <summary>
-        /// Find a string of data with a given position.
-        /// </summary>
-        /// <param name="pData">Data as a string.</param>
-        /// <param name="pPosition">Starting position.</param>
-        /// <returns><see cref="FindResult"/></returns>
-        /// <remarks>
-        /// How does this work?
-        /// Search every character, if the first one seems to be right,
-        /// read the data and compare it.
-        /// </remarks>
-        static FindResult FindData(string pData, long pPosition)
-        {
-            if (pPosition < 0 || pPosition > CurrentFileInfo.Length)
-                return new FindResult(ErrorCode.PositionOutOfBound);
-
-            if (!CurrentFileInfo.Exists)
-                return new FindResult(ErrorCode.FileNotFound);
-
-            if (string.IsNullOrWhiteSpace(pData))
-                return new FindResult(ErrorCode.FindEmptyString);
-
-            CurrentFileStream.Position = pPosition;
-
-            byte[] b = new byte[pData.Length];
-            bool Continue = true;
-            if (pData.StartsWith("/") && pData.EndsWith("/"))
-            {
-                RegexOptions rf = RegexOptions.Compiled | RegexOptions.ECMAScript | RegexOptions.CultureInvariant;
-
-                Regex r = new Regex(pData.Trim(new char[] { '/' }), rf);
-
-                Message("Searching with regex...");
-
-                while (Continue)
-                {
-                    if (CurrentFileStream.Position + pData.Length > CurrentFileStream.Length)
-                        Continue = false;
-
-                    if (r.IsMatch(char.ToString((char)CurrentFileStream.ReadByte())))
-                    {
-                        if (pData.Length == 1)
-                        {
-                            return new FindResult(CurrentFileStream.Position - 1);
-                        }
-                        else
-                        {
-                            CurrentFileStream.Position--;
-                            CurrentFileStream.Read(b, 0, b.Length);
-                            if (r.IsMatch(Encoding.ASCII.GetString(b)))
-                            {
-                                return new FindResult(CurrentFileStream.Position - pData.Length);
-                            }
-                        }
-                    }
-                }
-            }
-            else // Copying pasting is good
-            {
-                while (Continue)
-                {
-                    if (CurrentFileStream.Position + pData.Length > CurrentFileStream.Length)
-                        Continue = false;
-
-                    if (pData[0] == (char)CurrentFileStream.ReadByte())
-                    {
-                        if (pData.Length == 1)
-                        {
-                            return new FindResult(CurrentFileStream.Position - 1);
-                        }
-                        else
-                        {
-                            CurrentFileStream.Position--;
-                            CurrentFileStream.Read(b, 0, b.Length);
-                            if (pData == Encoding.ASCII.GetString(b))
-                            {
-                                return new FindResult(CurrentFileStream.Position - pData.Length);
-                            }
-                        }
-                    }
-                }
-            }
-
-            CurrentFileStream.Position = pPosition - 1;
-
-            return new FindResult(ErrorCode.FindNoResult);
-        }
-        #endregion
-
         #region Exit
         /// <summary>
         /// When the user exits the program.
@@ -1202,8 +713,12 @@ namespace _0xdd
         /// </remarks>
         static bool Exit()
         {
-            Console.Clear();
+            //Console.Clear();
 
+            Console.SetCursorPosition(
+                Console.WindowWidth - 1,
+                Console.WindowHeight - 1
+            );
             Console.CursorVisible = true;
 
             return false;
@@ -1211,334 +726,13 @@ namespace _0xdd
         #endregion
         #endregion
 
-        #region Panels
-        #region TitlePanel
-        /// <summary>
-        /// Filename
-        /// </summary>
-        static class TitlePanel
-        {
-            static internal void Update()
-            {
-                Utils.ToggleColors();
-
-                Console.SetCursorPosition(0, 0);
-
-                string name = string.Empty;
-
-                switch (CurrentEntryType)
-                {
-                    case EntryType.File:
-                        name = CurrentFileInfo.Name;
-                        break;
-                    case EntryType.Process:
-                        name = CurrentProcess.ProcessName;
-                        break;
-                }
-
-                if (name.Length <= Console.WindowWidth)
-                {
-                    Console.Write(name + s(Console.WindowWidth - name.Length));
-                }
-                else
-                    Console.Write(name.Substring(0, Console.WindowWidth));
-
-                Console.ResetColor();
-            }
-        }
-        #endregion
-
-        #region OffsetPanel
-        /// <summary>
-        /// Shows offset base view and the offset on each byte.
-        /// </summary>
-        static class OffsetPanel
-        {
-            static internal int Position = 1;
-
-            /// <summary>
-            /// Update the offset map
-            /// </summary>
-            static internal void Update()
-            {
-                StringBuilder t = new StringBuilder($"Offset {CurrentOffsetView.GetChar()}  ");
-                
-                switch (CurrentEntryType)
-                {
-                    case EntryType.File:
-                        if (CurrentFileStream.Position > uint.MaxValue)
-                            t.Append(" ");
-                        break;
-                    case EntryType.Process:
-                        break;
-                }
-
-                for (int i = 0; i < Setting.BytesInRow; ++i)
-                {
-                    t.Append($"{i:X2} ");
-                }
-
-                if (LastWindowHeight != Console.WindowHeight ||
-                    LastWindowWidth != Console.WindowWidth)
-                    t.Append(s(Console.WindowWidth - t.Length - 1)); // Force clean
-
-                Console.SetCursorPosition(0, Position);
-                Console.Write(t.ToString());
-            }
-        }
-        #endregion
-
-        #region MainPanel
-        /// <summary>
-        /// Main panel which represents the offset, data as bytes,
-        /// and data as ASCII characters.
-        /// </summary>
-        internal static class MainPanel
-        {
-            /// <summary>
-            /// Current cursor position for Edit mode. [x,y]
-            /// </summary>
-            //TODO: Decide on type for CursorPosition (v0.9)
-            //static internal int[,] CursorPosition;
-
-            /// <summary>
-            /// Gets the position to start rendering on the console (Y axis).
-            /// </summary>
-            static internal int StartPosition
-            {
-                get
-                {
-                    return FullscreenMode ? 1 : 2;
-                }
-            }
-
-            /// <summary>
-            /// Gets the heigth of the main panel.
-            /// </summary>
-            static internal int FrameHeight
-            {
-                get
-                {
-                    return FullscreenMode ?
-                        Console.WindowHeight - 2 : Console.WindowHeight - 5;
-                }
-            }
-
-            /// <summary>
-            /// Gets the number of elements which can be shown in the main panel.
-            /// </summary>
-            static internal int BytesOnScreen
-            {
-                get
-                {
-                    return FrameHeight * Setting.BytesInRow;
-                }
-            }
-
-            /// <summary>
-            /// Update from Buffer.
-            /// </summary>
-            static internal void Update()
-            {
-                int fh = FrameHeight;
-
-                int width = Console.WindowWidth;
-
-                long len = 0; // File/Process size
-                long pos = 0; // File/Process position
-                switch (CurrentEntryType)
-                {
-                    case EntryType.File:
-                        pos = CurrentFileStream.Position;
-                        len = CurrentFileInfo.Length;
-                        break;
-                    case EntryType.Process:
-                        pos = 0; //TODO: Position (process)
-                        len = DisplayBuffer.Length;
-                        break;
-                }
-                
-                OffsetPanel.Update();
-
-                int d = 0;
-                StringBuilder line = new StringBuilder();
-                StringBuilder ascii = new StringBuilder();
-                Console.SetCursorPosition(0, StartPosition);
-                for (int lineIndex = 0; lineIndex < fh; lineIndex++)
-                {
-                    switch (CurrentOffsetView)
-                    {
-                        case OffsetView.Hexadecimal:
-                            line = new StringBuilder($"{(lineIndex * Setting.BytesInRow) + pos:X8}  ", width);
-                            break;
-
-                        case OffsetView.Decimal:
-                            line = new StringBuilder($"{(lineIndex * Setting.BytesInRow) + pos:D8}  ", width);
-                            break;
-
-                        case OffsetView.Octal:
-                            line = new StringBuilder($"{ToOct((lineIndex * Setting.BytesInRow) + pos)}  ", width);
-                            break;
-                    }
-
-                    ascii = new StringBuilder(Setting.BytesInRow);
-                    // d = data (hex) index
-                    for (int i = 0; i < Setting.BytesInRow; ++i, ++d)
-                    {
-                        if (pos + d < len)
-                        {
-                            line.Append($"{DisplayBuffer[d]:X2} ");
-                            ascii.Append(DisplayBuffer[d].ToAscii());
-                        }
-                        else
-                        {
-                            line.Append(ascii.ToString());
-                            //TODO: Fill (test)
-                            line.Append(new string(' ', Setting.BytesInRow * 3));
-                            Console.Write(line.ToString());
-                            return;
-                        }
-                    }
-
-                    line.Append(" "); // over 0xFFFFFFFF padding
-
-                    if (Setting.ShowWalls)
-                        line.Append(Setting.WallCharStart);
-
-                    line.Append(ascii.ToString());
-
-                    if (Setting.ShowWalls)
-                        line.Append(Setting.WallCharEnd);
-                    
-                    Console.WriteLine(line.ToString());
-                }
-            }
-        }
-        #endregion
-
-        #region Settings
-        static class Setting
-        {
-            public static int BytesInRow = 16;
-
-            public static char OutOfAsciiChar = '.';
-            public static bool ShowWalls = false;
-            public static char WallCharStart = '\0';
-            public static char WallCharEnd = '\0';
-        }
-        #endregion
-
-        #region InfoPanel
-        /// <summary>
-        /// Current position information.
-        /// </summary>
-        static class InfoPanel
-        {
-            /// <summary>
-            /// Starting position to rendering on the console (Y axis).
-            /// </summary>
-            static internal int StartPosition
-            {
-                get
-                {
-                    return FullscreenMode ?
-                        Console.WindowHeight - 1 : Console.WindowHeight - 3;
-                }
-            }
-
-            /// <summary>
-            /// Update the offset information
-            /// </summary>
-            static internal void Update()
-            {
-                long pos = 0;
-                decimal r = 0;
-
-                switch (CurrentEntryType)
-                {
-                    case EntryType.File:
-                        pos = CurrentFileStream.Position;
-                        r = CurrentFileInfo.Length > 0 ?
-                            Math.Round(
-                                ((decimal)(pos + DisplayBuffer.Length) / CurrentFileInfo.Length) * 100) :
-                                0;
-                        break;
-                    case EntryType.Process:
-
-                        break;
-                }
-
-                string t =
-                    $"  DEC={pos:D8} | HEX={pos:X8} | OCT={ToOct(pos)} | POS={r,3}%";
-
-                Console.SetCursorPosition(0, StartPosition);
-                Console.Write(t); // Force-clear any messages
-            }
-        }
-        #endregion
-
-        #region ControlPanel
-        /// <summary>
-        /// Panel that shows keyboard shortcuts.
-        /// </summary>
-        static class ControlPanel
-        {
-            public static int TitleLength = 12;
-
-            /// <summary>
-            /// Places the control map on screen (e.g. ^T Try jumping and etc.)
-            /// </summary>
-            static internal void Place()
-            {
-                int width = Console.WindowWidth;
-
-                Console.SetCursorPosition(0, Console.WindowHeight - 2);
-                if (width >= TitleLength)     PlaceShortcut('W', "Find byte");
-                if (width >= TitleLength * 2) PlaceShortcut('J', "Find data");
-                if (width >= TitleLength * 3) PlaceShortcut('G', "Goto");
-                if (width >= TitleLength * 4) PlaceShortcut('H', "Replace");
-                Console.SetCursorPosition(0, Console.WindowHeight - 1);
-                if (width >= TitleLength)     PlaceShortcut('X', "Exit");
-                if (width >= TitleLength * 2) PlaceShortcut('O', "Offset base");
-                if (width >= TitleLength * 3) PlaceShortcut('I', "Info");
-                if (width >= TitleLength * 4) PlaceShortcut('D', "Dump");
-                if (width >= TitleLength * 5) PlaceShortcut('E', "Edit mode");
-            }
-
-            /// <summary>
-            /// Write out a shortcut and its short description
-            /// </summary>
-            /// <param name="pShortcutKey">Shortcut (^D)</param>
-            /// <param name="pTitle">Display name.</param>
-            static void PlaceShortcut(char pShortcutKey, string pTitle)
-            {
-                Utils.ToggleColors();
-                Console.Write("^" + pShortcutKey);
-                Console.ResetColor();
-
-                if (pTitle.Length > TitleLength)
-                    Console.Write(" " + pTitle.Substring(0, TitleLength - 1));
-                else
-                    Console.Write(" " + pTitle.PadRight(TitleLength));
-            }
-        }
-        #endregion
-        #endregion
-
         #region Type extensions
-        /// <summary>
-        /// Generate a string with spaces with a desired length.
-        /// </summary>
-        /// <param name="l">Length</param>
-        /// <returns>String</returns>
-        static string s(this int l) => new string(' ', l);
-
         /// <summary>
         /// Converts into an octal number.
         /// </summary>
         /// <param name="l">Number.</param>
         /// <returns>String.</returns>
-        static string ToOct(this long l) => Convert.ToString(l, 8).PadLeft(8, '0');
+        public static string ToOct(this long l) => Convert.ToString(l, 8).PadLeft(8, '0');
 
         /// <summary>
         /// Returns a printable character if found.<para/>
@@ -1546,7 +740,7 @@ namespace _0xdd
         /// </summary>
         /// <param name="b">Byte to transform.</param>
         /// <returns>ASCII character.</returns>
-        static char ToAscii(this byte b) => b < 0x20 || b > 0x7E ? Setting.OutOfAsciiChar : (char)b;
+        public static char ToAscii(this byte b) => b < 0x20 || b > 0x7E ? '.' : (char)b;
 
         /// <summary>
         /// Gets the character for the upper bar depending on the
@@ -1554,15 +748,15 @@ namespace _0xdd
         /// </summary>
         /// <param name="pView">This <see cref="OffsetView"/></param>
         /// <returns>Character.</returns>
-        static char GetChar(this OffsetView pView)
+        public static char GetChar(this OffsetView pView)
         {
             switch (pView)
             {
-                case OffsetView.Hexadecimal:
+                case OffsetView.Hex:
                     return 'h';
-                case OffsetView.Decimal:
+                case OffsetView.Dec:
                     return 'd';
-                case OffsetView.Octal:
+                case OffsetView.Oct:
                     return 'o';
                 default:
                     return '?'; // ??????????

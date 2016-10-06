@@ -1,65 +1,28 @@
 ﻿using System;
 using System.IO;
-using static System.Diagnostics.Process;
 using static System.Reflection.Assembly;
 
 namespace _0xdd
 {
-    class Program
+    static class Program
     {
         /// <summary>
         /// Get the current version of the project as a string object.
         /// </summary>
-        static string Version
-        {
-            get
-            {
-                return $"{GetExecutingAssembly().GetName().Version}";
-            }
-        }
+        public static string Version => GetExecutingAssembly().GetName().Version.ToString();
 
         /// <summary>
         /// Get the project's name.
         /// </summary>
-        static string ProjectName
-        {
-            get
-            {
-                return GetExecutingAssembly().GetName().Name;
-            }
-        }
-        
-        /// <summary>
-        /// Get the current executable's filename.
-        /// </summary>
-        static string ExecutableFilename
-        {
-            get
-            {
-                return
-                    Path.GetFileName(
-                        GetCurrentProcess().MainModule.FileName
-                    );
-            }
-        }
+        public static string ProjectName => GetExecutingAssembly().GetName().Name;
         
         static int Main(string[] args)
         {
 #if DEBUG
             // Used for debugging within Visual Studio (vshost)
-            //args = new string[] { ExecutableFilename };
-            //args = new string[] { "f" };
-            //args = new string[] { "fff" };
-            //args = new string[] { "b" };
-            //args = new string[] { "tt" };
-            //args = new string[] { "/dump", "tt" };
-            args = new string[] { "hf.iso" };
-            //args = new string[] { "/w", "16", "hf.iso" };
-            //args = new string[] { "-dump", "tt" };
-            //args = new string[] {  "/dump", "gg.txt" };
-            //args = new string[] { "/w", "a", "gg.txt" };
+            args = new string[] { "image.jpg" };
+            //args = new string[] { "test.txt" };
             //args = new string[] { "zero" };
-            //args = new string[] { "/p", "#2936" };
 #endif
 
             if (args.Length == 0)
@@ -72,33 +35,33 @@ namespace _0xdd
             
             // Defaults
             string entry = args[args.Length - 1];
-            int row = 0; // Default: Auto
-            OffsetView ovm = OffsetView.Hexadecimal;
-            bool dump = false;
-            bool process = false;
-            //bool memory = false;
 
-            //TODO: Settings! (v0.8)
+            _0xdd.BytesPerRow = 0;
+
+            int row = 0; // Default: Auto
+            
+            OffsetView ovm = OffsetView.Hex;
+            bool dump = false;
 
             for (int i = 0; i < args.Length; i++)
             {
                 switch (args[i])
                 {
-                    case "-v":
-                    case "/v":
+                    case "-V":
+                    case "/V":
                         switch (args[i + 1][0])
                         {
                             case 'h': case 'H':
-                                ovm = OffsetView.Hexadecimal;
+                                ovm = OffsetView.Hex;
                                 break;
                             case 'd': case 'D':
-                                ovm = OffsetView.Decimal;
+                                ovm = OffsetView.Dec;
                                 break;
                             case 'o': case 'O':
-                                ovm = OffsetView.Octal;
+                                ovm = OffsetView.Oct;
                                 break;
                             default:
-                                Console.WriteLine(gerrcs(ErrorCode.CLI_InvalidOffsetView, args[i + 1]));
+                                Console.WriteLine(GetMessage(ErrorCode.CLI_InvalidOffsetView, args[i + 1]));
 #if DEBUG
                                 Console.ReadLine();
 #endif
@@ -114,20 +77,12 @@ namespace _0xdd
                         }
                         else if (!int.TryParse(args[i + 1], out row))
                         {
-                            Console.WriteLine(gerrcs(ErrorCode.CLI_InvalidWidth, args[i + 1]));
+                            Console.WriteLine(GetMessage(ErrorCode.CLI_InvalidWidth, args[i + 1]));
 #if DEBUG
                             Console.ReadLine();
 #endif
                             return ErrorCode.CLI_InvalidWidth.Code();
                         }
-                        break;
-
-                    case "/p":
-                        process = true;
-                        break;
-
-                    case "/mem":
-                        //memory = true;
                         break;
 
                     case "-dump":
@@ -136,12 +91,14 @@ namespace _0xdd
                         break;
 
                     case "/?":
+                    case "-h":
                     case "/help":
                     case "-help":
                     case "--help":
                         ShowHelp();
                         return 0;
 
+                    case "-v":
                     case "/ver":
                     case "-ver":
                     case "/version":
@@ -156,7 +113,7 @@ namespace _0xdd
                 Console.Write("Dumping file... ");
                 ErrorCode err = _0xdd.Dump(entry, row, ovm);
                 
-                Console.WriteLine(gerrcs(err));
+                Console.WriteLine(GetMessage(err));
 
                 return err.Code();
             }
@@ -165,10 +122,9 @@ namespace _0xdd
 #if DEBUG
                 // I want Visual Studio to catch the exceptions!
                 ErrorCode r = ErrorCode.Success;
-                if (process)
-                    r = _0xdd.OpenProcess(entry, ovm, row);
-                else
-                    r = _0xdd.OpenFile(entry, ovm, row);
+
+                r = _0xdd.OpenFile(entry, ovm, row);
+
                 Console.Clear();
                 Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Code():X2}");
                 Console.ReadKey();
@@ -176,17 +132,12 @@ namespace _0xdd
 #else
                 try
                 {
-                    ErrorCode err = ErrorCode.Success;
+                    _0xdd.OpenFile(entry, ovm, row);
 
-                    if (process)
-                        err = _0xdd.OpenProcess(entry, ovm, row);
-                    else
-                        err = _0xdd.OpenFile(entry, ovm, row);
+                    if (_0xdd.LastError != ErrorCode.Success)
+                        Console.WriteLine(_0xdd.LastError.GetMessage());
 
-                    if (err != ErrorCode.Success && err != ErrorCode.Exit)
-                        Console.WriteLine(gerrcs(err));
-
-                    return err.Code();
+                    return _0xdd.LastError.Code();
                 }
                 catch (Exception e)
                 {
@@ -203,14 +154,14 @@ namespace _0xdd
         /// <summary>
         /// Generate a line about the <see cref="ErrorCode"/>
         /// </summary>
-        /// <param name="pCode"><see cref="ErrorCode"/></param>
+        /// <param name="code"><see cref="ErrorCode"/></param>
         /// <returns><see cref="string"/></returns>
         /// <remarks> C syntax </remarks>
-        static string gerrcs(ErrorCode pCode, string pArgument = null)
+        static string GetMessage(this ErrorCode code, string arg = null)
         {
             string m = string.Empty;
 
-            switch (pCode)
+            switch (code)
             {
                 case ErrorCode.Success: return m = "OK!";
 
@@ -231,10 +182,10 @@ namespace _0xdd
                     break;
 
                 case ErrorCode.CLI_InvalidOffsetView:
-                    m += $"Invalid parameter for /v : {pArgument}";
+                    m += $"Invalid parameter for /v : {arg}";
                     break;
                 case ErrorCode.CLI_InvalidWidth:
-                    m += $"Invalid parameter for /w : {pArgument}";
+                    m += $"Invalid parameter for /w : {arg}";
                     break;
 
                 case ErrorCode.UnknownError:
@@ -250,7 +201,7 @@ namespace _0xdd
                     break;
             }
 
-            return m += $"\n ERROR: {pCode} - 0x{pCode.Code():X2}";
+            return m += $"\n ERROR: {code} - 0x{code.Code():X2}";
         }
 
         static void Abort(Exception e)
@@ -289,11 +240,11 @@ namespace _0xdd
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine(" Usage:");
-            Console.WriteLine("  0xdd [/v {h|d|o}] [/w {<Number>|auto}] [/dump] <File>");
+            Console.WriteLine("  0xdd [<Options>] <File>");
             Console.WriteLine();
-            Console.WriteLine("  /v      Start with an offset view: Hex, Dec, Oct.        Default: Hex");
-            Console.WriteLine("  /w      Start with a number of bytes to show in a row.   Default: Auto");
-            Console.WriteLine("  /dump   Dumps the data as <File>.hexdmp as plain text.");
+            Console.WriteLine("  /v      Specify starting offset view.        Default: Hex");
+            //Console.WriteLine("  /w      Specify bytes per row.   Default: Auto");
+            Console.WriteLine($"  /dump   Dumps the data to {_0xdd.EXTENSION} as plain text.");
             Console.WriteLine();
             Console.WriteLine("  /?         Shows this screen and exits.");
             Console.WriteLine("  /version   Shows version and exits.");
@@ -305,7 +256,7 @@ namespace _0xdd
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine();
             Console.WriteLine($"0xdd - {Version}");
-            Console.WriteLine("Copyright (c) 2015-2016 DD~!/guitarxhero");
+            Console.WriteLine("Copyright (c) 2015 guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
             Console.WriteLine("Project page: <https://github.com/guitarxhero/0xdd>");
             Console.WriteLine();
