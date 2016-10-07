@@ -110,9 +110,7 @@ namespace _0xdd
         public static bool AutoAdjust { get; set; }
         public static OffsetView OffsetView { get; set; }
         public static int BytesPerRow { get; set; }
-
-        static byte _lastByte;
-        static string _lastData;
+        
         static bool inApp = true;
 
         //public static byte BytePerGroup = 1;
@@ -197,7 +195,7 @@ namespace _0xdd
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         if (Stream.Position < File.Length - MainPanel.BytesOnScreen)
-                            WindowSystem.PromptFindByte(ref _lastByte);
+                            WindowSystem.PromptFindByte();
                         else
                             InfoPanel.Message("Already at the end.");
                     }
@@ -219,7 +217,7 @@ namespace _0xdd
                             break;
                         }
 
-                        WindowSystem.PromptSearchString(ref _lastData);
+                        WindowSystem.PromptSearchString();
                     }
                     break;
 

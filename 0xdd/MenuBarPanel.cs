@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 
+//TODO: Sub-sub-menu rendering.
+
 namespace _0xdd
 {
     static class MenuBarPanel
@@ -23,34 +25,50 @@ namespace _0xdd
                     new MenuItem("Exit", () => {
                         inMenu = false; _0xdd.Exit();
                     })
-                ),
+                ),/*
                 new MenuItem("Edit", null,
                     new MenuItem("Test")
-                ),
+                ),*/
                 new MenuItem("Search", null,
-                    new MenuItem("Test")
+                    new MenuItem("Find byte...", () => {
+                        Exit();
+                        WindowSystem.PromptFindByte();
+                    }),
+                    new MenuItem("Find string...", () => {
+                        Exit();
+                        WindowSystem.PromptSearchString();
+                    }),
+                    new MenuItem(),
+                    new MenuItem("Goto...", () => {
+                        Exit();
+                        WindowSystem.PromptGoto();
+                    })
                 ),
                 new MenuItem("View", null,
+                    new MenuItem("Offset view...", () => {
+                        Exit();
+                        WindowSystem.PromptOffset();
+                    })
+                ),/*
+                new MenuItem("Tools", null,
                     new MenuItem("Test")
-                ),
-                new MenuItem("Options", null,
-                    new MenuItem("Test")
-                ),
+                ),*/
                 new MenuItem("?", null,
                     new MenuItem("About", () => {
                         Exit();
                         WindowSystem.GenerateWindow(
                             title: "About",
-                            text: $"{Program.ProjectName}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
+                            text:
+$"{Program.ProjectName}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                             width: 40,
                             height: 6,
-                            center: true
+                            centerText: true
                         );
                     })
                 )
             };
 
-            // Make an array for each, arrays are REFERENCED.
+            // Make an array for each, remember that arrays are REFERENCED.
             _pos = new int[items.Length];
             _miw = new int[items.Length];
 
@@ -88,6 +106,13 @@ namespace _0xdd
         {
             Update();
             DrawSubMenu();
+
+            // Select new submenu item
+            MenuItem subitem = MenuItems[_x].Items[_y];
+            ToggleSelectionColor();
+            Console.SetCursorPosition(_pos[_x] + 1, _y + 2);
+            Console.Write($" {subitem.Text.PadRight(_miw[_x])} ");
+
             inMenu = true;
             while (inMenu)
                 Entry();
@@ -137,7 +162,11 @@ namespace _0xdd
                     break;
             }
 
-            Update();
+            // This if is there because when we call Exit() from the item's
+            // Action, the flow goes back to SelectItem, which then used to 
+            // call Update(). So this is a sanity check.
+            if (inMenu)
+                Update();
         }
 
         /// <summary>

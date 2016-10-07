@@ -17,10 +17,13 @@ namespace _0xdd
 
     static class WindowSystem
     {
+        static byte _lastByte;
+        static string _lastString;
+
         public static void GenerateWindow(
             int width = 27, int height = 12,
             string title = null, string text = null,
-            int left = -1, int top = -1, bool center = false)
+            int left = -1, int top = -1, bool centerText = false)
         {
             // Preparations
 
@@ -67,7 +70,7 @@ namespace _0xdd
                     for (int i = 0, y = top + 2; i < lines.Length; ++i, ++y)
                     {
                         Console.SetCursorPosition(left + 1, y);
-                        if (center)
+                        if (centerText)
                             Console.Write(lines[i].Center(width - 1));
                         else
                             Console.Write(lines[i]);
@@ -75,18 +78,20 @@ namespace _0xdd
                 }
                 else
                 {
-                    if (center)
+                    if (centerText)
                         Console.Write(text.Center(width - 1));
                     else
                         Console.Write(text);
                 }
             }
+
+            Console.ResetColor();
         }
 
-        public static void PromptFindByte(ref byte lastSuggestion)
+        public static void PromptFindByte()
         {
             long t = GetNumberFromUser("Find byte:",
-                suggestion: lastSuggestion.ToString("X2"));
+                suggestion: _lastByte.ToString("X2"));
 
             if (t == -1)
             {
@@ -105,7 +110,7 @@ namespace _0xdd
                 MainPanel.Update();
                 InfoPanel.Message("Searching...");
                 long p = Finder.FindByte(
-                    lastSuggestion = (byte)t,
+                    _lastByte = (byte)t,
                     _0xdd.Stream,
                     _0xdd.File,
                     _0xdd.Stream.Position + 1
@@ -141,11 +146,11 @@ namespace _0xdd
             }
         }
 
-        public static void PromptSearchString(ref string data)
+        public static void PromptSearchString()
         {
-            data = GetUserInput("Find data:", suggestion: data);
+            _lastString = GetUserInput("Find data:", suggestion: _lastString);
 
-            if (data == null || data.Length == 0)
+            if (_lastString == null || _lastString.Length == 0)
             {
                 MainPanel.Update();
                 InfoPanel.Message("Canceled.");
@@ -154,7 +159,7 @@ namespace _0xdd
 
             MainPanel.Update();
             InfoPanel.Message("Searching...");
-            long t = Finder.FindString(data, _0xdd.Stream, _0xdd.File, _0xdd.Stream.Position + 1);
+            long t = Finder.FindString(_lastString, _0xdd.Stream, _0xdd.File, _0xdd.Stream.Position + 1);
 
             switch (t)
             {
