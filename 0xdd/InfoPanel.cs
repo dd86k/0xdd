@@ -42,8 +42,8 @@ namespace _0xdd
         /// <summary>
         /// Displays a message on screen to inform the user.
         /// </summary>
-        /// <param name="pMessage">Message to show.</param>
-        public static void Message(string pMessage)
+        /// <param name="message">Message to show.</param>
+        public static void Message(string message)
         {
             if (_msg)
             {
@@ -51,7 +51,7 @@ namespace _0xdd
                 Console.Write(new string(' ', Console.WindowWidth - 1));
             }
 
-            string msg = $"[ {pMessage} ]";
+            string msg = $"[ {message} ]";
 
             ToggleColors();
 

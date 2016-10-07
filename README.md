@@ -4,8 +4,6 @@
 
 Inspired by EDIT (MS-DOS), 0xdd is a simple, interactive, hexadecimal file viewer for Windows.
 
-Written in C# 6.0 for .NET 4.5.2 with Visual Studio 2015.
-
 Mono compatible.
 
 Wiki available.

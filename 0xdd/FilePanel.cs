@@ -53,6 +53,9 @@ namespace _0xdd
                 return ErrorCode.FileAlreadyOpen;
             }
 
+            if (File.Length == 0)
+                return ErrorCode.FileZero;
+
             return ErrorCode.Success;
         }
         

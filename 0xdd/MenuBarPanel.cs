@@ -3,6 +3,7 @@ using System.Collections.Generic;
 
 //TODO: Sub-sub-menu rendering.
 //TODO: Re-draw if in "fullscreen" (Windows thing, bug)
+//TODO: Divide Update() into sub-update methods, maybe?
 
 namespace _0xdd
 {
@@ -42,7 +43,7 @@ namespace _0xdd
                         Exit();
                         WindowSystem.PromptFindByte();
                     }),
-                    new MenuItem("Find string...", () => {
+                    new MenuItem("Find ASCII string...", () => {
                         Exit();
                         WindowSystem.PromptSearchString();
                     }),
@@ -231,6 +232,8 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                 ToggleSelectionColor();
                 Console.SetCursorPosition(_pos[_x], 0);
                 Console.Write($" {item.Text} ");
+
+                _y = 0;
 
                 // Unselect old menubar selection
                 if (_ox >= 0)

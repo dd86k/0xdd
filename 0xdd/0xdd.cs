@@ -1,9 +1,9 @@
 ﻿using System;
-using System.IO;
 
 //TODO: Hashing (with menu) (v1.1)
 //TODO: Search from end of file (v0.7)
 //TODO: Settings! (v0.8)
+//TODO: Move File % pos to offset panel for OperatingMode
 
 /*
     TODO: Edit mode (v0.9)
@@ -34,6 +34,7 @@ namespace _0xdd
         FileUnreadable = 0x5,
         FileAlreadyOpen = 0x6,
         FileUnauthorized = 0x7,
+        FileZero = 0x8,
 
         // Position
         PositionOutOfBound = 0x10,
@@ -69,29 +70,6 @@ namespace _0xdd
     {
         // READ, OVRW, INSR
         Read, Overwrite, Insert
-    }
-    #endregion
-
-    #region Structs
-    /// <summary>
-    /// Result struch of a search.
-    /// </summary>
-    struct FindResult
-    {
-        public FindResult(long pPosition)
-        {
-            Position = pPosition;
-            Error = ErrorCode.Success;
-        }
-        
-        public FindResult(ErrorCode pError)
-        {
-            Error = pError;
-            Position = -1;
-        }
-
-        public long Position;
-        public ErrorCode Error;
     }
     #endregion
 
@@ -139,12 +117,9 @@ namespace _0xdd
             } catch { }
 
             Console.Clear();
-
-            if (FilePanel.FileSize > 0)
-            {
-                FilePanel.Initialize();
-                InfoPanel.Update();
-            }
+            
+            FilePanel.Initialize();
+            InfoPanel.Update();
 
             while (inApp)
                 ReadUserKey();
