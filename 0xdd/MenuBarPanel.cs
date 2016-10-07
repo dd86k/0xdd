@@ -1,8 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace _0xdd
 {
@@ -17,31 +14,41 @@ namespace _0xdd
         static int _barlength = 0,
             // X and Y position in the menu, including old positions.
             _x, _y, _oy = -1, _ox = -1;
+        static bool inMenu = true;
 
         public static void Initialize()
         {
             MenuItem[] items = {
-                    new MenuItem("File", null,
-                        new MenuItem("Message", () => { InfoPanel.Message("Test"); }),
-                        new MenuItem(),
-                        new MenuItem("Test")
-                    ),
-                    new MenuItem("Edit", null,
-                        new MenuItem("Test")
-                    ),
-                    new MenuItem("Search", null,
-                        new MenuItem("Test")
-                    ),
-                    new MenuItem("View", null,
-                        new MenuItem("Test")
-                    ),
-                    new MenuItem("Options", null,
-                        new MenuItem("Test")
-                    ),
-                    new MenuItem("?", null,
-                        new MenuItem("About", () => { InfoPanel.Message($"{Program.ProjectName} v{Program.Version} by guitarhero"); })
-                    )
-                };
+                new MenuItem("File", null,
+                    new MenuItem("Exit", () => {
+                        inMenu = false; _0xdd.Exit();
+                    })
+                ),
+                new MenuItem("Edit", null,
+                    new MenuItem("Test")
+                ),
+                new MenuItem("Search", null,
+                    new MenuItem("Test")
+                ),
+                new MenuItem("View", null,
+                    new MenuItem("Test")
+                ),
+                new MenuItem("Options", null,
+                    new MenuItem("Test")
+                ),
+                new MenuItem("?", null,
+                    new MenuItem("About", () => {
+                        Exit();
+                        WindowSystem.GenerateWindow(
+                            title: "About",
+                            text: $"{Program.ProjectName}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
+                            width: 40,
+                            height: 6,
+                            center: true
+                        );
+                    })
+                )
+            };
 
             // Make an array for each, arrays are REFERENCED.
             _pos = new int[items.Length];
@@ -81,10 +88,12 @@ namespace _0xdd
         {
             Update();
             DrawSubMenu();
-            while (Entry());
+            inMenu = true;
+            while (inMenu)
+                Entry();
         }
 
-        static bool Entry()
+        static void Entry()
         {
             ConsoleKeyInfo ck = Console.ReadKey(true);
 
@@ -94,15 +103,8 @@ namespace _0xdd
             switch (ck.Key)
             {
                 case ConsoleKey.Escape:
-                    // Unselect old menubar selection
-                    MenuItem lastItem = MenuItems[_ox];
-                    ToggleMenuBarColor();
-                    Console.SetCursorPosition(_pos[_ox], 0);
-                    Console.Write($" {lastItem.Text} ");
-
-                    Console.ResetColor();
-                    MainPanel.Update();
-                    return false;
+                    Exit();
+                    return;
 
                 case ConsoleKey.UpArrow:
                     MoveUp();
@@ -132,12 +134,10 @@ namespace _0xdd
 
                 case ConsoleKey.Enter:
                     SelectItem();
-                    return true;
+                    break;
             }
 
             Update();
-
-            return true;
         }
 
         /// <summary>
@@ -281,6 +281,22 @@ namespace _0xdd
         static void SelectItem()
         {
             MenuItems[_x].Items[_y].Action?.Invoke();
+        }
+
+        /// <summary>
+        /// Exit the menubar loop and clear all selections.
+        /// </summary>
+        static void Exit()
+        {
+            // Unselect old menubar selection
+            MenuItem lastItem = MenuItems[_ox];
+            ToggleMenuBarColor();
+            Console.SetCursorPosition(_pos[_ox], 0);
+            Console.Write($" {lastItem.Text} ");
+
+            Console.ResetColor();
+            MainPanel.Update();
+            inMenu = false;
         }
 
         static void ToggleMenuBarColor()

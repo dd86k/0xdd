@@ -23,13 +23,14 @@ namespace _0xdd
         public static void Update()
         {
             int top = StartPosition;
-            long pos = _0xdd.CurrentFileStream.Position;
-            long r = (((pos + _0xdd.DisplayBuffer.Length) * 100) / _0xdd.CurrentFile.Length);
+            long pos = _0xdd.Stream.Position;
+            long r = (((pos + _0xdd.DisplayBuffer.Length) * 100) / _0xdd.File.Length);
 
             if (_msg)
             {
                 Console.SetCursorPosition(0, top);
-                Console.Write(new string(' ', Console.WindowWidth));
+                Console.Write(new string(' ', Console.WindowWidth - 1));
+                _msg = false;
             }
 
             Console.SetCursorPosition(0, top);
@@ -48,10 +49,14 @@ namespace _0xdd
             Console.Write(new string(' ', Console.WindowWidth - 1));
 
             string msg = $"[ {pMessage} ]";
-            Console.SetCursorPosition((Console.WindowWidth / 2) - (msg.Length / 2), StartPosition);
 
-            Utils.ToggleColors();
+            WindowSystem.ToggleColors();
+
+            Console.SetCursorPosition(
+                (Console.WindowWidth / 2) - (msg.Length / 2),
+                StartPosition);
             Console.Write(msg);
+
             Console.ResetColor();
 
             _msg = true;

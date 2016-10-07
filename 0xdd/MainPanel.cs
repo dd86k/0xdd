@@ -41,8 +41,8 @@ namespace _0xdd
 
             int width = Console.WindowWidth;
 
-            long len = _0xdd.CurrentFile.Length; // File size
-            long pos = _0xdd.CurrentFileStream.Position; // File position
+            long len = _0xdd.File.Length; // File size
+            long pos = _0xdd.Stream.Position; // File position
 
             OffsetPanel.Update();
 
@@ -53,7 +53,7 @@ namespace _0xdd
             StringBuilder line, ascii;
             for (int li = 0; li < fh; ++li) // LineIndex
             {
-                switch (_0xdd.CurrentOffsetView)
+                switch (_0xdd.OffsetView)
                 {
                     default:
                         line = new StringBuilder($"{(li * _0xdd.BytesPerRow) + pos:X8}  ", width);

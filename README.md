@@ -10,8 +10,7 @@ Mono compatible.
 
 Wiki available.
 
----
-
 ## Requirements
 
 - .NET 4.5.2 or Mono runtime
+- ANSI/ISO Screen size (80x24) at minimum

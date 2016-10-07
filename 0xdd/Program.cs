@@ -35,15 +35,11 @@ namespace _0xdd
             
             // Defaults
             string entry = args[args.Length - 1];
-
             _0xdd.BytesPerRow = 0;
-
-            int row = 0; // Default: Auto
-            
-            OffsetView ovm = OffsetView.Hex;
+            _0xdd.OffsetView = OffsetView.Hex;
             bool dump = false;
 
-            for (int i = 0; i < args.Length; i++)
+            for (int i = 0; i < args.Length; ++i)
             {
                 switch (args[i])
                 {
@@ -51,14 +47,11 @@ namespace _0xdd
                     case "/V":
                         switch (args[i + 1][0])
                         {
-                            case 'h': case 'H':
-                                ovm = OffsetView.Hex;
-                                break;
                             case 'd': case 'D':
-                                ovm = OffsetView.Dec;
+                                _0xdd.OffsetView = OffsetView.Dec;
                                 break;
                             case 'o': case 'O':
-                                ovm = OffsetView.Oct;
+                                _0xdd.OffsetView = OffsetView.Oct;
                                 break;
                             default:
                                 Console.WriteLine(GetMessage(ErrorCode.CLI_InvalidOffsetView, args[i + 1]));
@@ -71,17 +64,21 @@ namespace _0xdd
 
                     case "-w":
                     case "/w":
-                        if (char.ToLower(args[i + 1][0]) != 'a') // Automatic, in case to overwrite settings
                         {
-                            row = 0;
-                        }
-                        else if (!int.TryParse(args[i + 1], out row))
-                        {
-                            Console.WriteLine(GetMessage(ErrorCode.CLI_InvalidWidth, args[i + 1]));
+                            int b = _0xdd.BytesPerRow;
+                            if (char.ToLower(args[i + 1][0]) != 'a') // Automatic, in case to overwrite settings
+                            {
+                                _0xdd.BytesPerRow = 0;
+                            }
+                            else if (!int.TryParse(args[i + 1], out b))
+                            {
+                                Console.WriteLine(GetMessage(ErrorCode.CLI_InvalidWidth, args[i + 1]));
 #if DEBUG
-                            Console.ReadLine();
+                                Console.ReadLine();
 #endif
-                            return ErrorCode.CLI_InvalidWidth.Code();
+                                return ErrorCode.CLI_InvalidWidth.Code();
+                            }
+                            _0xdd.BytesPerRow = b;
                         }
                         break;
 
@@ -111,7 +108,7 @@ namespace _0xdd
             if (dump)
             {
                 Console.Write("Dumping file... ");
-                ErrorCode err = Dumper.Dump(entry, row, ovm);
+                ErrorCode err = Dumper.Dump(entry, _0xdd.BytesPerRow, _0xdd.OffsetView);
                 
                 Console.WriteLine(GetMessage(err));
 
@@ -123,7 +120,7 @@ namespace _0xdd
                 // I want Visual Studio to catch the exceptions!
                 ErrorCode r = ErrorCode.Success;
 
-                r = _0xdd.OpenFile(entry, ovm, row);
+                r = _0xdd.OpenFile(entry);
 
                 Console.Clear();
                 Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Code():X2}");
@@ -132,7 +129,7 @@ namespace _0xdd
 #else
                 try
                 {
-                    _0xdd.OpenFile(entry, ovm, row);
+                    _0xdd.OpenFile(entry);
 
                     if (_0xdd.LastError != ErrorCode.Success)
                         Console.WriteLine(_0xdd.LastError.GetMessage());
@@ -255,7 +252,7 @@ namespace _0xdd
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine();
-            Console.WriteLine($"0xdd - {Version}");
+            Console.WriteLine($"{ProjectName} - {Version}");
             Console.WriteLine("Copyright (c) 2015 guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
             Console.WriteLine("Project page: <https://github.com/guitarxhero/0xdd>");

@@ -15,13 +15,28 @@ namespace _0xdd
         /// </summary>
         static internal void Update()
         {
-            StringBuilder t = new StringBuilder($"Offset {_0xdd.CurrentOffsetView.GetChar()}  ");
+            StringBuilder t = new StringBuilder($"Offset {_0xdd.OffsetView.GetChar()}  ");
 
-            if (_0xdd.CurrentFileStream.Position > uint.MaxValue)
+            if (_0xdd.Stream.Position > uint.MaxValue)
                 t.Append(' ');
 
-            for (int i = 0; i < _0xdd.BytesPerRow; ++i)
-                t.Append($"{i:X2} ");
+            switch (_0xdd.OffsetView)
+            {
+                default:
+                    for (int i = 0; i < _0xdd.BytesPerRow; ++i)
+                        t.Append($"{i:X2} ");
+                    break;
+
+                case OffsetView.Dec:
+                    for (int i = 0; i < _0xdd.BytesPerRow; ++i)
+                        t.Append($"{i:00} ");
+                    break;
+
+                case OffsetView.Oct:
+                    for (int i = 0; i < _0xdd.BytesPerRow; ++i)
+                        t.Append($"{i.ToOct(2)} ");
+                    break;
+            }
             /*
             if (LastWindowHeight != Console.WindowHeight || LastWindowWidth != Console.WindowWidth)
                 t.Append(new string(' ', Console.WindowWidth - t.Length - 1)); // Force clean
