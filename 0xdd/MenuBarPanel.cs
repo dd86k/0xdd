@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 
 //TODO: Sub-sub-menu rendering.
-//TODO: Re-draw if 
+//TODO: Re-draw if in "fullscreen" (Windows thing, bug)
 
 namespace _0xdd
 {
@@ -26,7 +26,7 @@ namespace _0xdd
                     new MenuItem("Dump", () => {
                         Exit();
                         InfoPanel.Message("Dumping...");
-                        Dumper.Dump(_0xdd.File.FullName, _0xdd.BytesPerRow, _0xdd.OffsetView);
+                        Dumper.Dump(FilePanel.File.FullName, _0xdd.BytesPerRow, _0xdd.OffsetView);
                         InfoPanel.Message("Done");
                     }),
                     new MenuItem(),

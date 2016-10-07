@@ -124,7 +124,7 @@ namespace _0xdd
                 // I want Visual Studio to catch the exceptions!
                 ErrorCode r = ErrorCode.Success;
 
-                r = _0xdd.OpenFile(entry);
+                r = _0xdd.Open(entry);
 
                 Console.Clear();
                 Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Code():X2}");

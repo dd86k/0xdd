@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Text;
 
 namespace _0xdd
@@ -19,24 +20,94 @@ namespace _0xdd
         /// </summary>
         const int StartPosition = 2;
 
+        public static FileInfo File { get; private set; }
+        public static FileStream Stream { get; private set; }
+        public static byte[] DisplayBuffer { get; private set; }
+
+        public static int BufferSize => DisplayBuffer.Length;
+        public static long FileSize => File.Length;
+        public static long CurrentPosition => Stream.Position;
+
         /// <summary>
-        /// Update from Buffer.
+        /// Open the file from the path.
         /// </summary>
-        static internal void Update()
+        /// <param name="path">Filepath.</param>
+        /// <returns>Error code.</returns>
+        public static ErrorCode Open(string path)
+        {
+            File = new FileInfo(path);
+
+            if (!File.Exists)
+                return ErrorCode.FileNotFound;
+
+            try
+            {
+                Stream = File.Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return ErrorCode.FileUnauthorized;
+            }
+            catch (IOException)
+            {
+                return ErrorCode.FileAlreadyOpen;
+            }
+
+            return ErrorCode.Success;
+        }
+        
+        /// <summary>
+        /// Prepares the buffer.
+        /// </summary>
+        public static void Initialize()
+        {
+            // Bytes On Screen
+            int bos = (Console.WindowHeight - 3) * _0xdd.BytesPerRow;
+
+            DisplayBuffer = new byte[
+                    FileSize < bos ? FileSize : bos
+                ];
+
+            MenuBarPanel.Initialize();
+            
+            Read(CurrentPosition);
+            Update();
+        }
+
+        /// <summary>
+        /// Read the current file at a position.
+        /// </summary>
+        /// <param name="position">Position.</param>
+        public static void Read(long position)
+        {
+            Stream.Position = position;
+            Stream.Read(DisplayBuffer, 0, DisplayBuffer.Length);
+            Stream.Position = position;
+        }
+
+        public static void Refresh()
+        {
+            Read(Stream.Position);
+        }
+
+        /// <summary>
+        /// Update the data onscreen from <see cref="DisplayBuffer"/>.
+        /// </summary>
+        public static void Update()
         {
             int width = Console.WindowWidth - 1;
 
-            long len = _0xdd.File.Length; // File size
-            long pos = _0xdd.Stream.Position; // File position
+            long len = File.Length; // File size
+            long pos = Stream.Position; // File position
 
             OffsetPanel.Update();
 
-            /* TODO: Check if we can do a little pointer-play with the buffer. */
+            //TODO: Check if we can do a little pointer-play with the buffer.
 
             int d = 0;
             Console.SetCursorPosition(0, StartPosition);
             StringBuilder line, ascii;
-            for (int li = 0; li < _0xdd.DisplayBuffer.Length; li += _0xdd.BytesPerRow) // LineIndex
+            for (int li = 0; li < DisplayBuffer.Length; li += _0xdd.BytesPerRow) // LineIndex
             {
                 switch (_0xdd.OffsetView)
                 {
@@ -61,8 +132,8 @@ namespace _0xdd
                 {
                     if (pos + d < len)
                     {
-                        line.Append($"{_0xdd.DisplayBuffer[d]:X2} ");
-                        ascii.Append(_0xdd.DisplayBuffer[d].ToAscii());
+                        line.Append($"{DisplayBuffer[d]:X2} ");
+                        ascii.Append(DisplayBuffer[d].ToAscii());
                     }
                     else
                     {

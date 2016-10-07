@@ -17,7 +17,7 @@ namespace _0xdd
         {
             StringBuilder t = new StringBuilder($"Offset {_0xdd.OffsetView.GetChar()}  ");
 
-            if (_0xdd.Stream.Position > uint.MaxValue)
+            if (FilePanel.CurrentPosition > uint.MaxValue)
                 t.Append(' ');
 
             switch (_0xdd.OffsetView)

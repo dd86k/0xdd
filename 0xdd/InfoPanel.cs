@@ -23,8 +23,8 @@ namespace _0xdd
         public static void Update()
         {
             int top = StartPosition;
-            long pos = _0xdd.Stream.Position;
-            long r = (((pos + _0xdd.DisplayBuffer.Length) * 100) / _0xdd.File.Length);
+            long pos = FilePanel.CurrentPosition;
+            long r = (((pos + FilePanel.BufferSize) * 100) / FilePanel.FileSize);
 
             if (_msg)
             {

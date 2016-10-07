@@ -98,10 +98,7 @@ namespace _0xdd
     static class _0xdd
     {
         #region Properties
-        public static FileInfo File { get; private set; }
-        public static FileStream Stream { get; private set; }
         public static ErrorCode LastError { get; private set; }
-        public static byte[] DisplayBuffer { get; private set; }
 
         static int LastWindowHeight;
         static int LastWindowWidth;
@@ -117,25 +114,16 @@ namespace _0xdd
         #endregion
 
         #region Methods        
-        public static ErrorCode OpenFile(string path, OffsetView view = OffsetView.Hex, int bytesPerRow = 0)
+        public static ErrorCode Open(string path,
+            OffsetView view = OffsetView.Hex, int bytesPerRow = 0)
         {
-            File = new FileInfo(path);
+            LastError = FilePanel.Open(path);
 
-            if (!File.Exists)
-                return ErrorCode.FileNotFound;
-
-            try
-            {
-                Stream = File.Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-            }
-            catch (UnauthorizedAccessException)
-            {
-                return ErrorCode.FileUnauthorized;
-            }
-            catch (IOException)
-            {
-                return ErrorCode.FileAlreadyOpen;
-            }
+            if (LastError != ErrorCode.Success)
+                return LastError;
+            
+            if (BytesPerRow <= 0)
+                BytesPerRow = Utils.GetBytesInRow();
 
             OffsetView = view;
             LastWindowHeight = Console.WindowHeight;
@@ -147,11 +135,16 @@ namespace _0xdd
             try
             { // Mono can have some issues with these.
                 Console.CursorVisible = false;
-                Console.Title = File.Name;
+                Console.Title = FilePanel.File.Name;
             } catch { }
 
             Console.Clear();
-            PrepareScreen();
+
+            if (FilePanel.FileSize > 0)
+            {
+                FilePanel.Initialize();
+                InfoPanel.Update();
+            }
 
             while (inApp)
                 ReadUserKey();
@@ -173,7 +166,7 @@ namespace _0xdd
                 BytesPerRow = Utils.GetBytesInRow();
 
                 Console.Clear();
-                PrepareScreen();
+                FilePanel.Initialize();
 
                 LastWindowHeight = Console.WindowHeight;
                 LastWindowWidth = Console.WindowWidth;
@@ -182,7 +175,7 @@ namespace _0xdd
             switch (k.Key)
             {
                 case ConsoleKey.F5:
-                    ReadFileAndUpdate(Stream.Position);
+                    FilePanel.Refresh();
                     break;
 
                 case ConsoleKey.Escape:
@@ -242,7 +235,7 @@ namespace _0xdd
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         InfoPanel.Message(
-                            $"{File.Name} {Utils.GetEntryInfo(File)} {Utils.FormatSize(File.Length)}"
+                            $"{FilePanel.File.Name} {Utils.GetEntryInfo(FilePanel.File)} {Utils.FormatSize(FilePanel.FileSize)}"
                         );
                     }
                     break;
@@ -258,7 +251,7 @@ namespace _0xdd
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
                         InfoPanel.Message("Dumping...");
-                        Dumper.Dump(File.FullName, BytesPerRow, OffsetView);
+                        Dumper.Dump(FilePanel.File.FullName, BytesPerRow, OffsetView);
                         InfoPanel.Message("Dumping done!");
                     }
                     break;
@@ -268,40 +261,40 @@ namespace _0xdd
                  */
 
                 case ConsoleKey.LeftArrow:
-                    if (DisplayBuffer.Length < File.Length)
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
-                            ReadFileAndUpdate(Stream.Position -
-                                (Stream.Position % BytesPerRow));
+                            ReadFileAndUpdate(FilePanel.CurrentPosition -
+                                (FilePanel.CurrentPosition % BytesPerRow));
                         }
-                        else if (Stream.Position - 1 >= 0)
+                        else if (FilePanel.CurrentPosition - 1 >= 0)
                         {
-                            ReadFileAndUpdate(Stream.Position - 1);
+                            ReadFileAndUpdate(FilePanel.CurrentPosition - 1);
                         }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (DisplayBuffer.Length < File.Length)
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
-                            long NewPos = Stream.Position +
-                                (BytesPerRow - Stream.Position % BytesPerRow);
+                            long NewPos = FilePanel.CurrentPosition +
+                                (BytesPerRow - FilePanel.CurrentPosition % BytesPerRow);
 
-                            if (NewPos + DisplayBuffer.Length <= File.Length)
+                            if (NewPos + FilePanel.BufferSize <= FilePanel.FileSize)
                                 ReadFileAndUpdate(NewPos);
                             else
-                                ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
+                                ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
                         }
-                        else if (Stream.Position + DisplayBuffer.Length + 1 <= File.Length)
+                        else if (FilePanel.CurrentPosition + FilePanel.BufferSize + 1 <= FilePanel.FileSize)
                         {
-                            ReadFileAndUpdate(Stream.Position + 1);
+                            ReadFileAndUpdate(FilePanel.CurrentPosition + 1);
                         }
                     break;
 
                 case ConsoleKey.UpArrow:
-                    if (DisplayBuffer.Length < File.Length)
-                        if (Stream.Position - BytesPerRow >= 0)
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
+                        if (FilePanel.CurrentPosition - BytesPerRow >= 0)
                         {
-                            ReadFileAndUpdate(Stream.Position - BytesPerRow);
+                            ReadFileAndUpdate(FilePanel.CurrentPosition - BytesPerRow);
                         }
                         else
                         {
@@ -309,22 +302,22 @@ namespace _0xdd
                         }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (DisplayBuffer.Length < File.Length)
-                        if (Stream.Position + DisplayBuffer.Length + BytesPerRow <= File.Length)
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
+                        if (FilePanel.CurrentPosition + FilePanel.BufferSize + BytesPerRow <= FilePanel.FileSize)
                         {
-                            ReadFileAndUpdate(Stream.Position + BytesPerRow);
+                            ReadFileAndUpdate(FilePanel.CurrentPosition + BytesPerRow);
                         }
                         else
                         {
-                            ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
+                            ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
                         }
                     break;
 
                 case ConsoleKey.PageUp:
-                    if (DisplayBuffer.Length < File.Length)
-                        if (Stream.Position - DisplayBuffer.Length >= 0)
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
+                        if (FilePanel.CurrentPosition - FilePanel.BufferSize >= 0)
                         {
-                            ReadFileAndUpdate(Stream.Position - DisplayBuffer.Length);
+                            ReadFileAndUpdate(FilePanel.CurrentPosition - FilePanel.BufferSize);
                         }
                         else
                         {
@@ -332,99 +325,58 @@ namespace _0xdd
                         }
                     break;
                 case ConsoleKey.PageDown:
-                    if (DisplayBuffer.Length < File.Length)
-                        if (Stream.Position + (DisplayBuffer.Length * 2) <= File.Length)
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
+                        if (FilePanel.CurrentPosition + (FilePanel.BufferSize * 2) <= FilePanel.FileSize)
                         {
-                            ReadFileAndUpdate(Stream.Position += DisplayBuffer.Length);
+                            ReadFileAndUpdate(FilePanel.CurrentPosition + FilePanel.BufferSize);
                         }
                         else
                         {
-                            ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
+                            ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
                         }
                     break;
 
                 case ConsoleKey.Home:
-                    if (DisplayBuffer.Length < File.Length)
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
                         ReadFileAndUpdate(0);
                     break;
                 case ConsoleKey.End:
-                    if (DisplayBuffer.Length < File.Length)
-                        ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
+                    if (FilePanel.BufferSize < FilePanel.FileSize)
+                        ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
                     break;
             }
         }
 
-        /// <summary>
-        /// Prepares the screen with the information needed.<para/>
-        /// Initialize: AutoSizing, Buffer, TitlePanel, Readfile, MainPanel,
-        /// InfoPanel, and ControlPanel.
-        /// </summary>
-        /// <remarks>Also used when resizing.</remarks>
-        static void PrepareScreen()
-        {
-            if (BytesPerRow <= 0)
-                BytesPerRow = Utils.GetBytesInRow();
-
-            int bos = (Console.WindowHeight - 3) * BytesPerRow;
-
-            DisplayBuffer = new byte[
-                    File.Length < bos ?
-                    File.Length : bos
-                ];
-
-            MenuBarPanel.Initialize();
-
-            if (File.Length > 0)
-            ReadFileAndUpdate(Stream.Position);
-        }
         
-        #region Read file
+        
         /// <summary>
         /// Read file, update MainPanel, then update InfoPanel.
         /// </summary>
         /// <param name="position">New position.</param>
         static void ReadFileAndUpdate(long position)
         {
-            ReadCurrentFile(position);
+            FilePanel.Read(position);
             FilePanel.Update();
             InfoPanel.Update();
         }
-
-        /// <summary>
-        /// Read the current file at a position.
-        /// </summary>
-        /// <param name="position">Position.</param>
-        static void ReadCurrentFile(long position)
-        {
-            Stream.Position = position;
-            Stream.Read(DisplayBuffer, 0, DisplayBuffer.Length);
-            Stream.Position = position;
-        }
-        #endregion
 
         #region Goto
         /// <summary>
         /// Go to a specific position in the file.
         /// </summary>
-        /// <param name="pPosition">Position</param>
-        public static void Goto(long pPosition)
+        /// <param name="position">Position</param>
+        public static void Goto(long position)
         {
-            ReadFileAndUpdate(pPosition);
+            ReadFileAndUpdate(position);
         }
         #endregion
 
         #region Exit
         /// <summary>
-        /// When the user exits the program.
+        /// Signal the loops to end, and exit program.
         /// </summary>
-        /// <returns>Always <see cref="false"/>.</returns>
-        /// <remarks>
-        /// Returns false to return due to the while loop.
-        /// </remarks>
         public static void Exit()
         {
-            //Console.Clear();
-
             Console.SetCursorPosition(
                 Console.WindowWidth - 1,
                 Console.WindowHeight - 1
@@ -442,7 +394,8 @@ namespace _0xdd
         /// </summary>
         /// <param name="l">Number.</param>
         /// <returns>String.</returns>
-        public static string ToOct(this long l) => Convert.ToString(l, 8).PadLeft(8, '0');
+        public static string ToOct(this long l) =>
+            Convert.ToString(l, 8).PadLeft(8, '0');
 
         /// <summary>
         /// Converts into an octal number with 0 padding.
@@ -458,17 +411,18 @@ namespace _0xdd
         /// </summary>
         /// <param name="b">Byte to transform.</param>
         /// <returns>ASCII character.</returns>
-        public static char ToAscii(this byte b) => b < 0x20 || b > 0x7E ? '.' : (char)b;
+        public static char ToAscii(this byte b) =>
+            b < 0x20 || b > 0x7E ? '.' : (char)b;
 
         /// <summary>
         /// Gets the character for the upper bar depending on the
         /// offset base view.
         /// </summary>
-        /// <param name="pView">This <see cref="global::_0xdd.OffsetView"/></param>
+        /// <param name="v">This <see cref="global::_0xdd.OffsetView"/></param>
         /// <returns>Character.</returns>
-        public static char GetChar(this OffsetView pView)
+        public static char GetChar(this OffsetView v)
         {
-            switch (pView)
+            switch (v)
             {
                 case OffsetView.Hex:
                     return 'h';
@@ -481,7 +435,7 @@ namespace _0xdd
             }
         }
 
-        public static int Code(this ErrorCode pCode) => (int)pCode;
+        public static int Code(this ErrorCode code) => (int)code;
         #endregion
     }
 }

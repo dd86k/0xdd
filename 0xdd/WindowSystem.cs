@@ -90,8 +90,11 @@ namespace _0xdd
 
         public static void PromptFindByte()
         {
-            if (_0xdd.Stream.Position < _0xdd.File.Length - _0xdd.DisplayBuffer.Length)
-                PromptFindByte();
+            if (FilePanel.CurrentPosition + FilePanel.BufferSize >= FilePanel.FileSize)
+            {
+                InfoPanel.Message("Already at the end of the file.");
+                return;
+            }
 
             long t = GetNumberFromUser("Find byte:",
                 suggestion: _lastByte.ToString("X2"));
@@ -114,9 +117,9 @@ namespace _0xdd
                 InfoPanel.Message("Searching...");
                 long p = Finder.FindByte(
                     _lastByte = (byte)t,
-                    _0xdd.Stream,
-                    _0xdd.File,
-                    _0xdd.Stream.Position + 1
+                    FilePanel.Stream,
+                    FilePanel.File,
+                    FilePanel.CurrentPosition + 1
                 );
 
                 if (p > 0)
@@ -151,13 +154,13 @@ namespace _0xdd
 
         public static void PromptSearchString()
         {
-            if (_0xdd.Stream.Position >= _0xdd.File.Length - _0xdd.DisplayBuffer.Length)
+            if (FilePanel.CurrentPosition >= FilePanel.FileSize - FilePanel.BufferSize)
             {
                 InfoPanel.Message("Already at the end of the file.");
                 return;
             }
 
-            if (_0xdd.DisplayBuffer.Length >= _0xdd.File.Length)
+            if (FilePanel.BufferSize >= FilePanel.FileSize)
             {
                 InfoPanel.Message("Not possible.");
                 return;
@@ -174,7 +177,12 @@ namespace _0xdd
 
             FilePanel.Update();
             InfoPanel.Message("Searching...");
-            long t = Finder.FindString(_lastString, _0xdd.Stream, _0xdd.File, _0xdd.Stream.Position + 1);
+            long t = Finder.FindString(
+                _lastString,
+                FilePanel.Stream,
+                FilePanel.File,
+                FilePanel.CurrentPosition + 1
+            );
 
             switch (t)
             {
@@ -197,13 +205,13 @@ namespace _0xdd
 
         public static void PromptGoto()
         {
-            if (_0xdd.DisplayBuffer.Length >= _0xdd.File.Length)
+            if (FilePanel.BufferSize >= FilePanel.FileSize)
             {
                 InfoPanel.Message("Not possible.");
                 return;
             }
 
-            if (_0xdd.Stream.Position >= _0xdd.File.Length)
+            if (FilePanel.CurrentPosition >= FilePanel.FileSize - FilePanel.BufferSize)
             {
                 InfoPanel.Message("Already at the end of the file.");
                 return;
@@ -218,7 +226,7 @@ namespace _0xdd
                 return;
             }
 
-            if (t >= 0 && t <= _0xdd.File.Length - _0xdd.DisplayBuffer.Length)
+            if (t >= 0 && t <= FilePanel.FileSize - FilePanel.BufferSize)
             {
                 _0xdd.Goto(t);
             }
