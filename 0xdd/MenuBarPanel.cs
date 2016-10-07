@@ -22,6 +22,13 @@ namespace _0xdd
         {
             MenuItem[] items = {
                 new MenuItem("File", null,
+                    new MenuItem("Dump", () => {
+                        Exit();
+                        InfoPanel.Message("Dumping...");
+                        Dumper.Dump(_0xdd.File.FullName, _0xdd.BytesPerRow, _0xdd.OffsetView);
+                        InfoPanel.Message("Done");
+                    }),
+                    new MenuItem(),
                     new MenuItem("Exit", () => {
                         inMenu = false; _0xdd.Exit();
                     })
@@ -59,7 +66,7 @@ namespace _0xdd
                         WindowSystem.GenerateWindow(
                             title: "About",
                             text:
-$"{Program.ProjectName}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
+$"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                             width: 40,
                             height: 6,
                             centerText: true

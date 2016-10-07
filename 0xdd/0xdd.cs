@@ -145,7 +145,7 @@ namespace _0xdd
             BytesPerRow = AutoAdjust ? Utils.GetBytesInRow() : bytesPerRow;
 
             try
-            {
+            { // Mono can have some issues with these.
                 Console.CursorVisible = false;
                 Console.Title = File.Name;
             } catch { }
@@ -163,8 +163,7 @@ namespace _0xdd
         /// Read user input.
         /// </summary>
         static void ReadUserKey()
-        { //TODO: Recude cyclomatic complexity to under 25
-          // - Place most of the code into new functions
+        {
             ConsoleKeyInfo k = Console.ReadKey(true);
             
             //if (AutoAdjust)
@@ -194,10 +193,7 @@ namespace _0xdd
                 case ConsoleKey.W:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (Stream.Position < File.Length - MainPanel.BytesOnScreen)
-                            WindowSystem.PromptFindByte();
-                        else
-                            InfoPanel.Message("Already at the end.");
+                        WindowSystem.PromptFindByte();
                     }
                     break;
 
@@ -205,18 +201,6 @@ namespace _0xdd
                 case ConsoleKey.J:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        if (Stream.Position >= File.Length - MainPanel.BytesOnScreen)
-                        {
-                            InfoPanel.Message("Already at the end of the file.");
-                            break;
-                        }
-
-                        if (MainPanel.BytesOnScreen >= File.Length)
-                        {
-                            InfoPanel.Message("Not possible.");
-                            break;
-                        }
-
                         WindowSystem.PromptSearchString();
                     }
                     break;
@@ -279,9 +263,12 @@ namespace _0xdd
                     }
                     break;
 
-                // -- Data nagivation --
+                /*
+                 * Data navigation
+                 */
+
                 case ConsoleKey.LeftArrow:
-                    if (MainPanel.BytesOnScreen < File.Length)
+                    if (DisplayBuffer.Length < File.Length)
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
                             ReadFileAndUpdate(Stream.Position -
@@ -293,25 +280,25 @@ namespace _0xdd
                         }
                     break;
                 case ConsoleKey.RightArrow:
-                    if (MainPanel.BytesOnScreen < File.Length)
+                    if (DisplayBuffer.Length < File.Length)
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
                             long NewPos = Stream.Position +
                                 (BytesPerRow - Stream.Position % BytesPerRow);
 
-                            if (NewPos + MainPanel.BytesOnScreen <= File.Length)
+                            if (NewPos + DisplayBuffer.Length <= File.Length)
                                 ReadFileAndUpdate(NewPos);
                             else
-                                ReadFileAndUpdate(File.Length - MainPanel.BytesOnScreen);
+                                ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
                         }
-                        else if (Stream.Position + MainPanel.BytesOnScreen + 1 <= File.Length)
+                        else if (Stream.Position + DisplayBuffer.Length + 1 <= File.Length)
                         {
                             ReadFileAndUpdate(Stream.Position + 1);
                         }
                     break;
 
                 case ConsoleKey.UpArrow:
-                    if (MainPanel.BytesOnScreen < File.Length)
+                    if (DisplayBuffer.Length < File.Length)
                         if (Stream.Position - BytesPerRow >= 0)
                         {
                             ReadFileAndUpdate(Stream.Position - BytesPerRow);
@@ -322,22 +309,22 @@ namespace _0xdd
                         }
                     break;
                 case ConsoleKey.DownArrow:
-                    if (MainPanel.BytesOnScreen < File.Length)
-                        if (Stream.Position + MainPanel.BytesOnScreen + BytesPerRow <= File.Length)
+                    if (DisplayBuffer.Length < File.Length)
+                        if (Stream.Position + DisplayBuffer.Length + BytesPerRow <= File.Length)
                         {
                             ReadFileAndUpdate(Stream.Position + BytesPerRow);
                         }
                         else
                         {
-                            ReadFileAndUpdate(File.Length - MainPanel.BytesOnScreen);
+                            ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
                         }
                     break;
 
                 case ConsoleKey.PageUp:
-                    if (MainPanel.BytesOnScreen < File.Length)
-                        if (Stream.Position - MainPanel.BytesOnScreen >= 0)
+                    if (DisplayBuffer.Length < File.Length)
+                        if (Stream.Position - DisplayBuffer.Length >= 0)
                         {
-                            ReadFileAndUpdate(Stream.Position - MainPanel.BytesOnScreen);
+                            ReadFileAndUpdate(Stream.Position - DisplayBuffer.Length);
                         }
                         else
                         {
@@ -345,24 +332,24 @@ namespace _0xdd
                         }
                     break;
                 case ConsoleKey.PageDown:
-                    if (MainPanel.BytesOnScreen < File.Length)
-                        if (Stream.Position + (MainPanel.BytesOnScreen * 2) <= File.Length)
+                    if (DisplayBuffer.Length < File.Length)
+                        if (Stream.Position + (DisplayBuffer.Length * 2) <= File.Length)
                         {
-                            ReadFileAndUpdate(Stream.Position += MainPanel.BytesOnScreen);
+                            ReadFileAndUpdate(Stream.Position += DisplayBuffer.Length);
                         }
                         else
                         {
-                            ReadFileAndUpdate(File.Length - MainPanel.BytesOnScreen);
+                            ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
                         }
                     break;
 
                 case ConsoleKey.Home:
-                    if (MainPanel.BytesOnScreen < File.Length)
+                    if (DisplayBuffer.Length < File.Length)
                         ReadFileAndUpdate(0);
                     break;
                 case ConsoleKey.End:
-                    if (MainPanel.BytesOnScreen < File.Length)
-                        ReadFileAndUpdate(File.Length - MainPanel.BytesOnScreen);
+                    if (DisplayBuffer.Length < File.Length)
+                        ReadFileAndUpdate(File.Length - DisplayBuffer.Length);
                     break;
             }
         }
@@ -378,9 +365,11 @@ namespace _0xdd
             if (BytesPerRow <= 0)
                 BytesPerRow = Utils.GetBytesInRow();
 
+            int bos = (Console.WindowHeight - 3) * BytesPerRow;
+
             DisplayBuffer = new byte[
-                    File.Length < MainPanel.BytesOnScreen ?
-                    File.Length : MainPanel.BytesOnScreen
+                    File.Length < bos ?
+                    File.Length : bos
                 ];
 
             MenuBarPanel.Initialize();

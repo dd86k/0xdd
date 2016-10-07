@@ -2,6 +2,8 @@
 using System.IO;
 using static System.Reflection.Assembly;
 
+//TODO: Fix when file is zero
+
 namespace _0xdd
 {
     static class Program
@@ -9,12 +11,14 @@ namespace _0xdd
         /// <summary>
         /// Get the current version of the project as a string object.
         /// </summary>
-        public static string Version => GetExecutingAssembly().GetName().Version.ToString();
+        public static readonly string Version =
+            GetExecutingAssembly().GetName().Version.ToString();
 
         /// <summary>
         /// Get the project's name.
         /// </summary>
-        public static string ProjectName => GetExecutingAssembly().GetName().Name;
+        public static readonly string Name =
+            GetExecutingAssembly().GetName().Name;
         
         static int Main(string[] args)
         {
@@ -252,7 +256,7 @@ namespace _0xdd
             //                 1       10        20        30        40        50        60        70        80
             //                 |--------|---------|---------|---------|---------|---------|---------|---------|
             Console.WriteLine();
-            Console.WriteLine($"{ProjectName} - {Version}");
+            Console.WriteLine($"{Name} - {Version}");
             Console.WriteLine("Copyright (c) 2015 guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
             Console.WriteLine("Project page: <https://github.com/guitarxhero/0xdd>");

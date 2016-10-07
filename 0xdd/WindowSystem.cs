@@ -90,6 +90,9 @@ namespace _0xdd
 
         public static void PromptFindByte()
         {
+            if (_0xdd.Stream.Position < _0xdd.File.Length - _0xdd.DisplayBuffer.Length)
+                PromptFindByte();
+
             long t = GetNumberFromUser("Find byte:",
                 suggestion: _lastByte.ToString("X2"));
 
@@ -148,6 +151,18 @@ namespace _0xdd
 
         public static void PromptSearchString()
         {
+            if (_0xdd.Stream.Position >= _0xdd.File.Length - _0xdd.DisplayBuffer.Length)
+            {
+                InfoPanel.Message("Already at the end of the file.");
+                return;
+            }
+
+            if (_0xdd.DisplayBuffer.Length >= _0xdd.File.Length)
+            {
+                InfoPanel.Message("Not possible.");
+                return;
+            }
+
             _lastString = GetUserInput("Find data:", suggestion: _lastString);
 
             if (_lastString == null || _lastString.Length == 0)
@@ -182,7 +197,7 @@ namespace _0xdd
 
         public static void PromptGoto()
         {
-            if (MainPanel.BytesOnScreen >= _0xdd.File.Length)
+            if (_0xdd.DisplayBuffer.Length >= _0xdd.File.Length)
             {
                 InfoPanel.Message("Not possible.");
                 return;
@@ -203,7 +218,7 @@ namespace _0xdd
                 return;
             }
 
-            if (t >= 0 && t <= _0xdd.File.Length - MainPanel.BytesOnScreen)
+            if (t >= 0 && t <= _0xdd.File.Length - _0xdd.DisplayBuffer.Length)
             {
                 _0xdd.Goto(t);
             }
@@ -483,11 +498,7 @@ namespace _0xdd
             // -- End prepare text box --
         }
 
-        /// <summary>
-        /// Toggles current ForegroundColor to black
-        /// and BackgroundColor to gray.
-        /// </summary>
-        internal static void ToggleColors()
+        static void ToggleColors()
         {
             Console.ForegroundColor = ConsoleColor.Black;
             Console.BackgroundColor = ConsoleColor.Gray;

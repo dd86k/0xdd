@@ -45,21 +45,31 @@ namespace _0xdd
         /// <param name="pMessage">Message to show.</param>
         public static void Message(string pMessage)
         {
-            Console.SetCursorPosition(0, StartPosition);
-            Console.Write(new string(' ', Console.WindowWidth - 1));
+            if (_msg)
+            {
+                Console.SetCursorPosition(0, StartPosition);
+                Console.Write(new string(' ', Console.WindowWidth - 1));
+            }
 
             string msg = $"[ {pMessage} ]";
 
-            WindowSystem.ToggleColors();
+            ToggleColors();
 
             Console.SetCursorPosition(
                 (Console.WindowWidth / 2) - (msg.Length / 2),
-                StartPosition);
+                StartPosition
+            );
             Console.Write(msg);
 
             Console.ResetColor();
 
             _msg = true;
+        }
+
+        static void ToggleColors()
+        {
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.BackgroundColor = ConsoleColor.Gray;
         }
     }
 }

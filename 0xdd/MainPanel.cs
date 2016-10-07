@@ -1,8 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace _0xdd
 {
@@ -23,50 +20,40 @@ namespace _0xdd
         const int StartPosition = 2;
 
         /// <summary>
-        /// Gets the heigth of the main panel.
-        /// </summary>
-        static internal int FrameHeight => Console.WindowHeight - 3;
-
-        /// <summary>
-        /// Gets the number of elements which can be shown in the main panel.
-        /// </summary>
-        static internal int BytesOnScreen => FrameHeight * _0xdd.BytesPerRow;
-
-        /// <summary>
         /// Update from Buffer.
         /// </summary>
         static internal void Update()
         {
-            int fh = FrameHeight;
-
-            int width = Console.WindowWidth;
+            int width = Console.WindowWidth - 1;
 
             long len = _0xdd.File.Length; // File size
             long pos = _0xdd.Stream.Position; // File position
 
             OffsetPanel.Update();
 
-            //TODO: char[]* as buffer? Would it be too much trouble?
+            /* TODO: Check if we can do a little pointer-play with the buffer. */
 
             int d = 0;
             Console.SetCursorPosition(0, StartPosition);
             StringBuilder line, ascii;
-            for (int li = 0; li < fh; ++li) // LineIndex
+            for (int li = 0; li < _0xdd.DisplayBuffer.Length; li += _0xdd.BytesPerRow) // LineIndex
             {
                 switch (_0xdd.OffsetView)
                 {
                     default:
-                        line = new StringBuilder($"{(li * _0xdd.BytesPerRow) + pos:X8}  ", width);
+                        line = new StringBuilder($"{pos + li:X8}  ", width);
                         break;
 
                     case OffsetView.Dec:
-                        line = new StringBuilder($"{(li * _0xdd.BytesPerRow) + pos:D8}  ", width);
+                        line = new StringBuilder($"{pos + li:D8}  ", width);
                         break;
 
                     case OffsetView.Oct:
-                        line = new StringBuilder($"{_0xdd.ToOct((li * _0xdd.BytesPerRow) + pos)}  ", width);
+                        line = new StringBuilder($"{_0xdd.ToOct(pos + li)}  ", width);
                         break;
                 }
+
+                //TODO: If (pos + BytesPerRow) instead
 
                 ascii = new StringBuilder(_0xdd.BytesPerRow);
                 // d = data (hex) index
