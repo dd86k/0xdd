@@ -82,7 +82,7 @@
     <Compile Include="DumperModule.cs" />
     <Compile Include="FinderModule.cs" />
     <Compile Include="InfoPanel.cs" />
-    <Compile Include="MainPanel.cs" />
+    <Compile Include="FilePanel.cs" />
     <Compile Include="MenuBarPanel.cs" />
     <Compile Include="OffsetPanel.cs" />
     <Compile Include="Utilities.cs" />

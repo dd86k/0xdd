@@ -386,7 +386,7 @@ namespace _0xdd
         static void ReadFileAndUpdate(long position)
         {
             ReadCurrentFile(position);
-            MainPanel.Update();
+            FilePanel.Update();
             InfoPanel.Update();
         }
 

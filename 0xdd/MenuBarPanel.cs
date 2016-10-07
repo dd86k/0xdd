@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 
 //TODO: Sub-sub-menu rendering.
+//TODO: Re-draw if 
 
 namespace _0xdd
 {
@@ -152,7 +153,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                     MoveLeft();
                     Console.ResetColor();
                     OffsetPanel.Update();
-                    MainPanel.Update();
+                    FilePanel.Update();
                     DrawSubMenu();
                     break;
 
@@ -160,7 +161,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                     MoveRight();
                     Console.ResetColor();
                     OffsetPanel.Update();
-                    MainPanel.Update();
+                    FilePanel.Update();
                     DrawSubMenu();
                     break;
 
@@ -331,7 +332,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
             Console.Write($" {lastItem.Text} ");
 
             Console.ResetColor();
-            MainPanel.Update();
+            FilePanel.Update();
             inMenu = false;
         }
 

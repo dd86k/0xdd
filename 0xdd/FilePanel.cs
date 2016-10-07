@@ -7,7 +7,7 @@ namespace _0xdd
     /// Main panel which represents the offset, data as bytes,
     /// and data as ASCII characters.
     /// </summary>
-    internal static class MainPanel
+    internal static class FilePanel
     {
         /// <summary>
         /// Current cursor position for Edit mode.

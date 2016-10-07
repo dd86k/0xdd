@@ -98,19 +98,19 @@ namespace _0xdd
 
             if (t == -1)
             {
-                MainPanel.Update();
+                FilePanel.Update();
                 InfoPanel.Message("Canceled.");
                 return;
             }
 
             if (t < 0 || t > byte.MaxValue)
             {
-                MainPanel.Update();
+                FilePanel.Update();
                 InfoPanel.Message("A value between 0 and 255 is required.");
             }
             else
             {
-                MainPanel.Update();
+                FilePanel.Update();
                 InfoPanel.Message("Searching...");
                 long p = Finder.FindByte(
                     _lastByte = (byte)t,
@@ -167,12 +167,12 @@ namespace _0xdd
 
             if (_lastString == null || _lastString.Length == 0)
             {
-                MainPanel.Update();
+                FilePanel.Update();
                 InfoPanel.Message("Canceled.");
                 return;
             }
 
-            MainPanel.Update();
+            FilePanel.Update();
             InfoPanel.Message("Searching...");
             long t = Finder.FindString(_lastString, _0xdd.Stream, _0xdd.File, _0xdd.Stream.Position + 1);
 
@@ -213,7 +213,7 @@ namespace _0xdd
 
             if (t == -1)
             {
-                MainPanel.Update();
+                FilePanel.Update();
                 InfoPanel.Message("Canceled.");
                 return;
             }
@@ -224,7 +224,7 @@ namespace _0xdd
             }
             else
             {
-                MainPanel.Update();
+                FilePanel.Update();
                 InfoPanel.Message("Position out of bound!");
             }
         }
@@ -236,7 +236,7 @@ namespace _0xdd
             if (c == null || c.Length < 1)
             {
                 InfoPanel.Message("Canceled.");
-                MainPanel.Update();
+                FilePanel.Update();
                 return;
             }
 
@@ -265,7 +265,7 @@ namespace _0xdd
                     break;
             }
 
-            MainPanel.Update();
+            FilePanel.Update();
         }
 
         /// <summary>
