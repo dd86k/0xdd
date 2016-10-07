@@ -142,6 +142,7 @@ namespace _0xdd
 
                 Console.Clear();
                 FilePanel.Initialize();
+                MenuBarPanel.Draw();
 
                 LastWindowHeight = Console.WindowHeight;
                 LastWindowWidth = Console.WindowWidth;
@@ -356,6 +357,7 @@ namespace _0xdd
                 Console.WindowWidth - 1,
                 Console.WindowHeight - 1
             );
+            Console.WriteLine();
             Console.CursorVisible = true;
 
             inApp = false;

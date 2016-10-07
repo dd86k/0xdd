@@ -1,9 +1,28 @@
 ﻿using System;
 using System.Collections.Generic;
 
-//TODO: Sub-sub-menu rendering.
-//TODO: Re-draw if in "fullscreen" (Windows thing, bug)
+//TODO: Sub-sub-menu rendering.*
 //TODO: Divide Update() into sub-update methods, maybe?
+//TODO: Consider making SelectItem exit the menu
+
+/* New items to implement:
+ * - File
+ *   - Dump*
+ *     - Formats
+ *   - Recent files*
+ * - View
+ *   - Bytes per row...
+ *   - Auto adjust to view
+ *   - Offset view*
+ *     - Bases
+ *   - Byte group size*
+ *     - 1, 2, 4, 8, 16
+ *   - Refresh
+ * - Tools
+ *   - Preferences...
+ * - ?
+ *   - Check for updates
+ */
 
 namespace _0xdd
 {
@@ -57,6 +76,11 @@ namespace _0xdd
                     new MenuItem("Offset view...", () => {
                         Exit();
                         WindowSystem.PromptOffset();
+                    }),
+                    new MenuItem(),
+                    new MenuItem("Refresh", () => {
+                        Exit();
+                        FilePanel.Refresh();
                     })
                 ),/*
                 new MenuItem("Tools", null,
@@ -84,6 +108,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
             MenuItems = new List<MenuItem>(items.Length);
             MenuItems.AddRange(items);
 
+            _barlength = 0;
             // Get menubar's length with items
             for (int i = 0; i < MenuItems.Count; ++i)
             {
@@ -142,12 +167,10 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
 
                 case ConsoleKey.UpArrow:
                     MoveUp();
-                    Update();
                     break;
 
                 case ConsoleKey.DownArrow:
                     MoveDown();
-                    Update();
                     break;
 
                 case ConsoleKey.LeftArrow:
@@ -171,9 +194,9 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                     break;
             }
 
-            // This if is there because when we call Exit() from the item's
-            // Action, the flow goes back to SelectItem, which then used to 
-            // call Update(). So this is a sanity check.
+            // This 'if' is there due to calling Exit() from the item's
+            // Action, the stack pointer goes back to SelectItem, which
+            // then used to call Update(). So this is a sanity check.
             if (inMenu)
                 Update();
         }
@@ -181,7 +204,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
         /// <summary>
         /// Draw MenuBar
         /// </summary>
-        static void Draw()
+        public static void Draw()
         {
             ToggleMenuBarColor();
             Console.SetCursorPosition(0, 0);

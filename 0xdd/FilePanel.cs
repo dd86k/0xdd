@@ -108,8 +108,9 @@ namespace _0xdd
             //TODO: Check if we can do a little pointer-play with the buffer.
 
             int d = 0;
-            Console.SetCursorPosition(0, StartPosition);
             StringBuilder line, ascii;
+
+            Console.SetCursorPosition(0, StartPosition);
             for (int li = 0; li < DisplayBuffer.Length; li += _0xdd.BytesPerRow) // LineIndex
             {
                 switch (_0xdd.OffsetView)
@@ -127,7 +128,7 @@ namespace _0xdd
                         break;
                 }
 
-                //TODO: If (pos + BytesPerRow) instead
+                //TODO: If (pos + BytesPerRow) instead of the inner if
 
                 ascii = new StringBuilder(_0xdd.BytesPerRow);
                 // d = data (hex) index

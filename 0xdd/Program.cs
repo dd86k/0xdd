@@ -2,8 +2,6 @@
 using System.IO;
 using static System.Reflection.Assembly;
 
-//TODO: Fix when file is zero
-
 namespace _0xdd
 {
     static class Program
@@ -133,7 +131,7 @@ namespace _0xdd
 #else
                 try
                 {
-                    _0xdd.OpenFile(entry);
+                    _0xdd.Open(entry);
 
                     if (_0xdd.LastError != ErrorCode.Success)
                         Console.WriteLine(_0xdd.LastError.GetMessage());
@@ -144,9 +142,7 @@ namespace _0xdd
                 {
                     Abort(e);
                 }
-#endif
 
-#if !DEBUG // To supress an error
                 return 0;
 #endif
             }

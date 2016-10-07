@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Text;
 
-//TODO: Place all the prompts here. PromptGoto(), etc.
-
 namespace _0xdd
 {
     /*class Window
@@ -97,7 +95,7 @@ namespace _0xdd
             }
 
             long t = GetNumberFromUser("Find byte:",
-                suggestion: _lastByte.ToString("X2"));
+                suggestion: $"0x{_lastByte:X2}");
 
             if (t == -1)
             {
@@ -283,24 +281,24 @@ namespace _0xdd
         /// <param name="password">Is password</param>
         /// <returns>User's input</returns>
         /// <remarks>v1.1.1 - 0xdd</remarks>
-        internal static string ReadLine(int limit, string suggestion = null, bool password = false)
+        static string ReadLine(int limit, string suggestion = null, bool password = false)
         { //TODO: Rewrite ReadLine(int) to reduce cyclomatic complexity
             StringBuilder o = new StringBuilder(suggestion ?? string.Empty);
-            int i = 0;
-            bool g = true;
+            int index = 0;
+            bool ongoing = true;
             int oleft = Console.CursorLeft; // Origninal Left Position
             int otop = Console.CursorTop; // Origninal Top Position
 
             if (suggestion != null)
             {
                 Console.Write(suggestion);
-                i = suggestion.Length;
-                Console.SetCursorPosition(oleft + i, otop);
+                index = suggestion.Length;
+                Console.SetCursorPosition(oleft + index, otop);
             }
 
             Console.CursorVisible = true;
 
-            while (g)
+            while (ongoing)
             {
                 ConsoleKeyInfo c = Console.ReadKey(true);
 
@@ -326,79 +324,79 @@ namespace _0xdd
 
                     // Navigation
                     case ConsoleKey.LeftArrow:
-                        if (i > 0)
+                        if (index > 0)
                         {
-                            Console.SetCursorPosition(oleft + --i, otop);
+                            Console.SetCursorPosition(oleft + --index, otop);
                         }
                         break;
                     case ConsoleKey.RightArrow:
-                        if (i < o.Length)
+                        if (index < o.Length)
                         {
-                            Console.SetCursorPosition(oleft + ++i, otop);
+                            Console.SetCursorPosition(oleft + ++index, otop);
                         }
                         break;
                     case ConsoleKey.Home:
-                        if (i > 0)
+                        if (index > 0)
                         {
-                            i = 0;
+                            index = 0;
                             Console.SetCursorPosition(oleft, otop);
                         }
                         break;
                     case ConsoleKey.End:
-                        if (i < o.Length)
+                        if (index < o.Length)
                         {
-                            i = o.Length;
-                            Console.SetCursorPosition(oleft + i, otop);
+                            index = o.Length;
+                            Console.SetCursorPosition(oleft + index, otop);
                         }
                         break;
 
                     case ConsoleKey.Delete:
-                        if (i < o.Length)
+                        if (index < o.Length)
                         {
                             // Erase whole from index
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
-                                o = o.Remove(i, o.Length - i);
+                                o = o.Remove(index, o.Length - index);
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(new string(' ', limit));
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(password ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + i, otop);
+                                Console.SetCursorPosition(oleft + index, otop);
                             }
                             else // Erase one character
                             {
-                                o = o.Remove(i, 1);
+                                o = o.Remove(index, 1);
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(new string(' ', limit));
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(password ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + i, otop);
+                                Console.SetCursorPosition(oleft + index, otop);
                             }
                         }
                         break;
 
                     case ConsoleKey.Backspace:
-                        if (i > 0)
+                        if (index > 0)
                         {
                             // Erase whole from index
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
-                                o = o.Remove(0, i);
-                                i = 0;
+                                o = o.Remove(0, index);
+                                index = 0;
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(new string(' ', limit));
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(password ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + i, otop);
+                                Console.SetCursorPosition(oleft + index, otop);
                             }
                             else // Erase one character
                             {
-                                o = o.Remove(--i, 1);
+                                o = o.Remove(--index, 1);
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(new string(' ', limit));
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(password ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + i, otop);
+                                Console.SetCursorPosition(oleft + index, otop);
                             }
                         }
                         break;
@@ -410,12 +408,12 @@ namespace _0xdd
 
                             if (char.IsLetterOrDigit(h) || char.IsPunctuation(h) || char.IsSymbol(h) || char.IsWhiteSpace(h))
                             {
-                                o.Insert(i++, h);
+                                o.Insert(index++, h);
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(new string(' ', limit));
                                 Console.SetCursorPosition(oleft, otop);
                                 Console.Write(password ? new string('*', o.Length) : o.ToString());
-                                Console.SetCursorPosition(oleft + i, otop);
+                                Console.SetCursorPosition(oleft + index, otop);
                             }
                         }
                         break;
