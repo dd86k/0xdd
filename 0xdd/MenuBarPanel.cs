@@ -243,11 +243,11 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                 Console.SetCursorPosition(x, y);
 
                 if (item.IsSeparator)
-                    Console.Write($"│ {item.Text.PadRight(_miw[_x])} │");
-                else
                     Console.Write($"├{l}┤");
+                else
+                    Console.Write($"│ {item.Text.PadRight(_miw[_x])} │");
             }
-
+             
             // Bottom wall
             Console.SetCursorPosition(x, y);
             Console.Write($"└{l}┘");

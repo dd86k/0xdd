@@ -22,8 +22,8 @@ namespace _0xdd
         {
 #if DEBUG
             // Used for debugging within Visual Studio (vshost)
-            //args = new string[] { "image.jpg" };
-            args = new string[] { "/o", "J", "image.jpg" };
+            args = new string[] { "image.jpg" };
+            //args = new string[] { "/o", "J", "image.jpg" };
             //args = new string[] { "test.txt" };
             //args = new string[] { "zero" };
 #endif
