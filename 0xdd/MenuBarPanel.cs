@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 
 //TODO: Sub-sub-menu rendering.*
-//TODO: Divide Update() into sub-update methods, maybe?
 //TODO: Consider making SelectItem exit the menu
 
 /* New items to implement:
@@ -41,7 +40,7 @@ namespace _0xdd
 
         public static void Initialize()
         {
-            MenuItem[] items = {
+            MenuItem[] mainItems = {
                 new MenuItem("File", null,
                     new MenuItem("Dump", () => {
                         Exit();
@@ -102,26 +101,30 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
             };
 
             // Make an array for each, remember that arrays are REFERENCED.
-            _pos = new int[items.Length];
-            _miw = new int[items.Length];
+            _pos = new int[mainItems.Length];
+            _miw = new int[mainItems.Length];
 
-            MenuItems = new List<MenuItem>(items.Length);
-            MenuItems.AddRange(items);
+            MenuItems = new List<MenuItem>(mainItems.Length);
+            MenuItems.AddRange(mainItems);
 
             _barlength = 0;
             // Get menubar's length with items
             for (int i = 0; i < MenuItems.Count; ++i)
             {
+                MenuItem item = MenuItems[i];
+
                 _pos[i] = _barlength;
 
-                _barlength += MenuItems[i].Text.Length + 2;
+                _barlength += item.Text.Length + 2;
 
                 int max = 0; // Get longuest string in each submenus
-                for (int si = 0; si < MenuItems[i].Items.Count; si++)
+                for (int si = 0; si < item.Items.Count; si++)
                 {
-                    if (MenuItems[i].Items[si].Text != null)
+                    MenuItem subitem = MenuItems[i].Items[si];
+
+                    if (!subitem.IsSeparator)
                     {
-                        int len = MenuItems[i].Items[si].Text.Length;
+                        int len = subitem.Text.Length;
 
                         if (len > max)
                             max = len;
@@ -141,11 +144,11 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
             Update();
             DrawSubMenu();
 
+            // Select new item menubar item
+            FocusMenuBarItem();
+
             // Select new submenu item
-            MenuItem subitem = MenuItems[_x].Items[_y];
-            ToggleSelectionColor();
-            Console.SetCursorPosition(_pos[_x] + 1, _y + 2);
-            Console.Write($" {subitem.Text.PadRight(_miw[_x])} ");
+            FocusSubMenuItem();
 
             inMenu = true;
             while (inMenu)
@@ -194,9 +197,11 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                     break;
             }
 
-            // This 'if' is there due to calling Exit() from the item's
-            // Action, the stack pointer goes back to SelectItem, which
-            // then used to call Update(). So this is a sanity check.
+            /*
+             * This 'if' is there due to calling Exit() from the item's
+             * Action, the stack pointer goes back to SelectItem, which
+             * then used to call Update(). So this is a sanity check.
+             */
             if (inMenu)
                 Update();
         }
@@ -233,10 +238,12 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
 
             for (int i = 0; i < MenuItems[_x].Items.Count; ++i, ++y)
             {
+                MenuItem item = MenuItems[_x].Items[i];
+
                 Console.SetCursorPosition(x, y);
 
-                if (MenuItems[_x].Items[i].Text != null)
-                    Console.Write($"│ {MenuItems[_x].Items[i].Text.PadRight(_miw[_x])} │");
+                if (item.IsSeparator)
+                    Console.Write($"│ {item.Text.PadRight(_miw[_x])} │");
                 else
                     Console.Write($"├{l}┤");
             }
@@ -250,39 +257,59 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
         {
             if (_x != _ox)
             {
-                // Select new item menubar item
-                MenuItem item = MenuItems[_x];
-                ToggleSelectionColor();
-                Console.SetCursorPosition(_pos[_x], 0);
-                Console.Write($" {item.Text} ");
+                FocusMenuBarItem();
 
                 _y = 0;
 
-                // Unselect old menubar selection
                 if (_ox >= 0)
                 {
-                    MenuItem lastItem = MenuItems[_ox];
-                    ToggleMenuBarColor();
-                    Console.SetCursorPosition(_pos[_ox], 0);
-                    Console.Write($" {lastItem.Text} ");
+                    UnfocusMenuBarItem();
                 }
             }
 
+            FocusSubMenuItem();
+
+            // Unselect old submenu item
+            if (_oy >= 0 && _x == _ox && _oy != _y)
+            {
+                UnfocusSubMenuItem();
+            }
+        }
+
+        static void FocusMenuBarItem()
+        {
+            // Select new item menubar item
+            MenuItem item = MenuItems[_x];
+            ToggleSelectionColor();
+            Console.SetCursorPosition(_pos[_x], 0);
+            Console.Write($" {item.Text} ");
+        }
+
+        static void UnfocusMenuBarItem()
+        {
+            // Unselect old menubar selection
+            MenuItem lastItem = MenuItems[_ox];
+            ToggleMenuBarColor();
+            Console.SetCursorPosition(_pos[_ox], 0);
+            Console.Write($" {lastItem.Text} ");
+        }
+
+        static void FocusSubMenuItem()
+        {
             // Select new submenu item
             MenuItem subitem = MenuItems[_x].Items[_y];
             ToggleSelectionColor();
             Console.SetCursorPosition(_pos[_x] + 1, _y + 2);
             Console.Write($" {subitem.Text.PadRight(_miw[_x])} ");
+        }
 
-            // Unselect old submenu item
-            if (_oy >= 0 && _x == _ox && _oy != _y)
-            {
-                int ly = _oy + 2;
-                MenuItem lastItem = MenuItems[_ox].Items[_oy];
-                ToggleSubMenuColor();
-                Console.SetCursorPosition(_pos[_ox] + 1, ly);
-                Console.Write($" {lastItem.Text.PadRight(_miw[_ox])} ");
-            }
+        static void UnfocusSubMenuItem()
+        {
+            int ly = _oy + 2;
+            MenuItem lastItem = MenuItems[_ox].Items[_oy];
+            ToggleSubMenuColor();
+            Console.SetCursorPosition(_pos[_ox] + 1, ly);
+            Console.Write($" {lastItem.Text.PadRight(_miw[_ox])} ");
         }
 
         static void MoveUp()
@@ -352,10 +379,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
         static void Exit()
         {
             // Unselect old menubar selection
-            MenuItem lastItem = MenuItems[_ox];
-            ToggleMenuBarColor();
-            Console.SetCursorPosition(_pos[_ox], 0);
-            Console.Write($" {lastItem.Text} ");
+            UnfocusMenuBarItem();
 
             Console.ResetColor();
             FilePanel.Update();
@@ -385,6 +409,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
         public List<MenuItem> Items { get; }
         public Action Action { get; }
         public string Text { get; }
+        public bool IsSeparator => Text == null;
 
         public MenuItem() : this(null, null) { }
 

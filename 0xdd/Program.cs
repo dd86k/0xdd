@@ -22,7 +22,8 @@ namespace _0xdd
         {
 #if DEBUG
             // Used for debugging within Visual Studio (vshost)
-            args = new string[] { "image.jpg" };
+            //args = new string[] { "image.jpg" };
+            args = new string[] { "/o", "J", "image.jpg" };
             //args = new string[] { "test.txt" };
             //args = new string[] { "zero" };
 #endif
@@ -45,10 +46,14 @@ namespace _0xdd
             {
                 switch (args[i])
                 {
-                    case "-V":
-                    case "/V":
+                    case "-o":
+                    case "/o":
                         switch (args[i + 1][0])
                         {
+                            case 'h':
+                            case 'H':
+                                _0xdd.OffsetView = OffsetView.Hex;
+                                break;
                             case 'd': case 'D':
                                 _0xdd.OffsetView = OffsetView.Dec;
                                 break;
@@ -156,7 +161,7 @@ namespace _0xdd
         /// <remarks> C syntax </remarks>
         static string GetMessage(this ErrorCode code, string arg = null)
         {
-            string m = string.Empty;
+            string m = null;
 
             switch (code)
             {
@@ -168,9 +173,20 @@ namespace _0xdd
                 case ErrorCode.FileUnreadable:
                     m += "Error: File not readable.";
                     break;
+                case ErrorCode.FileAlreadyOpen:
+                    m += "Error: File already open.";
+                    break;
+                case ErrorCode.FileUnauthorized:
+                    m += "Error: Unauthorized to open file.";
+                    break;
+                case ErrorCode.FileZero:
+                    m += "File is of zero length.";
+                    break;
+
                 case ErrorCode.PositionOutOfBound:
                     m += "Error: Position out of bound.";
                     break;
+
                 case ErrorCode.DumberCannotWrite:
                     m += "Error: Could not write to output.";
                     break;

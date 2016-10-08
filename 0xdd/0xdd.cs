@@ -90,8 +90,7 @@ namespace _0xdd
 
         //public static byte BytePerGroup = 1;
         #endregion
-
-        #region Methods        
+    
         public static ErrorCode Open(string path,
             OffsetView view = OffsetView.Hex, int bytesPerRow = 0)
         {
@@ -113,7 +112,7 @@ namespace _0xdd
             try
             { // Mono can have some issues with these.
                 Console.CursorVisible = false;
-                Console.Title = FilePanel.File.Name;
+                Console.Title = $"{Program.Name} •️ {FilePanel.File.Name}";
             } catch { }
 
             Console.Clear();
@@ -335,8 +334,7 @@ namespace _0xdd
             FilePanel.Update();
             InfoPanel.Update();
         }
-
-        #region Goto
+        
         /// <summary>
         /// Go to a specific position in the file.
         /// </summary>
@@ -345,14 +343,13 @@ namespace _0xdd
         {
             ReadFileAndUpdate(position);
         }
-        #endregion
 
-        #region Exit
         /// <summary>
         /// Signal the loops to end, and exit program.
         /// </summary>
         public static void Exit()
         {
+            Console.ResetColor();
             Console.SetCursorPosition(
                 Console.WindowWidth - 1,
                 Console.WindowHeight - 1
@@ -362,10 +359,7 @@ namespace _0xdd
 
             inApp = false;
         }
-        #endregion
-        #endregion
-
-        #region Type extensions
+        
         /// <summary>
         /// Converts into an octal number with 0 padding.
         /// </summary>
@@ -373,12 +367,7 @@ namespace _0xdd
         /// <returns>String.</returns>
         public static string ToOct(this long l) =>
             Convert.ToString(l, 8).PadLeft(8, '0');
-
-        /// <summary>
-        /// Converts into an octal number with 0 padding.
-        /// </summary>
-        /// <param name="l">Number.</param>
-        /// <returns>String.</returns>
+        
         public static string ToOct(this int l, int width) =>
             Convert.ToString(l, 8).PadLeft(width, '0');
 
@@ -413,6 +402,5 @@ namespace _0xdd
         }
 
         public static int Code(this ErrorCode code) => (int)code;
-        #endregion
     }
 }
