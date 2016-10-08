@@ -96,7 +96,6 @@ namespace _0xdd
 
                     case "/?":
                     case "-h":
-                    case "/help":
                     case "-help":
                     case "--help":
                         ShowHelp();
@@ -104,8 +103,6 @@ namespace _0xdd
 
                     case "-v":
                     case "/ver":
-                    case "-ver":
-                    case "/version":
                     case "--version":
                         ShowVersion();
                         return 0;
