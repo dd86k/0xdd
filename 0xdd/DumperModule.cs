@@ -59,6 +59,8 @@ namespace _0xdd
         static ErrorCode DumpFile(FileStream inStream, StreamWriter outStream,
             int bytesInRow = 16, OffsetView offsetView = OffsetView.Hex)
         {
+            //TODO: Update DumpFile
+
             if (!inStream.CanRead)
                 return ErrorCode.DumberCannotRead;
 
@@ -86,7 +88,7 @@ namespace _0xdd
                         break;
 
                     case OffsetView.Oct:
-                        line = new StringBuilder($"{_0xdd.ToOct(offset)}  ");
+                        line = new StringBuilder($"{_0xdd.ToOct(offset, 8)}  ");
                         break;
                 }
 

@@ -34,7 +34,7 @@ namespace _0xdd
             }
 
             Console.SetCursorPosition(0, top);
-            Console.Write($" DEC:{pos:D8} | HEX:{pos:X8} | OCT:{_0xdd.ToOct(pos)}          ");
+            Console.Write($" DEC:{pos:D8} | HEX:{pos:X8} | OCT:{_0xdd.ToOct(pos, 8)}          ");
             Console.SetCursorPosition(Console.WindowWidth - 6, top);
             Console.Write($"{r,3}%");
         }

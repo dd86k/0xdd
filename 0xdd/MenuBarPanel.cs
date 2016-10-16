@@ -41,7 +41,7 @@ namespace _0xdd
         public static void Initialize()
         {
             MenuItem[] mainItems = {
-                new MenuItem("File", null,
+                new MenuItem("File",
                     new MenuItem("Dump", () => {
                         Exit();
                         InfoPanel.Message("Dumping...");
@@ -56,25 +56,25 @@ namespace _0xdd
                 new MenuItem("Edit", null,
                     new MenuItem("Test")
                 ),*/
-                new MenuItem("Search", null,
+                new MenuItem("Search",
                     new MenuItem("Find byte...", () => {
                         Exit();
-                        WindowSystem.PromptFindByte();
+                        Dialog.PromptFindByte();
                     }),
                     new MenuItem("Find ASCII string...", () => {
                         Exit();
-                        WindowSystem.PromptSearchString();
+                        Dialog.PromptSearchString();
                     }),
                     new MenuItem(),
                     new MenuItem("Goto...", () => {
                         Exit();
-                        WindowSystem.PromptGoto();
+                        Dialog.PromptGoto();
                     })
                 ),
-                new MenuItem("View", null,
+                new MenuItem("View",
                     new MenuItem("Offset view...", () => {
                         Exit();
-                        WindowSystem.PromptOffset();
+                        Dialog.PromptOffset();
                     }),
                     new MenuItem(),
                     new MenuItem("Refresh", () => {
@@ -85,10 +85,34 @@ namespace _0xdd
                 new MenuItem("Tools", null,
                     new MenuItem("Test")
                 ),*/
-                new MenuItem("?", null,
+#if DEBUG
+                new MenuItem("Debug",
+                    new MenuItem("Show Test Window", () => {
+                        Exit();
+                        new Window("Test", new Control[] {
+                            new Label("Hello World!")
+                        }).Show();
+                    }),
+                    new MenuItem("Goto", () => {
+                        Exit();
+                        new Window("Goto", new Control[] {
+                            new Label("Hello World!", 1, 1),
+                            new Button("OK", 12, 3, action: () => { _0xdd.Goto(0xdd); })
+                        }).Show();
+                    }),
+                    new MenuItem("Preferences...", () => {
+                        Exit();
+                        new Window("Test", 50, 6, new Control[] {
+                            new Label("Setting 1:", 1, 1),
+                            new Button("OK", 12, 3)
+                        }).Show();
+                    })
+                ),
+#endif
+                new MenuItem("?",
                     new MenuItem("About", () => {
                         Exit();
-                        WindowSystem.GenerateWindow(
+                        Dialog.GenerateWindow(
                             title: "About",
                             text:
 $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
@@ -411,9 +435,9 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
         public string Text { get; }
         public bool IsSeparator => Text == null;
 
-        public MenuItem() : this(null, null) { }
+        public MenuItem() : this(null) { }
 
-        public MenuItem(string text) : this(text, null) { }
+        public MenuItem(string text, params MenuItem[] items) : this(text, null, items) { }
 
         public MenuItem(string text, Action action, params MenuItem[] items)
         {

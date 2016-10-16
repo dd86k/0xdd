@@ -3,17 +3,7 @@ using System.Text;
 
 namespace _0xdd
 {
-    /*class Window
-    {
-
-    }
-
-    class Control
-    {
-
-    }*/
-
-    static class WindowSystem
+    static class Dialog
     {
         static byte _lastByte;
         static string _lastString;
@@ -115,7 +105,7 @@ namespace _0xdd
                 InfoPanel.Message("Searching...");
                 long p = Finder.FindByte(
                     _lastByte = (byte)t,
-                    FilePanel.Stream,
+                    FilePanel.FileIO,
                     FilePanel.File,
                     FilePanel.CurrentPosition + 1
                 );
@@ -177,7 +167,7 @@ namespace _0xdd
             InfoPanel.Message("Searching...");
             long t = Finder.FindString(
                 _lastString,
-                FilePanel.Stream,
+                FilePanel.FileIO,
                 FilePanel.File,
                 FilePanel.CurrentPosition + 1
             );

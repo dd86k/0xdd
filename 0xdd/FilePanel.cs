@@ -21,12 +21,12 @@ namespace _0xdd
         const int StartPosition = 2;
 
         public static FileInfo File { get; private set; }
-        public static FileStream Stream { get; private set; }
+        public static FileStream FileIO { get; private set; }
         public static byte[] DisplayBuffer { get; private set; }
 
         public static int BufferSize => DisplayBuffer.Length;
         public static long FileSize => File.Length;
-        public static long CurrentPosition => Stream.Position;
+        public static long CurrentPosition => FileIO.Position;
 
         /// <summary>
         /// Open the file from the path.
@@ -35,22 +35,23 @@ namespace _0xdd
         /// <returns>Error code.</returns>
         public static ErrorCode Open(string path)
         {
-            File = new FileInfo(path);
-
-            if (!File.Exists)
-                return ErrorCode.FileNotFound;
-
             try
             {
-                Stream = File.Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+                FileIO =
+                    (File = new FileInfo(path))
+                    .Open(FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
+            }
+            catch (IOException)
+            {
+                return ErrorCode.FileNotFound;
             }
             catch (UnauthorizedAccessException)
             {
                 return ErrorCode.FileUnauthorized;
             }
-            catch (IOException)
+            catch
             {
-                return ErrorCode.FileAlreadyOpen;
+                return ErrorCode.UnknownError;
             }
 
             if (File.Length == 0)
@@ -67,11 +68,7 @@ namespace _0xdd
             // Bytes On Screen
             int bos = (Console.WindowHeight - 3) * _0xdd.BytesPerRow;
 
-            DisplayBuffer = new byte[
-                    FileSize < bos ? FileSize : bos
-                ];
-
-            MenuBarPanel.Initialize();
+            DisplayBuffer = new byte[FileSize < bos ? FileSize : bos];
             
             Read(CurrentPosition);
             Update();
@@ -83,14 +80,14 @@ namespace _0xdd
         /// <param name="position">Position.</param>
         public static void Read(long position)
         {
-            Stream.Position = position;
-            Stream.Read(DisplayBuffer, 0, DisplayBuffer.Length);
-            Stream.Position = position;
+            FileIO.Position = position;
+            FileIO.Read(DisplayBuffer, 0, DisplayBuffer.Length);
+            FileIO.Position = position;
         }
 
         public static void Refresh()
         {
-            Read(Stream.Position);
+            Read(FileIO.Position);
         }
 
         /// <summary>
@@ -100,58 +97,66 @@ namespace _0xdd
         {
             int width = Console.WindowWidth - 1;
 
-            long len = File.Length; // File size
-            long pos = Stream.Position; // File position
-
-            OffsetPanel.Update();
+            long len = File.Length, pos = FileIO.Position;
 
             //TODO: Check if we can do a little pointer-play with the buffer.
 
-            int d = 0;
-            StringBuilder line, ascii;
+            int d = 0, bpr = _0xdd.BytesPerRow;
+
+            StringBuilder
+                line = new StringBuilder(width),
+                ascii = new StringBuilder(bpr);
+
+            OffsetPanel.Update();
 
             Console.SetCursorPosition(0, StartPosition);
-            for (int li = 0; li < DisplayBuffer.Length; li += _0xdd.BytesPerRow) // LineIndex
+            for (int i = 0; i < DisplayBuffer.Length; i += bpr)
             {
+                line.Clear();
                 switch (_0xdd.OffsetView)
                 {
                     default:
-                        line = new StringBuilder($"{pos + li:X8}  ", width);
+                        line.Append($"{pos + i:X8}  ");
                         break;
 
                     case OffsetView.Dec:
-                        line = new StringBuilder($"{pos + li:D8}  ", width);
+                        line.Append($"{pos + i:D8}  ");
                         break;
 
                     case OffsetView.Oct:
-                        line = new StringBuilder($"{_0xdd.ToOct(pos + li)}  ", width);
+                        line.Append($"{_0xdd.ToOct(pos + i, 8)}  ");
                         break;
                 }
 
-                //TODO: If (pos + BytesPerRow) instead of the inner if
-
-                ascii = new StringBuilder(_0xdd.BytesPerRow);
-                // d = data (hex) index
-                for (int i = 0; i < _0xdd.BytesPerRow; ++i, ++d)
+                ascii.Clear();
+                if (pos + i + bpr < len)
                 {
-                    if (pos + d < len)
+                    for (int bi = 0; bi < bpr; ++bi, ++d)
                     {
                         line.Append($"{DisplayBuffer[d]:X2} ");
                         ascii.Append(DisplayBuffer[d].ToAscii());
                     }
-                    else
-                    {
-                        Console.Write(line.ToString());
-                        Console.SetCursorPosition(Console.WindowWidth - _0xdd.BytesPerRow - 5, Console.CursorTop);
-                        Console.Write(ascii.ToString());
-                        return;
-                    }
-                }
 
-                Console.Write(line.ToString());
-                Console.Write(' '); // over 0xFFFFFFFF padding
-                Console.Write(ascii.ToString());
-                Console.WriteLine(' ');
+                    Console.Write(line.ToString());
+                    Console.Write(' '); // In case of "over FFFF_FFFFh" padding
+                    Console.Write(ascii.ToString());
+                    Console.WriteLine(' ');
+                }
+                else
+                {
+                    long h = len - (pos + i);
+
+                    for (int bi = 0; bi < h; ++bi, ++d)
+                    {
+                        line.Append($"{DisplayBuffer[d]:X2} ");
+                        ascii.Append(DisplayBuffer[d].ToAscii());
+                    }
+
+                    Console.Write(line.ToString());
+                    Console.SetCursorPosition(Console.WindowWidth - bpr - 5, Console.CursorTop);
+                    Console.Write(ascii.ToString());
+                    return;
+                }
             }
         }
     }

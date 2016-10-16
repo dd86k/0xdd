@@ -116,7 +116,8 @@ namespace _0xdd
             } catch { }
 
             Console.Clear();
-            
+
+            MenuBarPanel.Initialize();
             FilePanel.Initialize();
             InfoPanel.Update();
 
@@ -161,7 +162,7 @@ namespace _0xdd
                 case ConsoleKey.W:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        WindowSystem.PromptFindByte();
+                        Dialog.PromptFindByte();
                     }
                     break;
 
@@ -169,7 +170,7 @@ namespace _0xdd
                 case ConsoleKey.J:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        WindowSystem.PromptSearchString();
+                        Dialog.PromptSearchString();
                     }
                     break;
 
@@ -177,7 +178,7 @@ namespace _0xdd
                 case ConsoleKey.G:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        WindowSystem.PromptGoto();
+                        Dialog.PromptGoto();
                     }
                     break;
 
@@ -185,7 +186,7 @@ namespace _0xdd
                 case ConsoleKey.O:
                     if (k.Modifiers == ConsoleModifiers.Control)
                     {
-                        WindowSystem.PromptOffset();
+                        Dialog.PromptOffset();
                     }
                     break;
 
@@ -239,12 +240,12 @@ namespace _0xdd
                     if (FilePanel.BufferSize < FilePanel.FileSize)
                         if (k.Modifiers == ConsoleModifiers.Control)
                         {
-                            ReadFileAndUpdate(FilePanel.CurrentPosition -
+                            Goto(FilePanel.CurrentPosition -
                                 (FilePanel.CurrentPosition % BytesPerRow));
                         }
                         else if (FilePanel.CurrentPosition - 1 >= 0)
                         {
-                            ReadFileAndUpdate(FilePanel.CurrentPosition - 1);
+                            Goto(FilePanel.CurrentPosition - 1);
                         }
                     break;
                 case ConsoleKey.RightArrow:
@@ -255,13 +256,13 @@ namespace _0xdd
                                 (BytesPerRow - FilePanel.CurrentPosition % BytesPerRow);
 
                             if (NewPos + FilePanel.BufferSize <= FilePanel.FileSize)
-                                ReadFileAndUpdate(NewPos);
+                                Goto(NewPos);
                             else
-                                ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
+                                Goto(FilePanel.FileSize - FilePanel.BufferSize);
                         }
                         else if (FilePanel.CurrentPosition + FilePanel.BufferSize + 1 <= FilePanel.FileSize)
                         {
-                            ReadFileAndUpdate(FilePanel.CurrentPosition + 1);
+                            Goto(FilePanel.CurrentPosition + 1);
                         }
                     break;
 
@@ -269,22 +270,22 @@ namespace _0xdd
                     if (FilePanel.BufferSize < FilePanel.FileSize)
                         if (FilePanel.CurrentPosition - BytesPerRow >= 0)
                         {
-                            ReadFileAndUpdate(FilePanel.CurrentPosition - BytesPerRow);
+                            Goto(FilePanel.CurrentPosition - BytesPerRow);
                         }
                         else
                         {
-                            ReadFileAndUpdate(0);
+                            Goto(0);
                         }
                     break;
                 case ConsoleKey.DownArrow:
                     if (FilePanel.BufferSize < FilePanel.FileSize)
                         if (FilePanel.CurrentPosition + FilePanel.BufferSize + BytesPerRow <= FilePanel.FileSize)
                         {
-                            ReadFileAndUpdate(FilePanel.CurrentPosition + BytesPerRow);
+                            Goto(FilePanel.CurrentPosition + BytesPerRow);
                         }
                         else
                         {
-                            ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
+                            Goto(FilePanel.FileSize - FilePanel.BufferSize);
                         }
                     break;
 
@@ -292,32 +293,32 @@ namespace _0xdd
                     if (FilePanel.BufferSize < FilePanel.FileSize)
                         if (FilePanel.CurrentPosition - FilePanel.BufferSize >= 0)
                         {
-                            ReadFileAndUpdate(FilePanel.CurrentPosition - FilePanel.BufferSize);
+                            Goto(FilePanel.CurrentPosition - FilePanel.BufferSize);
                         }
                         else
                         {
-                            ReadFileAndUpdate(0);
+                            Goto(0);
                         }
                     break;
                 case ConsoleKey.PageDown:
                     if (FilePanel.BufferSize < FilePanel.FileSize)
                         if (FilePanel.CurrentPosition + (FilePanel.BufferSize * 2) <= FilePanel.FileSize)
                         {
-                            ReadFileAndUpdate(FilePanel.CurrentPosition + FilePanel.BufferSize);
+                            Goto(FilePanel.CurrentPosition + FilePanel.BufferSize);
                         }
                         else
                         {
-                            ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
+                            Goto(FilePanel.FileSize - FilePanel.BufferSize);
                         }
                     break;
 
                 case ConsoleKey.Home:
                     if (FilePanel.BufferSize < FilePanel.FileSize)
-                        ReadFileAndUpdate(0);
+                        Goto(0);
                     break;
                 case ConsoleKey.End:
                     if (FilePanel.BufferSize < FilePanel.FileSize)
-                        ReadFileAndUpdate(FilePanel.FileSize - FilePanel.BufferSize);
+                        Goto(FilePanel.FileSize - FilePanel.BufferSize);
                     break;
             }
         }
@@ -328,20 +329,11 @@ namespace _0xdd
         /// Read file, update MainPanel, then update InfoPanel.
         /// </summary>
         /// <param name="position">New position.</param>
-        static void ReadFileAndUpdate(long position)
+        public static void Goto(long position)
         {
             FilePanel.Read(position);
             FilePanel.Update();
             InfoPanel.Update();
-        }
-        
-        /// <summary>
-        /// Go to a specific position in the file.
-        /// </summary>
-        /// <param name="position">Position</param>
-        public static void Goto(long position)
-        {
-            ReadFileAndUpdate(position);
         }
 
         /// <summary>
@@ -359,16 +351,13 @@ namespace _0xdd
 
             inApp = false;
         }
-        
-        /// <summary>
-        /// Converts into an octal number with 0 padding.
-        /// </summary>
-        /// <param name="l">Number.</param>
-        /// <returns>String.</returns>
-        public static string ToOct(this long l) =>
-            Convert.ToString(l, 8).PadLeft(8, '0');
-        
+
+        //TODO: Move type extensions to a separate class.
+
         public static string ToOct(this int l, int width) =>
+            Convert.ToString(l, 8).PadLeft(width, '0');
+
+        public static string ToOct(this long l, int width) =>
             Convert.ToString(l, 8).PadLeft(width, '0');
 
         /// <summary>
