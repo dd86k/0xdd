@@ -46,12 +46,10 @@ namespace _0xdd
             {
                 switch (args[i])
                 {
-                    case "-o":
-                    case "/o":
+                    case "-o": case "/o":
                         switch (args[i + 1][0])
                         {
-                            case 'h':
-                            case 'H':
+                            case 'h': case 'H':
                                 _0xdd.OffsetView = OffsetView.Hex;
                                 break;
                             case 'd': case 'D':
@@ -69,8 +67,7 @@ namespace _0xdd
                         }
                         break;
 
-                    case "-w":
-                    case "/w":
+                    case "-w": case "/w":
                         {
                             int b = _0xdd.BytesPerRow;
                             if (char.ToLower(args[i + 1][0]) != 'a') // Automatic, in case to overwrite settings
@@ -89,8 +86,7 @@ namespace _0xdd
                         }
                         break;
 
-                    case "-dump":
-                    case "/dump":
+                    case "-dump": case "/dump":
                         dump = true;
                         break;
 
