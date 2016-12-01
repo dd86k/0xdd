@@ -1,6 +1,6 @@
 # 0xdd - Hexadecimal Console File Viewer
 
-![0xdd](http://guitarxhero.github.io/imgs/0xdd1.png)
+![0xdd](http://dd86k.github.io/imgs/0xdd1.png)
 
 Inspired by EDIT (MS-DOS), 0xdd is a simple, interactive, hexadecimal file viewer for Windows.
 
