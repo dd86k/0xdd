@@ -38,8 +38,8 @@ namespace _0xdd
             
             // Defaults
             string entry = args[args.Length - 1];
-            _0xdd.BytesPerRow = 0;
-            _0xdd.OffsetView = OffsetView.Hex;
+            Main0xddApp.BytesPerRow = 0;
+            Main0xddApp.OffsetView = OffsetView.Hex;
             bool dump = false;
 
             for (int i = 0; i < args.Length; ++i)
@@ -50,39 +50,43 @@ namespace _0xdd
                         switch (args[i + 1][0])
                         {
                             case 'h': case 'H':
-                                _0xdd.OffsetView = OffsetView.Hex;
+                                Main0xddApp.OffsetView = OffsetView.Hex;
                                 break;
                             case 'd': case 'D':
-                                _0xdd.OffsetView = OffsetView.Dec;
+                                Main0xddApp.OffsetView = OffsetView.Dec;
                                 break;
                             case 'o': case 'O':
-                                _0xdd.OffsetView = OffsetView.Oct;
+                                Main0xddApp.OffsetView = OffsetView.Oct;
                                 break;
                             default:
-                                Console.WriteLine(GetMessage(ErrorCode.CLI_InvalidOffsetView, args[i + 1]));
+                                Console.WriteLine(
+                                    GetMessage(ErrorCode.CLI_InvalidOffsetView, args[i + 1])
+                                );
 #if DEBUG
                                 Console.ReadLine();
 #endif
-                                return ErrorCode.CLI_InvalidOffsetView.Code();
+                                return ErrorCode.CLI_InvalidOffsetView.ToInt();
                         }
                         break;
 
                     case "-w": case "/w":
                         {
-                            int b = _0xdd.BytesPerRow;
+                            int b = Main0xddApp.BytesPerRow;
                             if (char.ToLower(args[i + 1][0]) != 'a') // Automatic, in case to overwrite settings
                             {
-                                _0xdd.BytesPerRow = 0;
+                                Main0xddApp.BytesPerRow = 0;
                             }
                             else if (!int.TryParse(args[i + 1], out b))
                             {
-                                Console.WriteLine(GetMessage(ErrorCode.CLI_InvalidWidth, args[i + 1]));
+                                Console.WriteLine(
+                                    GetMessage(ErrorCode.CLI_InvalidWidth, args[i + 1])
+                                );
 #if DEBUG
                                 Console.ReadLine();
 #endif
-                                return ErrorCode.CLI_InvalidWidth.Code();
+                                return ErrorCode.CLI_InvalidWidth.ToInt();
                             }
-                            _0xdd.BytesPerRow = b;
+                            Main0xddApp.BytesPerRow = b;
                         }
                         break;
 
@@ -108,33 +112,35 @@ namespace _0xdd
             if (dump)
             {
                 Console.Write("Dumping file... ");
-                ErrorCode err = Dumper.Dump(entry, _0xdd.BytesPerRow, _0xdd.OffsetView);
+                ErrorCode err = Dumper.Dump(entry, Main0xddApp.BytesPerRow, Main0xddApp.OffsetView);
                 
                 Console.WriteLine(GetMessage(err));
 
-                return err.Code();
+                return err.ToInt();
             }
             else
             {
 #if DEBUG
                 // I want Visual Studio to catch the exceptions!
-                ErrorCode r = ErrorCode.Success;
+                Main0xddApp.Open(entry);
 
-                r = _0xdd.Open(entry);
+                ErrorCode e = Main0xddApp.LastError;
 
                 Console.Clear();
-                Console.WriteLine($"\nERRORCODE: {r} - 0x{r.Code():X2}");
+                Console.WriteLine(
+                    $"ERROR: {e} - {e.GetMessage()} (0x{e.ToInt():X8})"
+                );
                 Console.ReadKey();
-                return r.Code();
+                return e.ToInt();
 #else
                 try
                 {
-                    _0xdd.Open(entry);
+                    Main0xddApp.Open(entry);
 
-                    if (_0xdd.LastError != ErrorCode.Success)
-                        Console.WriteLine(_0xdd.LastError.GetMessage());
+                    if (Main0xddApp.LastError != ErrorCode.Success)
+                        Console.WriteLine(Main0xddApp.LastError.GetMessage());
 
-                    return _0xdd.LastError.Code();
+                    return App.LastError.ToInt();
                 }
                 catch (Exception e)
                 {
@@ -151,7 +157,6 @@ namespace _0xdd
         /// </summary>
         /// <param name="code"><see cref="ErrorCode"/></param>
         /// <returns><see cref="string"/></returns>
-        /// <remarks> C syntax </remarks>
         static string GetMessage(this ErrorCode code, string arg = null)
         {
             string m = null;
@@ -207,7 +212,7 @@ namespace _0xdd
                     break;
             }
 
-            return m += $"\n ERROR: {code} - 0x{code.Code():X2}";
+            return m;
         }
 
         static void Abort(Exception e)
@@ -264,10 +269,10 @@ namespace _0xdd
             Console.WriteLine($"{Name} - {Version}");
             Console.WriteLine("Copyright (c) 2015 guitarxhero");
             Console.WriteLine("License: MIT License <http://opensource.org/licenses/MIT>");
-            Console.WriteLine("Project page: <https://github.com/guitarxhero/0xdd>");
+            Console.WriteLine("Project page: <https://github.com/dd86k/0xdd>");
             Console.WriteLine();
             Console.WriteLine(" -- Credits --");
-            Console.WriteLine("DD~! (guitarxhero) - Original author");
+            Console.WriteLine("DD~! (dd86k) - Original author");
         }
     }
 }

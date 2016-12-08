@@ -3,7 +3,6 @@
 //TODO: Hashing (with menu) (v1.1)
 //TODO: Search from end of file (v0.7)
 //TODO: Settings! (v0.8)
-//TODO: Move File % pos to offset panel for OperatingMode
 
 /*
     TODO: Edit mode (v0.9)
@@ -73,7 +72,7 @@ namespace _0xdd
     }
     #endregion
 
-    static class _0xdd
+    static class Main0xddApp
     {
         #region Properties
         public static ErrorCode LastError { get; private set; }
@@ -111,13 +110,14 @@ namespace _0xdd
 
             try
             { // Mono can have some issues with these.
-                Console.CursorVisible = false;
                 Console.Title = $"{Program.Name} •️ {FilePanel.File.Name}";
+                Console.CursorVisible = false;
             } catch { }
 
             Console.Clear();
 
             MenuBarPanel.Initialize();
+            OffsetPanel.Initialize();
             FilePanel.Initialize();
             InfoPanel.Update();
 
@@ -150,90 +150,8 @@ namespace _0xdd
             
             switch (k.Key)
             {
-                case ConsoleKey.F5:
-                    FilePanel.Refresh();
-                    break;
-
-                case ConsoleKey.Escape:
-                    MenuBarPanel.Enter();
-                    break;
-
-                // Find byte
-                case ConsoleKey.W:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        Dialog.PromptFindByte();
-                    }
-                    break;
-
-                // Find data
-                case ConsoleKey.J:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        Dialog.PromptSearchString();
-                    }
-                    break;
-
-                // Goto
-                case ConsoleKey.G:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        Dialog.PromptGoto();
-                    }
-                    break;
-
-                // Offset base
-                case ConsoleKey.O:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        Dialog.PromptOffset();
-                    }
-                    break;
-
-                // Edit mode
-                case ConsoleKey.E:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        InfoPanel.Message("Not implemented. Sorry!");
-                    }
-                    break;
-
-                // Replace
-                case ConsoleKey.H:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        InfoPanel.Message("Not implemented. Sorry!");
-                    }
-                    break;
-
-                // Info
-                case ConsoleKey.I:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        InfoPanel.Message(
-                            $"{FilePanel.File.Name} {Utils.GetEntryInfo(FilePanel.File)} {Utils.FormatSize(FilePanel.FileSize)}"
-                        );
-                    }
-                    break;
-
-                // Exit
-                case ConsoleKey.X:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                        Exit();
-                    break;
-
-                // Dump
-                case ConsoleKey.D:
-                    if (k.Modifiers == ConsoleModifiers.Control)
-                    {
-                        InfoPanel.Message("Dumping...");
-                        Dumper.Dump(FilePanel.File.FullName, BytesPerRow, OffsetView);
-                        InfoPanel.Message("Dumping done!");
-                    }
-                    break;
-
                 /*
-                 * Data navigation
+                 * Navigation
                  */
 
                 case ConsoleKey.LeftArrow:
@@ -320,6 +238,92 @@ namespace _0xdd
                     if (FilePanel.BufferSize < FilePanel.FileSize)
                         Goto(FilePanel.FileSize - FilePanel.BufferSize);
                     break;
+
+                /*
+                 * Actions
+                 */
+
+                case ConsoleKey.F5:
+                    FilePanel.Refresh();
+                    break;
+
+                case ConsoleKey.Escape:
+                    MenuBarPanel.Enter();
+                    break;
+
+                // Find byte
+                case ConsoleKey.W:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        Dialog.PromptFindByte();
+                    }
+                    break;
+
+                // Find data
+                case ConsoleKey.J:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        Dialog.PromptSearchString();
+                    }
+                    break;
+
+                // Goto
+                case ConsoleKey.G:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        Dialog.PromptGoto();
+                    }
+                    break;
+
+                // Offset base
+                case ConsoleKey.O:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        Dialog.PromptOffset();
+                    }
+                    break;
+
+                // Edit mode
+                case ConsoleKey.E:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        InfoPanel.Message("Not implemented. Sorry!");
+                    }
+                    break;
+
+                // Replace
+                case ConsoleKey.H:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        InfoPanel.Message("Not implemented. Sorry!");
+                    }
+                    break;
+
+                // Info
+                case ConsoleKey.I:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        InfoPanel.Message(
+                            $"{FilePanel.File.Name} {Utils.GetEntryInfo(FilePanel.File)} {Utils.FormatSize(FilePanel.FileSize)}"
+                        );
+                    }
+                    break;
+
+                // Exit
+                case ConsoleKey.X:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                        Exit();
+                    break;
+
+                // Dump
+                case ConsoleKey.D:
+                    if (k.Modifiers == ConsoleModifiers.Control)
+                    {
+                        InfoPanel.Message("Dumping...");
+                        Dumper.Dump(FilePanel.File.FullName, BytesPerRow, OffsetView);
+                        InfoPanel.Message("Dumping done!");
+                    }
+                    break;
             }
         }
 
@@ -351,8 +355,6 @@ namespace _0xdd
 
             inApp = false;
         }
-
-        //TODO: Move type extensions to a separate class.
 
         public static string ToOct(this int l, int width) =>
             Convert.ToString(l, 8).PadLeft(width, '0');
@@ -390,6 +392,6 @@ namespace _0xdd
             }
         }
 
-        public static int Code(this ErrorCode code) => (int)code;
+        public static int ToInt(this ErrorCode code) => (int)code;
     }
 }

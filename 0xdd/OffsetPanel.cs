@@ -10,38 +10,47 @@ namespace _0xdd
     {
         const int TopPosition = 1;
 
+        public static void Initialize()
+        {
+            Console.SetCursorPosition(0, TopPosition);
+            Console.Write($"Offset {Main0xddApp.OffsetView.GetChar()}  ");
+        }
+
+        public static void Draw()
+        {
+            Initialize();
+            Update();
+        }
+
         /// <summary>
         /// Update the offset map
         /// </summary>
-        static internal void Update()
+        public static void Update()
         {
-            StringBuilder t = new StringBuilder($"Offset {_0xdd.OffsetView.GetChar()}  ");
+            StringBuilder t = new StringBuilder(Console.WindowWidth - 10);
 
             if (FilePanel.CurrentPosition > uint.MaxValue)
                 t.Append(' ');
 
-            switch (_0xdd.OffsetView)
+            switch (Main0xddApp.OffsetView)
             {
                 default:
-                    for (int i = 0; i < _0xdd.BytesPerRow; ++i)
+                    for (int i = 0; i < Main0xddApp.BytesPerRow; ++i)
                         t.Append($"{i:X2} ");
                     break;
 
                 case OffsetView.Dec:
-                    for (int i = 0; i < _0xdd.BytesPerRow; ++i)
-                        t.Append($"{i:00} ");
+                    for (int i = 0; i < Main0xddApp.BytesPerRow; ++i)
+                        t.Append($"{i:D2} ");
                     break;
 
                 case OffsetView.Oct:
-                    for (int i = 0; i < _0xdd.BytesPerRow; ++i)
+                    for (int i = 0; i < Main0xddApp.BytesPerRow; ++i)
                         t.Append($"{i.ToOct(2)} ");
                     break;
             }
-            /*
-            if (LastWindowHeight != Console.WindowHeight || LastWindowWidth != Console.WindowWidth)
-                t.Append(new string(' ', Console.WindowWidth - t.Length - 1)); // Force clean
-            */
-            Console.SetCursorPosition(0, TopPosition);
+
+            Console.SetCursorPosition(10, TopPosition);
             Console.Write(t.ToString());
         }
     }

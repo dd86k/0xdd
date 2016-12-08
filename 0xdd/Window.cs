@@ -44,9 +44,6 @@ namespace _0xdd
 
             X = (Console.WindowWidth / 2) - (width / 2);
             Y = (Console.WindowHeight / 2) - (height / 2);
-
-            Foreground = ConsoleColor.Black;
-            Background = ConsoleColor.Gray;
         }
 
         public string Title { get; set; }

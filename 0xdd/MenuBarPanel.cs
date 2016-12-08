@@ -1,9 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 
-//TODO: Sub-sub-menu rendering.*
-//TODO: Consider making SelectItem exit the menu
-
 /* New items to implement:
  * - File
  *   - Dump*
@@ -22,6 +19,7 @@ using System.Collections.Generic;
  * - ?
  *   - Check for updates
  */
+//TODO: Sub-sub-menu rendering.*
 
 namespace _0xdd
 {
@@ -35,7 +33,7 @@ namespace _0xdd
         // The menu bar length with items, to ease filling the gap.
         static int _barlength = 0,
             // X and Y position in the menu, including old positions.
-            _x, _y, _oy = -1, _ox = -1;
+            X, Y, oldY = -1, oldX = -1;
         static bool inMenu = true;
 
         public static void Initialize()
@@ -45,12 +43,12 @@ namespace _0xdd
                     new MenuItem("Dump", () => {
                         Exit();
                         InfoPanel.Message("Dumping...");
-                        Dumper.Dump(FilePanel.File.FullName, _0xdd.BytesPerRow, _0xdd.OffsetView);
+                        Dumper.Dump(FilePanel.File.FullName, Main0xddApp.BytesPerRow, Main0xddApp.OffsetView);
                         InfoPanel.Message("Done");
                     }),
                     new MenuItem(),
                     new MenuItem("Exit", () => {
-                        inMenu = false; _0xdd.Exit();
+                        inMenu = false; Main0xddApp.Exit();
                     })
                 ),/*
                 new MenuItem("Edit", null,
@@ -97,7 +95,7 @@ namespace _0xdd
                         Exit();
                         new Window("Goto", new Control[] {
                             new Label("Hello World!", 1, 1),
-                            new Button("OK", 12, 3, action: () => { _0xdd.Goto(0xdd); })
+                            new Button("OK", 12, 3, action: () => { Main0xddApp.Goto(0xdd); })
                         }).Show();
                     }),
                     new MenuItem("Preferences...", () => {
@@ -115,10 +113,9 @@ namespace _0xdd
                         Dialog.GenerateWindow(
                             title: "About",
                             text:
-$"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
-                            width: 40,
-                            height: 6,
-                            centerText: true
+$"{Program.Name} v{Program.Version}\nCopyright (c) dd86k  2015-2016",
+                            width: 36,
+                            height: 5
                         );
                     })
                 )
@@ -176,15 +173,15 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
 
             inMenu = true;
             while (inMenu)
-                Entry();
+                ReadKey();
         }
 
-        static void Entry()
+        static void ReadKey()
         {
             ConsoleKeyInfo ck = Console.ReadKey(true);
 
-            _oy = _y;
-            _ox = _x;
+            oldY = Y;
+            oldX = X;
 
             switch (ck.Key)
             {
@@ -203,7 +200,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                 case ConsoleKey.LeftArrow:
                     MoveLeft();
                     Console.ResetColor();
-                    OffsetPanel.Update();
+                    OffsetPanel.Draw();
                     FilePanel.Update();
                     DrawSubMenu();
                     break;
@@ -211,11 +208,12 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
                 case ConsoleKey.RightArrow:
                     MoveRight();
                     Console.ResetColor();
-                    OffsetPanel.Update();
+                    OffsetPanel.Draw();
                     FilePanel.Update();
                     DrawSubMenu();
                     break;
 
+                case ConsoleKey.Spacebar:
                 case ConsoleKey.Enter:
                     SelectItem();
                     break;
@@ -250,8 +248,8 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
         /// </summary>
         static void DrawSubMenu()
         {
-            string l = new string('─', _miw[_x] + 2);
-            int x = _pos[_x];
+            string l = new string('─', _miw[X] + 2);
+            int x = _pos[X];
             int y = 1;
 
             ToggleSubMenuColor();
@@ -260,16 +258,16 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
             Console.SetCursorPosition(x, y++);
             Console.Write($"┌{l}┐");
 
-            for (int i = 0; i < MenuItems[_x].Items.Count; ++i, ++y)
+            for (int i = 0; i < MenuItems[X].Items.Count; ++i, ++y)
             {
-                MenuItem item = MenuItems[_x].Items[i];
+                MenuItem item = MenuItems[X].Items[i];
 
                 Console.SetCursorPosition(x, y);
 
                 if (item.IsSeparator)
                     Console.Write($"├{l}┤");
                 else
-                    Console.Write($"│ {item.Text.PadRight(_miw[_x])} │");
+                    Console.Write($"│ {item.Text.PadRight(_miw[X])} │");
             }
              
             // Bottom wall
@@ -279,13 +277,13 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
 
         static void Update()
         {
-            if (_x != _ox)
+            if (X != oldX)
             {
                 FocusMenuBarItem();
 
-                _y = 0;
+                Y = 0;
 
-                if (_ox >= 0)
+                if (oldX >= 0)
                 {
                     UnfocusMenuBarItem();
                 }
@@ -294,7 +292,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
             FocusSubMenuItem();
 
             // Unselect old submenu item
-            if (_oy >= 0 && _x == _ox && _oy != _y)
+            if (oldY >= 0 && X == oldX && oldY != Y)
             {
                 UnfocusSubMenuItem();
             }
@@ -303,98 +301,100 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
         static void FocusMenuBarItem()
         {
             // Select new item menubar item
-            MenuItem item = MenuItems[_x];
+            MenuItem item = MenuItems[X];
             ToggleSelectionColor();
-            Console.SetCursorPosition(_pos[_x], 0);
+            Console.SetCursorPosition(_pos[X], 0);
             Console.Write($" {item.Text} ");
         }
 
         static void UnfocusMenuBarItem()
         {
             // Unselect old menubar selection
-            MenuItem lastItem = MenuItems[_ox];
+            MenuItem lastItem = MenuItems[oldX];
             ToggleMenuBarColor();
-            Console.SetCursorPosition(_pos[_ox], 0);
+            Console.SetCursorPosition(_pos[oldX], 0);
             Console.Write($" {lastItem.Text} ");
         }
 
         static void FocusSubMenuItem()
         {
             // Select new submenu item
-            MenuItem subitem = MenuItems[_x].Items[_y];
+            MenuItem subitem = MenuItems[X].Items[Y];
             ToggleSelectionColor();
-            Console.SetCursorPosition(_pos[_x] + 1, _y + 2);
-            Console.Write($" {subitem.Text.PadRight(_miw[_x])} ");
+            Console.SetCursorPosition(_pos[X] + 1, Y + 2);
+            Console.Write($" {subitem.Text.PadRight(_miw[X])} ");
         }
 
         static void UnfocusSubMenuItem()
         {
-            int ly = _oy + 2;
-            MenuItem lastItem = MenuItems[_ox].Items[_oy];
+            int ly = oldY + 2;
+            MenuItem lastItem = MenuItems[oldX].Items[oldY];
             ToggleSubMenuColor();
-            Console.SetCursorPosition(_pos[_ox] + 1, ly);
-            Console.Write($" {lastItem.Text.PadRight(_miw[_ox])} ");
+            Console.SetCursorPosition(_pos[oldX] + 1, ly);
+            Console.Write($" {lastItem.Text.PadRight(_miw[oldX])} ");
         }
 
         static void MoveUp()
         {
-            _y--;
+            --Y;
 
-            if (_y < 0)
-                _y = MenuItems[_x].Items.Count - 1;
+            if (Y < 0)
+                Y = MenuItems[X].Items.Count - 1;
 
-            while (MenuItems[_x].Items[_y].Text == null)
+            while (MenuItems[X].Items[Y].Text == null)
             {
-                _y--;
+                --Y;
 
-                if (_y < 0)
-                    _y = MenuItems[_x].Items.Count - 1;
+                if (Y < 0)
+                    Y = MenuItems[X].Items.Count - 1;
             }
         }
 
         static void MoveDown()
         {
-            _y++;
+            ++Y;
 
-            if (_y >= MenuItems[_x].Items.Count)
-                _y = 0;
+            if (Y >= MenuItems[X].Items.Count)
+                Y = 0;
 
-            while (MenuItems[_x].Items[_y].Text == null)
+            while (MenuItems[X].Items[Y].Text == null)
             {
-                _y++;
+                ++Y;
 
-                if (_y >= MenuItems[_x].Items.Count)
-                    _y = 0;
+                if (Y >= MenuItems[X].Items.Count)
+                    Y = 0;
             }
         }
 
         static void MoveLeft()
         {
-            _x--;
-            if (_x < 0)
-                _x = MenuItems.Count - 1;
+            --X;
 
-            if (_y >= MenuItems[_x].Items.Count)
+            if (X < 0)
+                X = MenuItems.Count - 1;
+
+            if (Y >= MenuItems[X].Items.Count)
             {
-                _y = MenuItems[_x].Items.Count - 1;
+                Y = MenuItems[X].Items.Count - 1;
             }
         }
 
         static void MoveRight()
         {
-            _x++;
-            if (_x >= MenuItems.Count)
-                _x = 0;
+            ++X;
 
-            if (_y >= MenuItems[_x].Items.Count)
+            if (X >= MenuItems.Count)
+                X = 0;
+
+            if (Y >= MenuItems[X].Items.Count)
             {
-                _y = MenuItems[_x].Items.Count - 1;
+                Y = MenuItems[X].Items.Count - 1;
             }
         }
 
         static void SelectItem()
         {
-            MenuItems[_x].Items[_y].Action?.Invoke();
+            MenuItems[X].Items[Y].Action?.Invoke();
         }
 
         /// <summary>
@@ -407,6 +407,7 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
 
             Console.ResetColor();
             FilePanel.Update();
+            OffsetPanel.Initialize();
             inMenu = false;
         }
 
@@ -417,14 +418,15 @@ $"{Program.Name}\nv{Program.Version}\nCopyright (c) 2015 guitarxhero",
 
         static void ToggleSubMenuColor()
         {
-            Console.ForegroundColor = ConsoleColor.Black;
-            Console.BackgroundColor = ConsoleColor.Gray;
+            Console.ForegroundColor = Console.ForegroundColor.Invert();
+            Console.BackgroundColor = Console.ForegroundColor.Invert();
         }
 
         static void ToggleSelectionColor()
         {
-            Console.ForegroundColor = ConsoleColor.Gray;
-            Console.BackgroundColor = ConsoleColor.Black;
+            Console.ResetColor();
+            /*Console.ForegroundColor = ConsoleColor.Gray;
+            Console.BackgroundColor = ConsoleColor.Black;*/
         }
     }
 

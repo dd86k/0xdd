@@ -11,7 +11,7 @@ namespace _0xdd
         public static void GenerateWindow(
             int width = 27, int height = 12,
             string title = null, string text = null,
-            int left = -1, int top = -1, bool centerText = false)
+            int left = -1, int top = -1)
         {
             // Preparations
 
@@ -50,26 +50,20 @@ namespace _0xdd
 
             if (text != null)
             {
-                Console.SetCursorPosition(left + 1, top + 2);
+                Console.SetCursorPosition(++left, top += 2);
 
                 if (text.Contains("\n"))
                 {
                     string[] lines = text.Split('\n');
-                    for (int i = 0, y = top + 2; i < lines.Length; ++i, ++y)
+                    for (int i = 0; i < lines.Length; ++i, ++top)
                     {
-                        Console.SetCursorPosition(left + 1, y);
-                        if (centerText)
-                            Console.Write(lines[i].Center(width - 1));
-                        else
-                            Console.Write(lines[i]);
+                        Console.SetCursorPosition(left, top);
+                        Console.Write(lines[i].Center(width - 2));
                     }
                 }
                 else
                 {
-                    if (centerText)
-                        Console.Write(text.Center(width - 1));
-                    else
-                        Console.Write(text);
+                    Console.Write(text.Center(width - 2));
                 }
             }
 
@@ -112,7 +106,7 @@ namespace _0xdd
 
                 if (p > 0)
                 {
-                    _0xdd.Goto(--p);
+                    Main0xddApp.Goto(--p);
                     if (p > uint.MaxValue)
                         InfoPanel.Message($"Found {t:X2} at {p:X16}");
                     else
@@ -185,7 +179,7 @@ namespace _0xdd
                     break;
 
                 default:
-                    _0xdd.Goto(t);
+                    Main0xddApp.Goto(t);
                     InfoPanel.Message($"Found at {t:X2}h.");
                     break;
             }
@@ -216,7 +210,7 @@ namespace _0xdd
 
             if (t >= 0 && t <= FilePanel.FileSize - FilePanel.BufferSize)
             {
-                _0xdd.Goto(t);
+                Main0xddApp.Goto(t);
             }
             else
             {
@@ -239,19 +233,19 @@ namespace _0xdd
             switch (c[0])
             {
                 case 'H': case 'h':
-                    _0xdd.OffsetView = OffsetView.Hex;
+                    Main0xddApp.OffsetView = OffsetView.Hex;
                     OffsetPanel.Update();
                     InfoPanel.Update();
                     break;
 
                 case 'O': case 'o':
-                    _0xdd.OffsetView = OffsetView.Oct;
+                    Main0xddApp.OffsetView = OffsetView.Oct;
                     OffsetPanel.Update();
                     InfoPanel.Update();
                     break;
 
                 case 'D': case 'd':
-                    _0xdd.OffsetView = OffsetView.Dec;
+                    Main0xddApp.OffsetView = OffsetView.Dec;
                     OffsetPanel.Update();
                     InfoPanel.Update();
                     break;
@@ -271,8 +265,8 @@ namespace _0xdd
         /// <param name="password">Is password</param>
         /// <returns>User's input</returns>
         /// <remarks>v1.1.1 - 0xdd</remarks>
-        static string ReadLine(int limit, string suggestion = null, bool password = false)
-        { //TODO: Rewrite ReadLine(int) to reduce cyclomatic complexity
+        static string ReadLine(int limit, string suggestion = null)
+        {
             StringBuilder o = new StringBuilder(suggestion ?? string.Empty);
             int index = 0;
             bool ongoing = true;
@@ -348,18 +342,14 @@ namespace _0xdd
                             {
                                 o = o.Remove(index, o.Length - index);
                                 Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', limit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(password ? new string('*', o.Length) : o.ToString());
+                                Console.Write(o.ToString() + new string(' ', limit - o.Length));
                                 Console.SetCursorPosition(oleft + index, otop);
                             }
                             else // Erase one character
                             {
                                 o = o.Remove(index, 1);
                                 Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', limit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(password ? new string('*', o.Length) : o.ToString());
+                                Console.Write(o.ToString() + new string(' ', limit - o.Length));
                                 Console.SetCursorPosition(oleft + index, otop);
                             }
                         }
@@ -371,21 +361,17 @@ namespace _0xdd
                             // Erase whole from index
                             if (c.Modifiers == ConsoleModifiers.Control)
                             {
-                                o = o.Remove(0, index);
+                                o.Remove(0, index);
                                 index = 0;
                                 Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', limit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(password ? new string('*', o.Length) : o.ToString());
+                                Console.Write(o.ToString() + new string(' ', limit - o.Length));
                                 Console.SetCursorPosition(oleft + index, otop);
                             }
                             else // Erase one character
                             {
-                                o = o.Remove(--index, 1);
+                                o.Remove(--index, 1);
                                 Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', limit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(password ? new string('*', o.Length) : o.ToString());
+                                Console.Write(o.ToString() + new string(' ', limit - o.Length));
                                 Console.SetCursorPosition(oleft + index, otop);
                             }
                         }
@@ -396,13 +382,12 @@ namespace _0xdd
                         {
                             char h = c.KeyChar;
 
-                            if (char.IsLetterOrDigit(h) || char.IsPunctuation(h) || char.IsSymbol(h) || char.IsWhiteSpace(h))
+                            if (char.IsLetterOrDigit(h) || char.IsPunctuation(h) ||
+                                char.IsSymbol(h) || char.IsWhiteSpace(h))
                             {
                                 o.Insert(index++, h);
                                 Console.SetCursorPosition(oleft, otop);
-                                Console.Write(new string(' ', limit));
-                                Console.SetCursorPosition(oleft, otop);
-                                Console.Write(password ? new string('*', o.Length) : o.ToString());
+                                Console.Write(o.ToString() + new string(' ', limit - o.Length));
                                 Console.SetCursorPosition(oleft + index, otop);
                             }
                         }
@@ -419,18 +404,20 @@ namespace _0xdd
 
             Console.ResetColor();
 
-            if (t.StartsWith("0x")) // Hexadecimal
-            {
-                return Convert.ToInt64(t, 16);
-            }
-            else if (t[0] == '0') // Octal
-            {
-                return Convert.ToInt64(t, 8);
-            }
-            else // Decimal
-            {
-                return long.Parse(t);
-            }
+            if (t.Length > 0)
+                if (t.StartsWith("0x")) // Hexadecimal
+                {
+                    return Convert.ToInt64(t, 16);
+                }
+                else if (t[0] == '0') // Octal
+                {
+                    return Convert.ToInt64(t, 8);
+                }
+                else // Decimal
+                {
+                    return long.Parse(t);
+                }
+            else return -1;
         }
 
         internal static long GetNumberFromUser(string message, int width = 27, int height = 4, string suggestion = null)

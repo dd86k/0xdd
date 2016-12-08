@@ -66,7 +66,7 @@ namespace _0xdd
         public static void Initialize()
         {
             // Bytes On Screen
-            int bos = (Console.WindowHeight - 3) * _0xdd.BytesPerRow;
+            int bos = (Console.WindowHeight - 3) * Main0xddApp.BytesPerRow;
 
             DisplayBuffer = new byte[FileSize < bos ? FileSize : bos];
             
@@ -101,7 +101,7 @@ namespace _0xdd
 
             //TODO: Check if we can do a little pointer-play with the buffer.
 
-            int d = 0, bpr = _0xdd.BytesPerRow;
+            int d = 0, bpr = Main0xddApp.BytesPerRow;
 
             StringBuilder
                 line = new StringBuilder(width),
@@ -113,7 +113,7 @@ namespace _0xdd
             for (int i = 0; i < DisplayBuffer.Length; i += bpr)
             {
                 line.Clear();
-                switch (_0xdd.OffsetView)
+                switch (Main0xddApp.OffsetView)
                 {
                     default:
                         line.Append($"{pos + i:X8}  ");
@@ -124,7 +124,7 @@ namespace _0xdd
                         break;
 
                     case OffsetView.Oct:
-                        line.Append($"{_0xdd.ToOct(pos + i, 8)}  ");
+                        line.Append($"{Main0xddApp.ToOct(pos + i, 8)}  ");
                         break;
                 }
 

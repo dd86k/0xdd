@@ -28,15 +28,20 @@ namespace _0xdd
 
             if (_msg)
             {
-                Console.SetCursorPosition(0, top);
-                Console.Write(new string(' ', Console.WindowWidth - 1));
+                Clear();
                 _msg = false;
             }
 
             Console.SetCursorPosition(0, top);
-            Console.Write($" DEC:{pos:D8} | HEX:{pos:X8} | OCT:{_0xdd.ToOct(pos, 8)}          ");
+            Console.Write($" DEC:{pos:D8} | HEX:{pos:X8} | OCT:{Main0xddApp.ToOct(pos, 8)}      ");
             Console.SetCursorPosition(Console.WindowWidth - 6, top);
             Console.Write($"{r,3}%");
+        }
+
+        public static void Clear()
+        {
+            Console.SetCursorPosition(0, StartPosition);
+            Console.Write(new string(' ', Console.WindowWidth - 1));
         }
 
         /// <summary>
@@ -45,11 +50,7 @@ namespace _0xdd
         /// <param name="message">Message to show.</param>
         public static void Message(string message)
         {
-            if (_msg)
-            {
-                Console.SetCursorPosition(0, StartPosition);
-                Console.Write(new string(' ', Console.WindowWidth - 1));
-            }
+            Clear();
 
             string msg = $"[ {message} ]";
 

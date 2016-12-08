@@ -53,7 +53,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
   <PropertyGroup>
-    <StartupObject>_0xdd.Program</StartupObject>
+    <StartupObject>
+    </StartupObject>
   </PropertyGroup>
   <PropertyGroup />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Optimized Release|AnyCPU'">
@@ -78,7 +79,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="0xdd.cs" />
+    <Compile Include="Main0xddApp.cs" />
     <Compile Include="DumperModule.cs" />
     <Compile Include="FinderModule.cs" />
     <Compile Include="InfoPanel.cs" />
