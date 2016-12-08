@@ -17,16 +17,16 @@ namespace _0xdd
 
         public static string FormatSizeDecimal(decimal size)
         {
-            if (size > SIZE_TB)
-                return $"{Math.Round(size / SIZE_TB, 2)} TB";
-            else if (size > SIZE_GB)
-                return $"{Math.Round(size / SIZE_GB, 2)} GB";
-            else if (size > SIZE_MB)
-                return $"{Math.Round(size / SIZE_MB, 2)} MB";
-            else if (size > SIZE_KB)
-                return $"{Math.Round(size / SIZE_KB, 2)} KB";
-            else
+            if (size < SIZE_KB)
                 return $"{size} B";
+            else if (size < SIZE_MB)
+                return $"{Math.Round(size / SIZE_KB, 2)} KB";
+            else if (size < SIZE_GB)
+                return $"{Math.Round(size / SIZE_MB, 2)} MB";
+            else if (size < SIZE_TB)
+                return $"{Math.Round(size / SIZE_GB, 2)} GB";
+            else
+                return $"{Math.Round(size / SIZE_TB, 2)} TB";
         }
 
         /// <summary>
@@ -84,12 +84,73 @@ namespace _0xdd
             return new string(t);
         }
 
+        public static int GetBytesInRow() =>
+            ((Console.WindowWidth - 10) / 4) - 1;
+
         public static ConsoleColor Invert(this ConsoleColor cc) =>
             (ConsoleColor)(~(int)cc & 0xF);
 
-        public static int GetBytesInRow()
+        /// <summary>
+        /// Generate a line about the <see cref="ErrorCode"/>
+        /// </summary>
+        /// <param name="code"><see cref="ErrorCode"/></param>
+        /// <returns><see cref="string"/></returns>
+        public static string GetMessage(this ErrorCode code, string arg = null)
         {
-            return ((Console.WindowWidth - 10) / 4) - 1;
+            string m = null;
+
+            switch (code)
+            {
+                case ErrorCode.Success: return m = "OK!";
+
+                case ErrorCode.FileNotFound:
+                    m += "Error: File not found.";
+                    break;
+                case ErrorCode.FileUnreadable:
+                    m += "Error: File not readable.";
+                    break;
+                case ErrorCode.FileAlreadyOpen:
+                    m += "Error: File already open.";
+                    break;
+                case ErrorCode.FileUnauthorized:
+                    m += "Error: Unauthorized to open file.";
+                    break;
+                case ErrorCode.FileZero:
+                    m += "File is of zero length.";
+                    break;
+
+                case ErrorCode.PositionOutOfBound:
+                    m += "Error: Position out of bound.";
+                    break;
+
+                case ErrorCode.DumberCannotWrite:
+                    m += "Error: Could not write to output.";
+                    break;
+                case ErrorCode.DumberCannotRead:
+                    m += "Error: Could not read from input.";
+                    break;
+
+                case ErrorCode.CLI_InvalidOffsetView:
+                    m += $"Invalid parameter for /v : {arg}";
+                    break;
+                case ErrorCode.CLI_InvalidWidth:
+                    m += $"Invalid parameter for /w : {arg}";
+                    break;
+
+                case ErrorCode.UnknownError:
+                    m += "Error: Unknown error.";
+                    break;
+                default:
+                    m += "Error: Unknown error. [default]";
+                    break;
+
+                // The "should not be an app return code" club
+                case ErrorCode.FinderNoResult:
+                case ErrorCode.FinderEmptyString:
+                    break;
+            }
+
+            return m;
         }
     }
 }

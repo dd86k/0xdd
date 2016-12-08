@@ -60,7 +60,8 @@ namespace _0xdd
                                 break;
                             default:
                                 Console.WriteLine(
-                                    GetMessage(ErrorCode.CLI_InvalidOffsetView, args[i + 1])
+                                    ErrorCode.CLI_InvalidOffsetView
+                                    .GetMessage(args[i + 1])
                                 );
 #if DEBUG
                                 Console.ReadLine();
@@ -79,7 +80,8 @@ namespace _0xdd
                             else if (!int.TryParse(args[i + 1], out b))
                             {
                                 Console.WriteLine(
-                                    GetMessage(ErrorCode.CLI_InvalidWidth, args[i + 1])
+                                    ErrorCode.CLI_InvalidWidth
+                                    .GetMessage(args[i + 1])
                                 );
 #if DEBUG
                                 Console.ReadLine();
@@ -114,7 +116,7 @@ namespace _0xdd
                 Console.Write("Dumping file... ");
                 ErrorCode err = Dumper.Dump(entry, Main0xddApp.BytesPerRow, Main0xddApp.OffsetView);
                 
-                Console.WriteLine(GetMessage(err));
+                Console.WriteLine(err.GetMessage());
 
                 return err.ToInt();
             }
@@ -150,69 +152,6 @@ namespace _0xdd
                 return 0;
 #endif
             }
-        }
-
-        /// <summary>
-        /// Generate a line about the <see cref="ErrorCode"/>
-        /// </summary>
-        /// <param name="code"><see cref="ErrorCode"/></param>
-        /// <returns><see cref="string"/></returns>
-        static string GetMessage(this ErrorCode code, string arg = null)
-        {
-            string m = null;
-
-            switch (code)
-            {
-                case ErrorCode.Success: return m = "OK!";
-
-                case ErrorCode.FileNotFound:
-                    m += "Error: File not found.";
-                    break;
-                case ErrorCode.FileUnreadable:
-                    m += "Error: File not readable.";
-                    break;
-                case ErrorCode.FileAlreadyOpen:
-                    m += "Error: File already open.";
-                    break;
-                case ErrorCode.FileUnauthorized:
-                    m += "Error: Unauthorized to open file.";
-                    break;
-                case ErrorCode.FileZero:
-                    m += "File is of zero length.";
-                    break;
-
-                case ErrorCode.PositionOutOfBound:
-                    m += "Error: Position out of bound.";
-                    break;
-
-                case ErrorCode.DumberCannotWrite:
-                    m += "Error: Could not write to output.";
-                    break;
-                case ErrorCode.DumberCannotRead:
-                    m += "Error: Could not read from input.";
-                    break;
-
-                case ErrorCode.CLI_InvalidOffsetView:
-                    m += $"Invalid parameter for /v : {arg}";
-                    break;
-                case ErrorCode.CLI_InvalidWidth:
-                    m += $"Invalid parameter for /w : {arg}";
-                    break;
-
-                case ErrorCode.UnknownError:
-                    m += "Error: Unknown error.";
-                    break;
-                default:
-                    m += "Error: Unknown error. [default]";
-                    break;
-
-                // The "should not be an app return code" club
-                case ErrorCode.FinderNoResult:
-                case ErrorCode.FinderEmptyString:
-                    break;
-            }
-
-            return m;
         }
 
         static void Abort(Exception e)
