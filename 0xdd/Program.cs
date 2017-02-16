@@ -137,12 +137,12 @@ namespace _0xdd
 #else
                 try
                 {
-                    Main0xddApp.Open(entry);
+                    MainApp.Open(entry);
 
-                    if (Main0xddApp.LastError != ErrorCode.Success)
-                        Console.WriteLine(Main0xddApp.LastError.GetMessage());
+                    if (MainApp.LastError != ErrorCode.Success)
+                        Console.WriteLine(MainApp.LastError.GetMessage());
 
-                    return App.LastError.ToInt();
+                    return MainApp.LastError.ToInt();
                 }
                 catch (Exception e)
                 {

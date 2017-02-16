@@ -84,11 +84,13 @@ namespace _0xdd
             return new string(t);
         }
 
-        public static int GetBytesInRow() =>
+        public static int BytesInRow =>
             ((Console.WindowWidth - 10) / 4) - 1;
 
-        public static ConsoleColor Invert(this ConsoleColor cc) =>
-            (ConsoleColor)(~(int)cc & 0xF);
+        public static ConsoleColor Invert(this ConsoleColor cc)
+        {
+            return (ConsoleColor)(~(byte)cc & 0xF);
+        }
 
         /// <summary>
         /// Generate a line about the <see cref="ErrorCode"/>

@@ -118,7 +118,7 @@ namespace _0xdd
                         Dialog.GenerateWindow(
                             title: "About",
                             text:
-$"{Program.Name} v{Program.Version}\nCopyright (c) 2015-2017 dd86k",
+$"{Program.Name} v{Program.Version}\nCopyright (c)  2015-2017 dd86k",
                             width: 36,
                             height: 5
                         );
@@ -423,8 +423,10 @@ $"{Program.Name} v{Program.Version}\nCopyright (c) 2015-2017 dd86k",
 
         static void ToggleSubMenuColor()
         {
-            Console.ForegroundColor = Console.ForegroundColor.Invert();
-            Console.BackgroundColor = Console.ForegroundColor.Invert();
+            Console.ForegroundColor = ConsoleColor.Black;
+            Console.BackgroundColor = ConsoleColor.Gray;
+            //Console.ForegroundColor = Console.ForegroundColor.Invert();
+            //Console.BackgroundColor = Console.ForegroundColor.Invert();
         }
 
         static void ToggleSelectionColor()
