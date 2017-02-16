@@ -33,7 +33,7 @@ namespace _0xdd
             }
 
             Console.SetCursorPosition(0, top);
-            Console.Write($" DEC:{pos:D8} | HEX:{pos:X8} | OCT:{Main0xddApp.ToOct(pos, 8)}      ");
+            Console.Write($" DEC:{pos:D8} | HEX:{pos:X8} | OCT:{MainApp.ToOct(pos, 8)}      ");
             Console.SetCursorPosition(Console.WindowWidth - 6, top);
             Console.Write($"{r,3}%");
         }
@@ -71,6 +71,13 @@ namespace _0xdd
         {
             Console.ForegroundColor = ConsoleColor.Black;
             Console.BackgroundColor = ConsoleColor.Gray;
+        }
+
+        public static void DisplayFileInfo()
+        {
+            Message(
+                $"{FilePanel.File.Name} {Utils.GetEntryInfo(FilePanel.File)} {Utils.FormatSize(FilePanel.FileSize)}"
+            );
         }
     }
 }

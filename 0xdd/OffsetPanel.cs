@@ -13,7 +13,7 @@ namespace _0xdd
         public static void Initialize()
         {
             Console.SetCursorPosition(0, TopPosition);
-            Console.Write($"Offset {Main0xddApp.OffsetView.GetChar()}  ");
+            Console.Write($"Offset {MainApp.OffsetView.GetChar()}  ");
         }
 
         public static void Draw()
@@ -32,20 +32,20 @@ namespace _0xdd
             if (FilePanel.CurrentPosition > uint.MaxValue)
                 t.Append(' ');
 
-            switch (Main0xddApp.OffsetView)
+            switch (MainApp.OffsetView)
             {
                 default:
-                    for (int i = 0; i < Main0xddApp.BytesPerRow; ++i)
+                    for (int i = 0; i < MainApp.BytesPerRow; ++i)
                         t.Append($"{i:X2} ");
                     break;
 
                 case OffsetView.Dec:
-                    for (int i = 0; i < Main0xddApp.BytesPerRow; ++i)
+                    for (int i = 0; i < MainApp.BytesPerRow; ++i)
                         t.Append($"{i:D2} ");
                     break;
 
                 case OffsetView.Oct:
-                    for (int i = 0; i < Main0xddApp.BytesPerRow; ++i)
+                    for (int i = 0; i < MainApp.BytesPerRow; ++i)
                         t.Append($"{i.ToOct(2)} ");
                     break;
             }

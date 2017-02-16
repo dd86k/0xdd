@@ -79,7 +79,7 @@
     <Reference Include="System" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Main0xddApp.cs" />
+    <Compile Include="MainApp.cs" />
     <Compile Include="DumperModule.cs" />
     <Compile Include="FinderModule.cs" />
     <Compile Include="InfoPanel.cs" />

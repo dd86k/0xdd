@@ -86,7 +86,7 @@ namespace _0xdd
                         break;
 
                     case OffsetView.Oct:
-                        line = new StringBuilder($"{Main0xddApp.ToOct(offset, 8)}  ");
+                        line = new StringBuilder($"{MainApp.ToOct(offset, 8)}  ");
                         break;
                 }
 

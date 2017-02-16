@@ -43,12 +43,12 @@ namespace _0xdd
                     new MenuItem("Dump", () => {
                         Exit();
                         InfoPanel.Message("Dumping...");
-                        Dumper.Dump(FilePanel.File.FullName, Main0xddApp.BytesPerRow, Main0xddApp.OffsetView);
+                        Dumper.Dump(FilePanel.File.FullName, MainApp.BytesPerRow, MainApp.OffsetView);
                         InfoPanel.Message("Done");
                     }),
                     new MenuItem(),
                     new MenuItem("Exit", () => {
-                        inMenu = false; Main0xddApp.Exit();
+                        inMenu = false; MainApp.Exit();
                     })
                 ),/*
                 new MenuItem("Edit", null,
@@ -75,6 +75,11 @@ namespace _0xdd
                         Dialog.PromptOffset();
                     }),
                     new MenuItem(),
+                    new MenuItem("File info", () => {
+                        Exit();
+                        InfoPanel.DisplayFileInfo();
+                    }),
+                    new MenuItem(),
                     new MenuItem("Refresh", () => {
                         Exit();
                         FilePanel.Refresh();
@@ -95,7 +100,7 @@ namespace _0xdd
                         Exit();
                         new Window("Goto", new Control[] {
                             new Label("Hello World!", 1, 1),
-                            new Button("OK", 12, 3, action: () => { Main0xddApp.Goto(0xdd); })
+                            new Button("OK", 12, 3, action: () => { MainApp.Goto(0xdd); })
                         }).Show();
                     }),
                     new MenuItem("Preferences...", () => {
@@ -113,7 +118,7 @@ namespace _0xdd
                         Dialog.GenerateWindow(
                             title: "About",
                             text:
-$"{Program.Name} v{Program.Version}\nCopyright (c) dd86k  2015-2016",
+$"{Program.Name} v{Program.Version}\nCopyright (c) 2015-2017 dd86k",
                             width: 36,
                             height: 5
                         );

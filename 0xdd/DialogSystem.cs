@@ -106,7 +106,7 @@ namespace _0xdd
 
                 if (p > 0)
                 {
-                    Main0xddApp.Goto(--p);
+                    MainApp.Goto(--p);
                     if (p > uint.MaxValue)
                         InfoPanel.Message($"Found {t:X2} at {p:X16}");
                     else
@@ -179,7 +179,7 @@ namespace _0xdd
                     break;
 
                 default:
-                    Main0xddApp.Goto(t);
+                    MainApp.Goto(t);
                     InfoPanel.Message($"Found at {t:X2}h.");
                     break;
             }
@@ -210,7 +210,7 @@ namespace _0xdd
 
             if (t >= 0 && t <= FilePanel.FileSize - FilePanel.BufferSize)
             {
-                Main0xddApp.Goto(t);
+                MainApp.Goto(t);
             }
             else
             {
@@ -233,19 +233,19 @@ namespace _0xdd
             switch (c[0])
             {
                 case 'H': case 'h':
-                    Main0xddApp.OffsetView = OffsetView.Hex;
+                    MainApp.OffsetView = OffsetView.Hex;
                     OffsetPanel.Update();
                     InfoPanel.Update();
                     break;
 
                 case 'O': case 'o':
-                    Main0xddApp.OffsetView = OffsetView.Oct;
+                    MainApp.OffsetView = OffsetView.Oct;
                     OffsetPanel.Update();
                     InfoPanel.Update();
                     break;
 
                 case 'D': case 'd':
-                    Main0xddApp.OffsetView = OffsetView.Dec;
+                    MainApp.OffsetView = OffsetView.Dec;
                     OffsetPanel.Update();
                     InfoPanel.Update();
                     break;

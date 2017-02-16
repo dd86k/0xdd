@@ -38,8 +38,8 @@ namespace _0xdd
             
             // Defaults
             string entry = args[args.Length - 1];
-            Main0xddApp.BytesPerRow = 0;
-            Main0xddApp.OffsetView = OffsetView.Hex;
+            MainApp.BytesPerRow = 0;
+            MainApp.OffsetView = OffsetView.Hex;
             bool dump = false;
 
             for (int i = 0; i < args.Length; ++i)
@@ -50,13 +50,13 @@ namespace _0xdd
                         switch (args[i + 1][0])
                         {
                             case 'h': case 'H':
-                                Main0xddApp.OffsetView = OffsetView.Hex;
+                                MainApp.OffsetView = OffsetView.Hex;
                                 break;
                             case 'd': case 'D':
-                                Main0xddApp.OffsetView = OffsetView.Dec;
+                                MainApp.OffsetView = OffsetView.Dec;
                                 break;
                             case 'o': case 'O':
-                                Main0xddApp.OffsetView = OffsetView.Oct;
+                                MainApp.OffsetView = OffsetView.Oct;
                                 break;
                             default:
                                 Console.WriteLine(
@@ -72,10 +72,10 @@ namespace _0xdd
 
                     case "-w": case "/w":
                         {
-                            int b = Main0xddApp.BytesPerRow;
+                            int b = MainApp.BytesPerRow;
                             if (char.ToLower(args[i + 1][0]) != 'a') // Automatic, in case to overwrite settings
                             {
-                                Main0xddApp.BytesPerRow = 0;
+                                MainApp.BytesPerRow = 0;
                             }
                             else if (!int.TryParse(args[i + 1], out b))
                             {
@@ -88,7 +88,7 @@ namespace _0xdd
 #endif
                                 return ErrorCode.CLI_InvalidWidth.ToInt();
                             }
-                            Main0xddApp.BytesPerRow = b;
+                            MainApp.BytesPerRow = b;
                         }
                         break;
 
@@ -114,7 +114,7 @@ namespace _0xdd
             if (dump)
             {
                 Console.Write("Dumping file... ");
-                ErrorCode err = Dumper.Dump(entry, Main0xddApp.BytesPerRow, Main0xddApp.OffsetView);
+                ErrorCode err = Dumper.Dump(entry, MainApp.BytesPerRow, MainApp.OffsetView);
                 
                 Console.WriteLine(err.GetMessage());
 
@@ -124,9 +124,9 @@ namespace _0xdd
             {
 #if DEBUG
                 // I want Visual Studio to catch the exceptions!
-                Main0xddApp.Open(entry);
+                MainApp.Open(entry);
 
-                ErrorCode e = Main0xddApp.LastError;
+                ErrorCode e = MainApp.LastError;
 
                 Console.Clear();
                 Console.WriteLine(
