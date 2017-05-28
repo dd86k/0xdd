@@ -4,6 +4,9 @@
 
 Inspired by EDIT (MS-DOS), 0xdd is a simple, interactive, hexadecimal file viewer for Windows.
 
+### Warning
+This project has been abandoned in favour of [ddhx](https://github.com/dd86k/ddhx).
+
 # Features
 - Lightweight: Consumes as little as 1,976 KB (and up to 7,160 KB)
 - Fast: Fast rendering while using extremely little CPU resources
